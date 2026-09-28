@@ -1,0 +1,13 @@
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #142c35; background: #f1f6f5; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; }
+.shell { max-width: 760px; margin: 0 auto; padding: clamp(48px, 10vw, 120px) 24px; }
+.eyebrow { color: #287473; font-size: 12px; font-weight: 700; letter-spacing: .16em; }
+h1 { margin: 18px 0 12px; font-size: clamp(40px, 7vw, 64px); letter-spacing: -.04em; }
+.intro { color: #4a6068; font-size: 18px; line-height: 1.7; }
+.status-card { margin-top: 48px; padding: 28px; border-radius: 16px; background: #fff; box-shadow: 0 12px 40px #173c3b12; }
+.status-card h2 { margin: 0 0 18px; font-size: 18px; }
+.status-card p { margin: 0; color: #8b4a30; }
+.status-card .healthy { color: #16745e; }
+button { margin-top: 18px; border: 0; border-radius: 8px; padding: 10px 16px; background: #176d6a; color: #fff; font: inherit; cursor: pointer; }
+button:hover { background: #0c5552; }
