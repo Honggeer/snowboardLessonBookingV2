@@ -1,6 +1,6 @@
 ---
 document: project-contract
-version: 1.3
+version: 1.4
 status: active
 updated: 2026-09-29
 ---
@@ -32,7 +32,7 @@ updated: 2026-09-29
 
 已确认：Java 后端、MySQL、AWS EC2、预算目标 30 CAD/月、前后端分离、初期同机部署、模块化单体与六边形架构、每项新功能必须维护功能 Markdown 和独立实施计划，计划由用户 review 后实施，完成后同步状态与证据。
 
-工程底座 0001 revision 2 已获用户批准：Java 25 / Spring Boot 4.1.1、TypeScript + React/Vite、MyBatis/Flyway、NGINX 本地容器。身份功能 0002 revision 2 已获用户批准并完成本地实现：按 GEER 蓝色稿呈现页面、密码范围 8–128 个 Unicode 字符；本地邮件沙箱仅供开发验证，页面最终视觉待用户确认。实际版本、运行验证与限制分别以 [0001](implement-plan/0001-project-foundation.md) 和 [0002](implement-plan/0002-student-identity.md) 实施计划为准。宣传媒体 S3 + CloudFront 仍属规划，未创建资源。
+工程底座 0001 revision 2 已获用户批准：Java 25 / Spring Boot 4.1.1、TypeScript + React/Vite、MyBatis/Flyway、NGINX 本地容器。身份功能 0002 revision 2 已获用户批准并完成本地验证：按 GEER 蓝色稿呈现页面、密码范围 8–128 个 Unicode 字符；用户已确认页面视觉并关闭 TODO-0010。本地邮件沙箱仅供开发验证。实际版本、运行验证与限制分别以 [0001](implement-plan/0001-project-foundation.md) 和 [0002](implement-plan/0002-student-identity.md) 实施计划为准。宣传媒体 S3 + CloudFront 仍属规划，未创建资源。
 
 待定业务规则：提交预约是否直接确认、待确认是否占位、课程人数/容量、可变课程时长、同日跨雪场限制、取消期限、自动完成课程、课程包与支付方式。复用 v1 的业务规则时先核对实现与测试，再由功能计划明确采用的语义；发现缺陷或不确定规则不得直接复制为新项目规范。
 
@@ -48,6 +48,7 @@ updated: 2026-09-29
 | ARCH-06 | 必须显式区分 API DTO、用例输入/输出、领域对象与数据库记录；不得将数据库记录作为业务模型或直接返回前端。简单内部映射无需为了形式额外创建接口。 |
 | ARCH-07 | 时间、ID、邮件、对象存储和持久化等真实外部依赖通过小而明确的端口隔离；不得机械地给每个类添加接口、空实现或多层转发。 |
 | ARCH-08 | 首个 v2 后端骨架必须加入可执行架构检查，覆盖依赖方向、domain 外部依赖、模块 API 与循环依赖；可采用 ArchUnit。 |
+| ARCH-09 | 架构测试必须扫描生产类并按稳定的违规身份分类追踪。新增违规先修复；确需暂留时，每条登记精确身份、具体理由、关联已批准计划/ADR 或 ticket、消除条件及代码旁的解释性注释，并将对应类别显式基线数字加 1。修复后删条目、数字减 1。测试须拒绝未登记、同数量替换、仅改数字、缺少理由及过期登记；例外不自行改变 ARCH/DEP 硬约束或计划 review 门槛。 |
 
 初期部署单元：NGINX/前端静态文件容器、Spring Boot 容器、MySQL 容器，位于一台 EC2；通知执行器先属于同一 Java 应用。媒体存储与分发使用独立云能力。服务端构建在 CI 完成，EC2 拉取版本化镜像运行。
 

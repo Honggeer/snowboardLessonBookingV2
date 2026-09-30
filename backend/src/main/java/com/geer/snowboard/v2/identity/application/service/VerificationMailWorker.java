@@ -1,5 +1,6 @@
 package com.geer.snowboard.v2.identity.application.service;
 
+import com.geer.snowboard.v2.identity.application.port.in.VerificationMailOperations;
 import com.geer.snowboard.v2.identity.application.port.out.VerificationMailQueue;
 import com.geer.snowboard.v2.identity.application.port.out.VerificationMailSender;
 import com.geer.snowboard.v2.identity.application.port.out.VerificationTokenCodec;
@@ -8,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-public class VerificationMailWorker {
+public class VerificationMailWorker implements VerificationMailOperations {
     private final VerificationMailQueue queue;
     private final VerificationMailSender sender;
     private final VerificationTokenCodec tokens;
@@ -25,6 +26,7 @@ public class VerificationMailWorker {
         this.publicUrl = publicUrl.replaceAll("/+$", "");
     }
 
+    @Override
     public void runOnce() {
         for (int index = 0; index < 10; index++) {
             VerificationMailQueue.Task task = queue.claim(clock.instant());
@@ -44,5 +46,6 @@ public class VerificationMailWorker {
         }
     }
 
+    @Override
     public void cleanup() { queue.cleanup(clock.instant()); }
 }

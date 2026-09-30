@@ -1,7 +1,7 @@
 ---
 id: "0002"
 title: "学员注册、邮箱验证与账号登录"
-status: IMPLEMENTED
+status: VERIFIED
 plan: "../implement-plan/0002-student-identity.md"
 created: 2026-09-28
 updated: 2026-09-29
@@ -11,7 +11,7 @@ modules: [identity, frontend]
 
 # 0002 — 学员注册、邮箱验证与账号登录
 
-关联[实施计划 0002](../implement-plan/0002-student-identity.md)。revision 1 曾按 RED/GREEN 实现并通过本地验证；用户随后要求页面按已选视觉稿呈现，并把密码下限改为 8 位。revision 2 已获用户批准且完成本地实现与技术检查，页面视觉仍待用户看实际截图确认；未生产发布。
+关联[实施计划 0002](../implement-plan/0002-student-identity.md)。revision 1 曾按 RED/GREEN 实现并通过本地验证；用户随后要求页面按已选视觉稿呈现，并把密码下限改为 8 位。revision 2 已获用户批准且完成本地实现与技术检查；用户已确认关闭视觉 ticket，当前本地验收状态为 VERIFIED，未生产发布。
 
 ## 1. 目标、触发与范围
 
@@ -32,7 +32,7 @@ modules: [identity, frontend]
 | AC-03 | 未验证、错误密码、未知邮箱及已验证账号登录 | 仅已验证且凭据正确的账号获取会话；失败响应不泄漏账号存在性 | API、安全测试 | 通过：IdentityFlowTest、IdentityApiTest、IdentityLoginTimingTest；对外使用统一错误文案，未知邮箱也执行密码比对 |
 | AC-04 | 有效会话下刷新、退出、过期、后台重启 | 会话按批准的存储/超时规则恢复或失效；退出后旧会话不可再用 | API、浏览器、真实 MySQL | 通过：JDBC Session、30 分钟闲置/12 小时上限测试、Compose 后端重启冒烟 |
 | AC-05 | 跨站写请求、缺失/失效 CSRF、固定旧 Session ID | 写请求被拒绝；登录后 Session ID 更换；认证 Cookie 安全属性正确 | 安全测试、实际 HTTP 响应 | 通过：IdentityApiTest 浏览器 token、Session ID 轮换、旧 CSRF 拒绝；本地 Cookie HttpOnly/SameSite=Lax，正式 HTTPS 待部署验证 |
-| AC-06 | 手机、平板和电脑端完成注册、验证、登录、退出 | 桌面登录页在 1672×941 对照蓝色桌面稿还原锐角 GEER 图形字标、明亮概念雪景、蓝色刻滑线、斜切白色分界、右侧标题/表单/页脚的比例与位置；手机登录/注册分别对照对应移动稿，注册照片下缘渐变；真实表单与状态可交互、可访问、无横向溢出 | 前端交互与构建、目标视口截图对照、键盘与触控检查 | revision 2 前端 7 测试及构建/typecheck/lint 通过；Chrome 360/390/768/1440/1672px 无横向溢出，桌面与移动截图已对照；用户视觉确认待完成 |
+| AC-06 | 手机、平板和电脑端完成注册、验证、登录、退出 | 桌面登录页在 1672×941 对照蓝色桌面稿还原锐角 GEER 图形字标、明亮概念雪景、蓝色刻滑线、斜切白色分界、右侧标题/表单/页脚的比例与位置；手机登录/注册分别对照对应移动稿，注册照片下缘渐变；真实表单与状态可交互、可访问、无横向溢出 | 前端交互与构建、目标视口截图对照、键盘与触控检查 | revision 2 前端 7 测试及构建/typecheck/lint 通过；Chrome 360/390/768/1440/1672px 无横向溢出，桌面与移动截图已对照；用户确认可关闭 TODO-0010 |
 | AC-07 | 高频登录/重发验证请求、邮件发送失败 | 按批准阈值限制滥用；发送失败可恢复，不能把失败显示成已送达 | API、故障注入 | 通过：MySQL 限流、MailWorkerTest 失败/退避/旧任务抑制、Mailpit SMTP 冒烟；真实 Gmail 待上线验证 |
 | AC-08 | 教练账号登录、学员尝试提交教练角色 | 仅私下初始化的教练可按教练身份登录；公开注册始终建立学员身份 | API、真实 MySQL | 通过：唯一教练/验证后登录/公开提权 API 测试、初始化命令单元测试及非 Web 整应用启动集成测试；实际教练账号由用户私下创建 |
 | AC-09 | 注册与教练私下初始化使用 7、8、128、129 个 Unicode 字符的密码 | 7 与 129 拒绝；8 与 128 接受；前后端边界一致，既有较长密码仍可登录；无字符类别限制 | domain/API、前端交互、真实 MySQL 回归 | domain 与前端边界测试通过；真实 MySQL API 验证 7 拒绝、8 注册/验证/登录；全量回归含既有长密码登录 |
@@ -54,7 +54,7 @@ modules: [identity, frontend]
 
 | 决策或待验证事项 | 已批准值与当前状态 | 影响范围 | 是否阻塞本地验证 | 用户决定/已授权依据 |
 |---|---|---|---|---|
-| revision 2 视觉目标 | [电脑稿](../design/0002-geer-blue-desktop.png)为桌面登录页明确目标，[手机登录稿](../design/0002-geer-blue-mobile-login.png)和[手机注册修订稿](../design/0002-geer-blue-mobile-register-v2.png)为移动目标；按稿中概念照片和锐角 GEER 字标呈现。用户原始照片保留在设计目录作为来源记录 | 桌面精度、注册桌面延展、移动响应式 | 本地实现与截图检查完成，待用户确认最终视觉 | 用户本次明确要求与样板一致，并选择概念图照片，批准 revision 2 |
+| revision 2 视觉目标 | [电脑稿](../design/0002-geer-blue-desktop.png)为桌面登录页明确目标，[手机登录稿](../design/0002-geer-blue-mobile-login.png)和[手机注册修订稿](../design/0002-geer-blue-mobile-register-v2.png)为移动目标；按稿中概念照片和锐角 GEER 字标呈现。用户原始照片保留在设计目录作为来源记录 | 桌面精度、注册桌面延展、移动响应式 | 本地实现与截图检查完成，用户确认关闭 TODO-0010 | 用户本次明确要求与样板一致，并选择概念图照片，批准 revision 2；2026-09-29 确认可结案 |
 | 正式验证邮件发送 | 按 v1 的 Gmail SMTP 587/STARTTLS 协议提供独立 v2 配置；本地通过 Mailpit，正式应用密码与送达未验证 | 真实邮件交付与上线 | 否；上线前需验证 | 用户：“可以按照v1的那种吗？”、批准 0002 revision 1 |
 | 本次教练登录 | 学员与唯一教练都能登录；教练由用户私下初始化、禁止公开注册；命令与唯一性已测试 | 角色/API/初始化 | 否；实际教练账号由用户创建 | 用户选择“学员和教练都能登录，教练账号由我私下初始化” |
 | Session 与验证时效 | 30 分钟闲置、12 小时绝对上限、24 小时验证链接；不设长期记住 | 安全与体验 | 否 | 用户批准 0002 revision 1 |
@@ -109,7 +109,7 @@ modules: [identity, frontend]
 - [x] 获批后先建测试，运行有效 RED；再实现至同一用例 GREEN。
 - [x] 完成实现、回归、文档与证据更新。
 - [x] 用户明确批准 revision 2，按 RED/GREEN 完成视觉还原和密码 8–128 字符变更。
-- [ ] 用户看实际页面或截图后确认最终视觉；然后完成 [TODO-0010](../todo/0010-identity-visual-mismatch.md) 的结案。
+- [x] 用户看实际页面或截图后确认最终视觉；完成 [TODO-0010](../todo/0010-identity-visual-mismatch.md) 的结案。
 
 | 日期 | 实际变更/文件 | 理由及与计划的差异 |
 |---|---|---|
@@ -127,7 +127,8 @@ modules: [identity, frontend]
 | 2026-09-28 | Node 24 / Chrome / 390–1440px | `npm test`、`npm run typecheck`、`npm run build`、`npm run lint`；Chrome 360/390/768/1440px 截图、键盘选水平 | 4 前端测试通过，构建/lint/typecheck 通过；无横向溢出 | 浏览器人工核对不替代正式设计验收 |
 | 2026-09-28 | 本地 Compose + Mailpit | `python3 deploy/smoke.py`、`python3 deploy/smoke_identity.py`、`SMOKE_RESTART_BACKEND=1 python3 deploy/smoke_identity.py` | 图片可访问；SMTP 收件、验证、登录、重启后 Session 恢复、退出通过 | 正式 Gmail/HTTPS/EC2 未验证 |
 | 2026-09-29 | Java 25 / Colima MySQL 8.4 | `./mvnw -q -Dtest=RegistrationTest test` RED→GREEN；`./mvnw -q test`；新增 8 字符 `IdentityApiTest` 单独运行 | 14 套件、36 测试 0 failure/error；新增真实 MySQL API 测试验证 7 拒绝、8 注册/验证/登录 | 全量回归后添加 API 用例并单独通过；正式 Gmail/HTTPS/EC2 未验证 |
-| 2026-09-29 | Node 24 / Chrome 360–1672px | `npm test -- --run` RED→`npm test` GREEN；`npm run typecheck`、`npm run lint`、`npm run build`；桌面/手机截图与宽度检查 | 7 前端测试及构建/typecheck/lint 通过；桌面/手机无横向溢出，[桌面实际图](../design/0002-implemented-desktop-login.png)、[手机登录实际图](../design/0002-implemented-mobile-login.png)、[手机注册实际图](../design/0002-implemented-mobile-register.png) | 长页面可纵向滚动；视觉满意度待用户确认 |
+| 2026-09-29 | Node 24 / Chrome 360–1672px | `npm test -- --run` RED→`npm test` GREEN；`npm run typecheck`、`npm run lint`、`npm run build`；桌面/手机截图与宽度检查 | 7 前端测试及构建/typecheck/lint 通过；桌面/手机无横向溢出，[桌面实际图](../design/0002-implemented-desktop-login.png)、[手机登录实际图](../design/0002-implemented-mobile-login.png)、[手机注册实际图](../design/0002-implemented-mobile-register.png) | 长页面可纵向滚动；用户随后确认关闭视觉 ticket |
+| 2026-09-29 | 用户对话 | 用户明确回复“todo 10可以关了” | TODO-0010 完成判定中的用户视觉确认已满足 | 不表示生产发布 |
 
 - 各切片 RED/GREEN 的实际命令、失败原因与绿灯见配对实施计划第 8 节。
 
@@ -138,4 +139,4 @@ modules: [identity, frontend]
 
 ## 11. 交付状态与后续
 
-- 当前 IMPLEMENTED：revision 2 已完成本地实现和技术检查，等待用户确认[桌面与手机实际截图](../implement-plan/0002-student-identity.md#8-实际验证证据)的最终视觉；[TODO-0010](../todo/0010-identity-visual-mismatch.md)暂保持 IN_PROGRESS。真实 Gmail 投递、HTTPS 与 EC2 资源表现仍需实际环境验证；密码找回见 [TODO-0008](../todo/0008-password-recovery.md)。
+- 当前 VERIFIED：revision 2 已完成本地实现和技术检查，用户确认[桌面与手机实际截图](../implement-plan/0002-student-identity.md#8-实际验证证据)的视觉结果并关闭 [TODO-0010](../todo/0010-identity-visual-mismatch.md)。真实 Gmail 投递、HTTPS 与 EC2 资源表现仍需实际环境验证；密码找回见 [TODO-0008](../todo/0008-password-recovery.md)。

@@ -46,4 +46,6 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 ./mvnw test
 ```
 
+架构测试位于 `src/test/java/com/geer/snowboard/v2/architecture/`。`ArchitectureTest` 扫描实际生产类，并通过 `ArchitectureBaseline` 将违规分为 `DOMAIN_PURITY`、`PORT_PURITY`、`APPLICATION_BOUNDARY`、`INBOUND_BOUNDARY`、`CROSS_MODULE_INTERNAL`、`MODULE_CYCLE`。`BASELINE` 显式列出每类数字，初始全为 0；`EXCEPTIONS` 保存逐条精确身份。新增违规先修复；需要暂留时按 [项目契约 ARCH-09](../ai-docs/PROJECT_CONTRACT.md) 记录理由、关联计划/ADR 或 ticket、消除条件及代码旁注释，再为每条对应类别数字加 1。修复时同步移除条目并减 1。定向运行：`./mvnw -q -Dtest=ArchitectureBaselineTest,ArchitectureTest test`。
+
 对外身份 API 见 [0002 功能文档](../ai-docs/features/0002-student-identity.md)。所有写请求需先通过 `GET /api/auth/csrf` 获取 token；登录后与退出后重新获取。Session 为服务端 MySQL 持久化，闲置 30 分钟、登录后绝对上限 12 小时。浏览器不保存认证密钥到 localStorage。

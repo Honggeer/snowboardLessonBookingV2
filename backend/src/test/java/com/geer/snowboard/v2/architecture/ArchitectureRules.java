@@ -2,7 +2,6 @@ package com.geer.snowboard.v2.architecture;
 
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
 import com.tngtech.archunit.core.domain.Dependency;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -10,7 +9,6 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
-import java.util.List;
 import java.util.Set;
 
 final class ArchitectureRules {
@@ -21,17 +19,6 @@ final class ArchitectureRules {
             "notifications", "media");
 
     private ArchitectureRules() {}
-
-    static List<ArchRule> all() {
-        return List.of(
-                domainAndPortsArePure(),
-                noClasses().that().resideInAPackage("..application..")
-                        .should().dependOnClassesThat().resideInAPackage("..adapter.."),
-                noClasses().that().resideInAPackage("..adapter.in..")
-                        .should().dependOnClassesThat().resideInAPackage("..adapter.out.."),
-                onlyPublishedModuleApis(),
-                slices().matching("com.geer.snowboard.v2.(*)..").should().beFreeOfCycles());
-    }
 
     static ArchRule domainAndPortsArePure() {
         return noClasses().that().resideInAnyPackage("..domain..", "..application.port..")

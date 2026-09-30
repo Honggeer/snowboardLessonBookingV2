@@ -1,6 +1,6 @@
 package com.geer.snowboard.v2.identity.adapter.in.web;
 
-import com.geer.snowboard.v2.identity.application.service.IdentityService;
+import com.geer.snowboard.v2.identity.application.port.in.RateLimited;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,7 +14,7 @@ public class IdentityProblemHandler {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> invalid() { return problem(HttpStatus.BAD_REQUEST, "Invalid request", "请检查输入内容"); }
 
-    @ExceptionHandler(IdentityService.RateLimited.class)
+    @ExceptionHandler(RateLimited.class)
     public ResponseEntity<Map<String, Object>> limited() { return problem(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", "操作太频繁，请稍后再试"); }
 
     @ExceptionHandler(ResponseStatusException.class)

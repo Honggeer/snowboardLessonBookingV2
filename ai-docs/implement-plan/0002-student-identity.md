@@ -1,7 +1,7 @@
 ---
 id: "0002"
 title: "学员注册、邮箱验证与账号登录"
-status: IMPLEMENTED
+status: VERIFIED
 revision: 2
 approved_revision: 2
 created: 2026-09-28
@@ -59,7 +59,7 @@ Gmail 新应用密码由用户私下配置；本计划不要求在对话里提�
 | 2026-09-28 | 用户：“开始实现，没问题，design里没必要的图片可以删掉了，开发的时候注意六边形架构” | 1 | 批准本计划学员/教练登录注册、邮箱验证、安全 Session、响应式 GEER 设计与所列安全参数；清理弃用设计稿，严格保持模块内六边形架构。未授权生产部署、付费资源或 Git commit/push。 |
 | 2026-09-29 | 用户在收到具体 revision 2 计划链接、视觉/密码范围和验收摘要后回复：“批准” | 2 | 批准概念稿视觉用于桌面/手机身份页面、同视觉系统延展桌面注册及密码范围 8–128；按先 RED 后 GREEN 实施。未授权生产发布、付费资源或 Git commit/push。 |
 
-当前 `approved_revision: 2`，revision 2 已完成本地实现及技术检查，等待用户对页面视觉结果确认。2026-09-28 的批准适用于 revision 1；本次批准适用于上方明列的 revision 2 范围。
+当前 `approved_revision: 2`，revision 2 已完成本地实现及技术检查。用户于 2026-09-29 回复“todo 10可以关了”，确认视觉验收并同意关闭 TODO-0010。2026-09-28 的批准适用于 revision 1；2026-09-29 的 revision 2 批准适用于上方明列范围。
 
 ## 3. 实现步骤与预计文件
 
@@ -72,9 +72,9 @@ Gmail 新应用密码由用户私下配置；本计划不要求在对话里提�
 | P-04 | 邮件 out adapter/任务执行器、本地邮件沙箱配置、API/故障测试 | 注册事务保存投递任务，提交后有界领取/发送/退避重试；进程重启恢复，重发使旧任务失效；不保存原始验证密钥，不复制 v1 凭据 | 邮件被本地沙箱接收；故障和中断可恢复 | 完成，本地 Mailpit 验证 |
 | P-05 | frontend/src、交互测试、样式、用户原始照片 | 按最终批准方向做登录/注册/待验证/验证结果、会话恢复及退出；桌面左右分区，手机上下重排，注册手机照片区更短，登录与注册照片下缘均渐变至白色表单区；真实照片按视口裁切不改写 | 手机/平板/电脑、键盘、照片焦点与状态交互通过 | 完成 |
 | P-06 | 文档、索引、配置示例 | 记录实际文件、RED/GREEN 命令与结果、环境配置、风险及差异 | 文档检查通过、状态一致 | 完成 |
-| P-07（revision 2） | `frontend/src/App.test.tsx`、`frontend/src/App.tsx`、`frontend/src/style.css`、已有设计图 | 先以可交互页面结构和稿件关键要素写新测试并确认 RED；再以概念稿品牌视觉与真实表单还原桌面登录/注册、手机登录/注册及其余身份状态 | 同一测试 GREEN，目标视口截图与样稿逐项核对，键盘/触控可用 | 实现完成；桌面/手机截图已核对，待用户视觉确认 |
+| P-07（revision 2） | `frontend/src/App.test.tsx`、`frontend/src/App.tsx`、`frontend/src/style.css`、已有设计图 | 先以可交互页面结构和稿件关键要素写新测试并确认 RED；再以概念稿品牌视觉与真实表单还原桌面登录/注册、手机登录/注册及其余身份状态 | 同一测试 GREEN，目标视口截图与样稿逐项核对，键盘/触控可用 | 完成；桌面/手机截图已核对，用户确认关闭视觉 ticket |
 | P-08（revision 2） | `backend/src/test/.../RegistrationTest.java`、`frontend/src/App.test.tsx`、`Registration.java`、`App.tsx` | 先加 7/8/128/129 Unicode 字符边界和既有长密码回归测试，确认 8 字符因旧规则失败；再同步 domain 与前端规则，并验证教练初始化共用边界 | 同一测试 GREEN；API、真实 MySQL、旧密码登录回归 | 完成，含真实 MySQL API 验证 |
-| P-09（revision 2） | 0002 功能/计划、索引、必要运行说明 | 记录修订的 RED/GREEN、桌面/手机对照截图结论、偏差与风险；同步状态 | 文档检查及实际验收证据齐全 | 实施记录完成，待视觉确认后结案 |
+| P-09（revision 2） | 0002 功能/计划、索引、必要运行说明 | 记录修订的 RED/GREEN、桌面/手机对照截图结论、偏差与风险；同步状态 | 文档检查及实际验收证据齐全 | 完成；用户确认，TODO-0010 已结案 |
 
 - [x] 在 P-01 至 P-05 各实现切片先建目标测试、实际运行有效 RED，再改代码至同一测试 GREEN；环境问题不算 RED。
 - [x] 运行后端真实 MySQL/架构/API、安全和前端交互/构建/类型/lint 回归。
@@ -82,6 +82,7 @@ Gmail 新应用密码由用户私下配置；本计划不要求在对话里提�
 - [x] revision 2 获用户明确批准并记录批准日期、原话、范围与条件后，才开始 P-07 至 P-09 的测试和代码。
 - [x] revision 2 的视觉结构和密码边界先写目标测试并运行有效 RED，再实现同一测试 GREEN。
 - [x] revision 2 跑前端 test/typecheck/build/lint、后端适用测试和完整回归，并在目标视口人工对照设计稿。
+- [x] 用户确认实际视觉结果并关闭 TODO-0010；0002 本地验收进入 VERIFIED。
 
 ## 4. 数据、API、架构与兼容影响
 
@@ -162,8 +163,9 @@ Gmail 新应用密码由用户私下配置；本计划不要求在对话里提�
 | 2026-09-29 | frontend / Node 24 | `npm test -- --run`（新测试先运行）→实现后 `npm test`；主标题语义另跑一轮 RED/GREEN | RED：蓝色品牌图/“欢迎回来”不存在，7 字符密码会提交注册；主标题新增断言确认原页面只有 `h2`；GREEN：7 测试通过，含页面视觉结构、一级标题、7/8 ASCII 与 128/129 emoji、键盘选择水平 | 原有“原始照片”断言按获批视觉变更同步修订；标题语义变更未改变视觉样式 |
 | 2026-09-29 | backend / Testcontainers MySQL 8.4 | `./mvnw -q test`（Java 25、Colima Docker 环境变量）；`./mvnw -q -Dtest=IdentityApiTest#eightCharacterStudentPasswordRegistersAndLogsInWhileSevenIsRejected test` | 全量 14 个套件、36 测试、0 failure/error；追加 API 测试在真实 MySQL 上验证 7 字符拒绝、8 字符注册/邮箱验证/登录，通过 | 全量回归后补充该 API 测试，随后单独运行通过；测试结束时有 Spring Session 定时清理已关闭测试库的日志，未导致测试失败 |
 | 2026-09-29 | frontend / Node 24 | `npm run typecheck`、`npm run lint`、`npm run build` | 均通过；生产构建生成 CSS/JS 静态资产 | 不代替正式浏览器端到端认证链路与 Gmail 送达验证 |
-| 2026-09-29 | Chrome / 1672×941、1440×900、768×900、390×844、360×780 | 实际截图并检查 `document.documentElement.scrollWidth === innerWidth`；对照[桌面实现](../design/0002-implemented-desktop-login.png)、[手机登录实现](../design/0002-implemented-mobile-login.png)、[手机注册实现](../design/0002-implemented-mobile-register.png)与对应批准稿 | 锐角字标、明亮雪景、蓝色线条、斜切边界及桌面表单位置接近目标；手机登录/注册品牌区、注册照片渐变与真实表单可见；以上宽度无横向溢出 | 360px 与 768px 的长页面需纵向滚动；截图时仅运行前端开发服务，认证 API 未联机，截图只用于视觉核对，交互由测试验证；最终视觉满意度待用户确认，超高 DPI 清晰度需实际设备复核 |
+| 2026-09-29 | Chrome / 1672×941、1440×900、768×900、390×844、360×780 | 实际截图并检查 `document.documentElement.scrollWidth === innerWidth`；对照[桌面实现](../design/0002-implemented-desktop-login.png)、[手机登录实现](../design/0002-implemented-mobile-login.png)、[手机注册实现](../design/0002-implemented-mobile-register.png)与对应批准稿 | 锐角字标、明亮雪景、蓝色线条、斜切边界及桌面表单位置接近目标；手机登录/注册品牌区、注册照片渐变与真实表单可见；以上宽度无横向溢出 | 360px 与 768px 的长页面需纵向滚动；截图时仅运行前端开发服务，认证 API 未联机，截图只用于视觉核对，交互由测试验证；超高 DPI 清晰度需实际设备复核 |
+| 2026-09-29 | 用户对话 | 用户明确回复“todo 10可以关了” | 视觉确认条件满足；TODO-0010 标为 DONE，0002 本地验收状态改为 VERIFIED | 不构成生产发布或真实 Gmail/HTTPS 验证 |
 
 ## 9. 完成状态与后续
 
-- IMPLEMENTED：revision 2 的视觉和 8–128 字符密码规则已按批准范围实现，本地技术检查通过；[TODO-0010](../todo/0010-identity-visual-mismatch.md)仍等待用户看实际截图确认视觉满意度，确认后再把 ticket 与本计划标记 VERIFIED/DONE。未生产发布；真实 Gmail 送达、HTTPS Cookie、EC2 容量与备份恢复仍需相应环境/授权。教练实际账号由用户按[后端说明](../../backend/README.md)私下初始化；密码找回另见 [TODO-0008](../todo/0008-password-recovery.md)。
+- VERIFIED：revision 2 的视觉和 8–128 字符密码规则已按批准范围实现，本地技术检查通过；用户确认可关闭 [TODO-0010](../todo/0010-identity-visual-mismatch.md)。未生产发布；真实 Gmail 送达、HTTPS Cookie、EC2 容量与备份恢复仍需相应环境/授权。教练实际账号由用户按[后端说明](../../backend/README.md)私下初始化；密码找回另见 [TODO-0008](../todo/0008-password-recovery.md)。

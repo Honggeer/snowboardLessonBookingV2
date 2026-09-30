@@ -3,6 +3,7 @@ package com.geer.snowboard.v2.identity.application.service;
 import com.geer.snowboard.v2.identity.application.port.in.AccountView;
 import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import com.geer.snowboard.v2.identity.application.port.in.RegisterCommand;
+import com.geer.snowboard.v2.identity.application.port.in.RateLimited;
 import com.geer.snowboard.v2.identity.application.port.out.IdentityStore;
 import com.geer.snowboard.v2.identity.application.port.out.PasswordHashes;
 import com.geer.snowboard.v2.identity.application.port.out.VerificationTokenCodec;
@@ -120,5 +121,4 @@ public class IdentityService implements IdentityOperations {
         return new AccountView(account.id(), account.role(), account.name(), level);
     }
 
-    public static final class RateLimited extends RuntimeException {}
 }

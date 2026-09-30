@@ -7,6 +7,7 @@ import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import com.geer.snowboard.v2.identity.application.port.in.RegisterCommand;
 import com.geer.snowboard.v2.identity.application.port.out.VerificationTokenCodec;
 import com.geer.snowboard.v2.identity.application.service.IdentityService;
+import com.geer.snowboard.v2.identity.application.port.in.RateLimited;
 import java.time.Instant;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -87,18 +88,18 @@ class IdentityFlowTest {
     void limitsRepeatedLoginFailuresAndResendsForUnknownAddress() {
         for (int i = 0; i < 5; i++) assertThat(identity.authenticate("unknown@api.example", "wrong", "127.0.0.10")).isNull();
         assertThatThrownBy(() -> identity.authenticate("unknown@api.example", "wrong", "127.0.0.10"))
-                .isInstanceOf(IdentityService.RateLimited.class);
+                .isInstanceOf(RateLimited.class);
         for (int i = 0; i < 3; i++) identity.resend("absent@api.example", "127.0.0.11");
         assertThatThrownBy(() -> identity.resend("absent@api.example", "127.0.0.11"))
-                .isInstanceOf(IdentityService.RateLimited.class);
+                .isInstanceOf(RateLimited.class);
         for (int i = 0; i < 30; i++) {
             assertThat(identity.authenticate("unknown-" + i + "@api.example", "wrong", "127.0.0.13")).isNull();
         }
         assertThatThrownBy(() -> identity.authenticate("another@api.example", "wrong", "127.0.0.13"))
-                .isInstanceOf(IdentityService.RateLimited.class);
+                .isInstanceOf(RateLimited.class);
         for (int i = 0; i < 10; i++) identity.resend("absent-" + i + "@api.example", "127.0.0.14");
         assertThatThrownBy(() -> identity.resend("more-absent@api.example", "127.0.0.14"))
-                .isInstanceOf(IdentityService.RateLimited.class);
+                .isInstanceOf(RateLimited.class);
     }
 
     @Test
