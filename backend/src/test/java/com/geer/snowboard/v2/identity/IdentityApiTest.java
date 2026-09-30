@@ -34,7 +34,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
-@SpringBootTest(properties = "identity.mail.worker.enabled=false")
+@SpringBootTest(properties = {"identity.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
 @AutoConfigureMockMvc
 @Testcontainers
 class IdentityApiTest {

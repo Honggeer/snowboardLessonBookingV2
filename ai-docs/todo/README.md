@@ -26,4 +26,4 @@ ticket 是待办记录，**不批准实现代码**。若工作已在获批计划
 
 | ID | Ticket | 状态 | 关联功能/计划 | 更新时间 |
 |---|---|---|---|---|
-| TODO-0011 | [集成测试收尾时邮件轮询任务记录数据库连接错误](0011-mail-poller-test-shutdown-noise.md) | OPEN | [0003](../implement-plan/0003-architecture-violation-baseline.md) | 2026-09-29 |
+当前没有 `OPEN` 或 `IN_PROGRESS` ticket。

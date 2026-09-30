@@ -2,19 +2,23 @@ package com.geer.snowboard.v2.bootstrap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.geer.snowboard.v2.identity.adapter.in.jobs.MailPoller;
 import com.geer.snowboard.v2.scheduling.application.port.out.TimeWindowPreviewStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
-@SpringBootTest
+@SpringBootTest(properties = {"identity.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
 @ActiveProfiles("local")
 @Testcontainers
 class LocalApplicationStartupTest {
@@ -39,5 +43,17 @@ class LocalApplicationStartupTest {
     @Test
     void localApplicationStartsWithRealDatabaseAndDemoAdapter() {
         assertThat(context.getBean(TimeWindowPreviewStore.class)).isNotNull();
+    }
+
+    @Test
+    void temporaryDatabaseContextDoesNotStartAutomaticMailPolling() {
+        assertThat(context.getBeansOfType(MailPoller.class)).isEmpty();
+    }
+
+    @Test
+    void temporaryDatabaseContextDoesNotScheduleSessionCleanup() {
+        var repository = context.getBean(JdbcIndexedSessionRepository.class);
+        assertThat(ReflectionTestUtils.getField(repository, "cleanupCron"))
+                .isEqualTo(Scheduled.CRON_DISABLED);
     }
 }
