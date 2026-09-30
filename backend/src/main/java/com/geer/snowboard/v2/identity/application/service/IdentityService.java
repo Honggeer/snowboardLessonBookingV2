@@ -1,6 +1,7 @@
 package com.geer.snowboard.v2.identity.application.service;
 
 import com.geer.snowboard.v2.identity.application.port.in.AccountView;
+import com.geer.snowboard.v2.identity.application.port.in.AuthenticatedAccount;
 import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import com.geer.snowboard.v2.identity.application.port.in.RegisterCommand;
 import com.geer.snowboard.v2.identity.application.port.in.RateLimited;
@@ -38,7 +39,7 @@ public class IdentityService implements IdentityOperations {
         Registration input = Registration.create(command.name(), command.level(), command.email(), command.password());
         String accountId = UUID.randomUUID().toString();
         IdentityStore.Account account = new IdentityStore.Account(accountId, input.name(), input.level().name(),
-                input.email(), input.emailKey(), "STUDENT", passwords.encode(input.password()), null);
+                input.email(), input.emailKey(), "STUDENT", passwords.encode(input.password()), null, 0);
         if (store.insertAccount(account, clock.instant())) newVerification(accountId);
     }
 
@@ -70,6 +71,13 @@ public class IdentityService implements IdentityOperations {
     @Override
     @Transactional
     public AccountView authenticate(String email, String password, String sourceIp) {
+        AuthenticatedAccount result = authenticateWithVersion(email, password, sourceIp);
+        return result == null ? null : result.view();
+    }
+
+    @Override
+    @Transactional
+    public AuthenticatedAccount authenticateWithVersion(String email, String password, String sourceIp) {
         Instant now = clock.instant();
         String emailKey = canonical(email);
         String emailRateKey = "login:email:" + emailKey;
@@ -83,8 +91,11 @@ public class IdentityService implements IdentityOperations {
             store.allowAttempt(ipRateKey, 30, now, 900);
             return null;
         }
-        return view(account);
+        return new AuthenticatedAccount(view(account), account.credentialVersion());
     }
+
+    @Override
+    public Long credentialVersion(String id) { return store.credentialVersion(id); }
 
     @Override
     public AccountView findById(String id) {
@@ -99,7 +110,7 @@ public class IdentityService implements IdentityOperations {
         if (store.coachExists()) throw new IllegalStateException("Coach already exists");
         String accountId = UUID.randomUUID().toString();
         IdentityStore.Account coach = new IdentityStore.Account(accountId, input.name(), null,
-                input.email(), input.emailKey(), "COACH", passwords.encode(input.password()), null);
+                input.email(), input.emailKey(), "COACH", passwords.encode(input.password()), null, 0);
         if (!store.insertAccount(coach, clock.instant())) throw new IllegalStateException("Email already in use");
         newVerification(accountId);
     }

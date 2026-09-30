@@ -2,6 +2,7 @@ package com.geer.snowboard.v2.identity.adapter.in.web;
 
 import com.geer.snowboard.v2.identity.application.port.in.RateLimited;
 import java.util.Map;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,11 @@ public class IdentityProblemHandler {
 
     @ExceptionHandler(RateLimited.class)
     public ResponseEntity<Map<String, Object>> limited() { return problem(HttpStatus.TOO_MANY_REQUESTS, "Too Many Requests", "操作太频繁，请稍后再试"); }
+
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<Map<String, Object>> databaseUnavailable(DataAccessException exception) {
+        return problem(HttpStatus.SERVICE_UNAVAILABLE, "Service Unavailable", "服务暂时不可用，请稍后重试");
+    }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> status(ResponseStatusException exception) {

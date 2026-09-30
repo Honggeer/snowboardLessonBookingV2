@@ -13,3 +13,4 @@
 | 0001 | [工程底座](0001-project-foundation.md) | [0001](../implement-plan/0001-project-foundation.md) | VERIFIED | 2026-09-28 |
 | 0002 | [学员注册、邮箱验证与账号登录](0002-student-identity.md) | [0002](../implement-plan/0002-student-identity.md) | VERIFIED | 2026-09-29 |
 | 0003 | [六边形架构违规基线追踪](0003-architecture-violation-baseline.md) | [0003](../implement-plan/0003-architecture-violation-baseline.md) | VERIFIED | 2026-09-29 |
+| 0004 | [邮箱验证码找回密码](0004-password-recovery.md) | [0004](../implement-plan/0004-password-recovery.md) | VERIFIED | 2026-09-30 |

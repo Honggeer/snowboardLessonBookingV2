@@ -1,6 +1,7 @@
 package com.geer.snowboard.v2.identity.adapter.in.web;
 
 import com.geer.snowboard.v2.identity.application.port.in.AccountView;
+import com.geer.snowboard.v2.identity.application.port.in.AuthenticatedAccount;
 import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import com.geer.snowboard.v2.identity.application.port.in.RegisterCommand;
 import jakarta.servlet.http.HttpServletRequest;
@@ -71,11 +72,15 @@ public class IdentityController {
     public record LoginRequest(String email, String password) {}
     @PostMapping("/login")
     public AccountView login(@RequestBody LoginRequest body, HttpServletRequest request, HttpServletResponse response) {
-        AccountView account = identity.authenticate(body.email(), body.password(), addresses.from(request));
-        if (account == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码不正确");
+        AuthenticatedAccount authenticated = identity.authenticateWithVersion(body.email(), body.password(), addresses.from(request));
+        if (authenticated == null) throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "邮箱或密码不正确");
+        AccountView account = authenticated.view();
         var session = request.getSession(true);
         request.changeSessionId();
+        session.removeAttribute("identity.passwordResetGrant");
         session.setAttribute("identity.authenticatedAt", clock.millis());
+        session.setAttribute("identity.accountId", account.id());
+        session.setAttribute("identity.credentialVersion", authenticated.credentialVersion());
         var authentication = UsernamePasswordAuthenticationToken.authenticated(account.id(), null,
                 List.of(new SimpleGrantedAuthority("ROLE_" + account.role())));
         var context = SecurityContextHolder.createEmptyContext();

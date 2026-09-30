@@ -11,9 +11,10 @@ docker-compose -f deploy/compose.yaml config --quiet
 docker-compose -f deploy/compose.yaml up --build -d --wait
 python3 deploy/smoke.py
 python3 deploy/smoke_identity.py
+python3 deploy/smoke_password_recovery.py
 ```
 
-若安装的是 `docker compose` 子命令，可等价替换 `docker-compose`。`smoke.py` 只读检查静态页、照片、健康端点、CSRF 和匿名权限；`smoke_identity.py` 会在本地数据库创建一个 `smoke-…@example.test` 学员，经过 Mailpit 验证、登录、退出。设置 `SMOKE_RESTART_BACKEND=1` 可在登录后重启后端容器，检查 Session 在 MySQL 中恢复。
+若安装的是 `docker compose` 子命令，可等价替换 `docker-compose`。`smoke.py` 只读检查静态页、照片、健康端点、CSRF 和匿名权限；`smoke_identity.py` 会在本地数据库创建一个 `smoke-…@example.test` 学员，经过 Mailpit 验证、登录、退出；`smoke_password_recovery.py` 会创建一次性学员，经 Mailpit 收取验证码并检查旧密码和两个旧会话失效。设置 `SMOKE_RESTART_BACKEND=1` 可在登录后重启后端容器，检查 Session 在 MySQL 中恢复。
 
 | 服务 | 本机地址 |
 |---|---|
@@ -33,4 +34,4 @@ IDEA 所需环境变量与启动类见[后端说明](../backend/README.md)。Mac
 
 ## 验证边界
 
-本地冒烟已通过 Mailpit 测试真实 SMTP 投递、邮箱验证、登录、重启后 Session 恢复与退出。它不证明 Gmail 真实邮箱送达、生产 HTTPS Cookie、EC2 性能或备份恢复。生产部署、实际付费资源和 v1 数据迁移均需另行批准。
+本地冒烟覆盖 Mailpit SMTP 投递、邮箱验证、登录、Session、退出及密码找回；实际执行结果见相应功能计划。它不证明 Gmail 真实邮箱送达、生产 HTTPS Cookie、EC2 性能或备份恢复。生产部署、实际付费资源和 v1 数据迁移均需另行批准。

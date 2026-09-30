@@ -1,5 +1,6 @@
 package com.geer.snowboard.v2.bootstrap;
 
+import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
@@ -23,18 +24,20 @@ import org.springframework.beans.factory.annotation.Value;
 public class SecurityConfig {
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, Clock clock) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, Clock clock, IdentityOperations identity) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/api/auth/csrf", "/api/auth/register", "/api/auth/email-verification",
-                        "/api/auth/email-verification/resend", "/api/auth/login").permitAll()
+                        "/api/auth/email-verification/resend", "/api/auth/login",
+                        "/api/auth/password-recovery/request", "/api/auth/password-recovery/verify",
+                        "/api/auth/password-recovery/complete").permitAll()
                 .anyRequest().authenticated());
         http.httpBasic(basic -> basic.disable());
         http.formLogin(form -> form.disable());
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED));
         http.securityContext(context -> context.securityContextRepository(securityContextRepository()));
         http.csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository()));
-        http.addFilterAfter(new SessionLifetimeFilter(clock), SecurityContextHolderFilter.class);
+        http.addFilterAfter(new SessionLifetimeFilter(clock, identity), SecurityContextHolderFilter.class);
         http.headers(headers -> headers.referrerPolicy(policy -> policy.policy(
                 org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.NO_REFERRER)));
         http.exceptionHandling(exceptions -> exceptions

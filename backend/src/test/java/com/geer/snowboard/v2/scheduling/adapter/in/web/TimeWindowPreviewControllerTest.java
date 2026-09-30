@@ -10,6 +10,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.jayway.jsonpath.JsonPath;
 import com.geer.snowboard.v2.bootstrap.SecurityConfig;
 import com.geer.snowboard.v2.bootstrap.TimeConfig;
+import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import com.geer.snowboard.v2.scheduling.adapter.out.memory.InMemoryTimeWindowPreviewStore;
 import com.geer.snowboard.v2.scheduling.application.service.TimeWindowPreviewService;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(TimeWindowPreviewController.class)
@@ -29,6 +31,8 @@ class TimeWindowPreviewControllerTest {
 
     @Autowired
     private MockMvc mvc;
+    @MockitoBean
+    private IdentityOperations identity;
 
     @Test
     void anonymousRequestCannotCreatePreview() throws Exception {

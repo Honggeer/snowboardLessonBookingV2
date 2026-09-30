@@ -14,7 +14,7 @@ public class JdbcIdentityStore implements IdentityStore {
     private static final RowMapper<Account> ACCOUNT = (rs, row) -> new Account(
             rs.getString("id"), rs.getString("name"), rs.getString("level"), rs.getString("email"),
             rs.getString("email_key"), rs.getString("role"), rs.getString("password_hash"),
-            instant(rs, "verified_at"));
+            instant(rs, "verified_at"), rs.getLong("credential_version"));
     private final JdbcTemplate jdbc;
 
     public JdbcIdentityStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
@@ -39,6 +39,14 @@ public class JdbcIdentityStore implements IdentityStore {
     }
     @Override public Account lockById(String id) {
         return jdbc.query("SELECT * FROM identity_account WHERE id=? FOR UPDATE", ACCOUNT, id).stream().findFirst().orElse(null);
+    }
+    @Override public Long credentialVersion(String id) {
+        return jdbc.query("SELECT credential_version FROM identity_account WHERE id=? AND verified_at IS NOT NULL",
+                rs -> rs.next() ? rs.getLong(1) : null, id);
+    }
+    @Override public void changePassword(String id, String passwordHash) {
+        if (jdbc.update("UPDATE identity_account SET password_hash=?,credential_version=credential_version+1 WHERE id=?",
+                passwordHash, id) != 1) throw new IllegalStateException("Account disappeared while changing password");
     }
     @Override public boolean coachExists() {
         return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM identity_account WHERE role='COACH')", Boolean.class));

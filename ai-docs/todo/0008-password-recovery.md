@@ -1,9 +1,9 @@
 ---
 id: TODO-0008
 title: "已注册账号缺少安全的密码找回流程"
-status: OPEN
+status: DONE
 created: 2026-09-28
-updated: 2026-09-28
+updated: 2026-09-30
 ---
 
 # TODO-0008 — 已注册账号缺少安全的密码找回流程
@@ -11,7 +11,7 @@ updated: 2026-09-28
 ## 1. 来源与关联
 
 - 发现于：规划学员注册、邮箱验证与登录时，确认当前 0002 范围没有密码找回。
-- 相关功能/计划：[身份功能 0002](../features/0002-student-identity.md)、[实施计划 0002](../implement-plan/0002-student-identity.md)。
+- 相关功能/计划：[身份功能 0002](../features/0002-student-identity.md)、[实施计划 0002](../implement-plan/0002-student-identity.md)、已验证的[找回密码功能 0004](../features/0004-password-recovery.md)与[实施计划 0004](../implement-plan/0004-password-recovery.md)。
 
 ## 2. 背景
 
@@ -33,5 +33,8 @@ updated: 2026-09-28
 
 ## 6. 未决事项与状态记录
 
-- 需要用户澄清的问题：密码找回的优先级，以及教练账号是否使用相同流程。
+- 用户已决定现在处理找回密码，学员与教练共用，验证方式为邮件验证码；具体安全参数见已批准的计划 0004 revision 1。
 - 2026-09-28：OPEN；记录后续需求，不在 0002 已提出的登录注册范围内，也不授权实现。
+- 2026-09-30：OPEN；0004 功能/计划已建立，等待用户批准后进入实现。
+- 2026-09-30：IN_PROGRESS；用户明确批准 0004 revision 1，开始按测试先行流程实现。
+- 2026-09-30：DONE；真实 MySQL 端口/流程/并发/旧 Session 测试、Mailpit 收码冒烟和前端回归通过；证据见计划 0004 第 8 节。未生产发布。

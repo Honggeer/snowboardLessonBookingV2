@@ -4,11 +4,13 @@ import java.time.Instant;
 
 public interface IdentityStore {
     record Account(String id, String name, String level, String email, String emailKey,
-                   String role, String passwordHash, Instant verifiedAt) {}
+                   String role, String passwordHash, Instant verifiedAt, long credentialVersion) {}
     boolean insertAccount(Account account, Instant now);
     Account findByEmail(String emailKey);
     Account findById(String id);
     Account lockById(String id);
+    Long credentialVersion(String id);
+    void changePassword(String id, String passwordHash);
     boolean coachExists();
     void replaceVerification(String id, String accountId, byte[] digest, Instant expiresAt, Instant now);
     String accountIdForVerification(String id);

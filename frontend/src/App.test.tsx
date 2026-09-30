@@ -84,6 +84,66 @@ it('uses the approved blue visual assets and copy for the login screen', async (
     .toBe('/images/geer-blue-mobile-register.png');
 });
 
+it('opens a neutral email-code password recovery flow from login', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
+    url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/auth/me' ? json({}, 401) : json({ message: '如果账号可找回，请查收验证码' }),
+  )));
+  render(<App />);
+  await userEvent.click(await screen.findByRole('button', { name: '忘记密码' }));
+  await userEvent.type(screen.getByLabelText('邮箱'), 'geer@example.com');
+  await userEvent.click(screen.getByRole('button', { name: '发送验证码' }));
+  expect(await screen.findByLabelText('邮箱验证码')).toBeTruthy();
+});
+
+it('verifies the code, confirms a new password, then returns to login', async () => {
+  let csrfRequests = 0;
+  const fetchMock = vi.fn((url: string) => {
+    if (url === '/api/auth/csrf') {
+      csrfRequests += 1;
+      if (csrfRequests === 3) return Promise.reject(new Error('Temporary network error'));
+      return Promise.resolve(json({ token: 'csrf-' + csrfRequests, headerName: 'X-CSRF-TOKEN' }));
+    }
+    if (url === '/api/auth/login') return Promise.resolve(json({ id: '1', role: 'STUDENT', name: 'Geer', level: '入门' }));
+    return Promise.resolve(url === '/api/auth/me' ? json({}, 401) : json({ message: 'ok' }));
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<App />);
+  await userEvent.click(await screen.findByRole('button', { name: '忘记密码' }));
+  await userEvent.type(screen.getByLabelText('邮箱'), 'geer@example.com');
+  await userEvent.click(screen.getByRole('button', { name: '发送验证码' }));
+  const codeInput = await screen.findByLabelText('邮箱验证码') as HTMLInputElement;
+  expect(codeInput.inputMode).toBe('numeric');
+  await userEvent.type(codeInput, '01234567');
+  await userEvent.click(screen.getByRole('button', { name: '验证邮箱' }));
+  const newPassword = await screen.findByLabelText('新密码');
+  await userEvent.type(newPassword, 'new pass 456');
+  await userEvent.type(screen.getByLabelText('确认新密码'), 'different');
+  await userEvent.click(screen.getByRole('button', { name: '确认新密码' }));
+  expect(fetchMock.mock.calls.some(([path]) => path === '/api/auth/password-recovery/complete')).toBe(false);
+  await userEvent.clear(screen.getByLabelText('确认新密码'));
+  await userEvent.type(screen.getByLabelText('确认新密码'), 'new pass 456');
+  await userEvent.click(screen.getByRole('button', { name: '确认新密码' }));
+  expect(await screen.findByText(/密码已更新/)).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(fetchMock).toHaveBeenCalledWith('/api/auth/password-recovery/verify', expect.objectContaining({
+    body: JSON.stringify({ email: 'geer@example.com', code: '01234567' }),
+  }));
+  expect(fetchMock).toHaveBeenCalledWith('/api/auth/password-recovery/complete', expect.objectContaining({
+    body: JSON.stringify({ newPassword: 'new pass 456', confirmPassword: 'new pass 456' }),
+  }));
+  await userEvent.click(screen.getByRole('button', { name: '返回登录' }));
+  expect(screen.getByRole('heading', { name: '欢迎回来' })).toBeTruthy();
+  expect((screen.getByLabelText('密码') as HTMLInputElement).value).toBe('');
+  const loginButton = screen.getByRole('button', { name: /^登录/ }) as HTMLButtonElement;
+  expect(loginButton.disabled).toBe(false);
+  await userEvent.type(screen.getByLabelText('密码'), 'new pass 456');
+  await userEvent.click(loginButton);
+  expect(await screen.findByRole('alert')).toHaveProperty('textContent', '无法建立安全连接，请稍后重试。');
+  await userEvent.click(loginButton);
+  expect(await screen.findByText(/欢迎回来，Geer/)).toBeTruthy();
+});
+
 it('submits an eight-character registration password and rejects seven', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
