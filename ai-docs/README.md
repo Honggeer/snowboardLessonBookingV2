@@ -5,7 +5,7 @@
 - [功能索引](features/README.md)：每个功能的设计与实际状态。
 - [决策索引](decisions/README.md)：记录关键架构/业务取舍与变更。
 - [实施计划](implement-plan/README.md)：描述“怎么做”，供用户 review，并记录实际执行与验证。
-- [待办 Ticket](todo/README.md)：记录开发中发现的后续工作、问题背景和期望结果。
+- [当前待办 Ticket](todo/README.md)：只列未完成工作；[已完成索引](todo/DONE.md)供需要时追溯。
 - [根 AI 入口](../AGENTS.md)：每次任务的必读路径与硬性 review 门槛。
 
 ## 一项功能，两份配对文档
@@ -19,6 +19,6 @@ ai-docs/implement-plan/0002-student-identity.md
 
 ## 事实与规划
 
-工程底座 0001 已获批准并建立本地应用代码；实际完成状态以[对应计划](implement-plan/0001-project-foundation.md)中的验证证据为准。任何“将使用”“计划”“待验证”都不表示已经实现，AI 不能批准自己的计划。
+当前状态以[功能索引](features/README.md)及对应[实施计划](implement-plan/README.md)中的验证证据为准。任何“将使用”“计划”“待验证”都不表示已经实现，AI 不能批准自己的计划。
 
 运行 `python3 ai-docs/check_docs.py` 检查项目文档内部链接、配对、ticket 格式与索引、审批状态；功能代码另需执行适用的架构/业务/集成检查。

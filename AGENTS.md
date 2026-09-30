@@ -1,48 +1,26 @@
 # AI 项目入口
 
-本仓库是独立 v2 项目：一个教练、多个注册学员。AI 负责实现与维护，用户负责业务、架构和成本决策。
+本仓库是独立 v2 项目：一个教练、多个注册学员。用户决定业务、架构与成本；AI 按已批准范围实现和维护。
 
-## 开始任务必须读取
+## 每次任务先读
 
-1. [项目契约](ai-docs/PROJECT_CONTRACT.md)。
-2. [功能索引](ai-docs/features/README.md) 和本次对应功能。
-3. [实施计划索引与 review 流程](ai-docs/implement-plan/README.md) 和对应计划。
-4. [决策索引](ai-docs/decisions/README.md)、相关 ADR、源码及当前 Git 改动。
-5. [待办 Ticket 索引](ai-docs/todo/README.md) 和本次相关 ticket。
+1. [项目契约](ai-docs/PROJECT_CONTRACT.md)中的通用规则与本次相关约束。
+2. [功能索引](ai-docs/features/README.md)、[实施计划索引](ai-docs/implement-plan/README.md)及本次对应的功能/计划。
+3. [决策索引](ai-docs/decisions/README.md)、相关 ADR、源码及当前 Git 改动。
+4. [当前待办](ai-docs/todo/README.md)及相关 ticket；只有追溯历史时才读[已完成索引](ai-docs/todo/DONE.md)。
 
-## 通用协作规则
+## 必守的协作门槛
 
-- Codex 不得自行执行 Git commit（含 amend）或 push；修改留在工作区供用户 review，由用户自行 commit 和 push。只有用户明确要求 Codex 执行对应操作时例外。
-- 所有 commit 的标题使用 `type: description` 格式：小写 type、英文冒号、一个空格和简短描述；例如 `feat: add booking page`、`fix: prevent duplicate booking`。常用 type 包括 `feat`、`fix`、`docs`、`refactor`、`test`、`chore`、`build`、`ci`、`perf`、`revert`。本条不授权 Codex 自行 commit。
-- 遇到未知或含糊的需求、规则或事实，先核对用户指令、已批准文档、源码和可验证资料。仍不能确定时，明确提出问题；在澄清前暂停依赖该答案的工作，不得把猜测当作事实或用户决定。
-- 用户批准对应计划后，进入 IMPLEMENTING 阶段的开发工作先创建对应测试用例，实际运行并确认它因目标行为尚未实现而失败；随后实现，运行同一用例至通过，并运行适用的回归检查。记录红灯和绿灯的命令、结果；环境故障或测试本身错误不算有效红灯。需求分析、计划和其他批准前文档工作不要求 RED/GREEN，也不得在批准前写该功能的测试或实现代码。
-- 开发中发现尚未记录的待办、缺陷或改进时，按 [Ticket 模板](ai-docs/todo/TEMPLATE.md) 在 `ai-docs/todo/` 建立独立编号的 ticket 并更新索引。ticket 写清背景、问题、原因、期望结果和完成判定，不写实现方案；ticket 本身不授权越过计划 review。
-- 六边形架构测试扫描生产类并按类别维护显式数字基线和精确违规身份。新增违规优先修复；确需暂留时，每条在基线登记具体原因、关联计划/ADR 或 ticket、消除条件，并在对应代码旁写清注释，同时将所属类别数字加 1。修复时删除登记、数字减 1；不能只改总数或用同数量的新违规替换旧违规。例外仍遵守计划 review 门槛。
+- 不自行执行 Git commit（含 amend）或 push；仅用户明确要求时例外。所有 commit 标题采用 `type: description`，小写 type、英文冒号和一个空格。
+- 遇到未知或含糊事项，先查用户指令、已批准文档、源码和可验证资料；仍不确定就澄清，暂停依赖答案的工作，不猜测。
+- 新功能先创建同 ID 的功能文档和具体实施计划，交用户 review；明确批准对应 revision 前不写功能测试或实现代码。批准后记录日期、用户原话、范围和条件。实质改变范围、验收、架构、数据或成本时修订计划并重新 review。
+- 进入已授权的实现阶段，先写目标测试并运行到因行为缺失而 RED，再实现到同一测试 GREEN，运行适用回归并记录命令与结果。环境或测试自身故障不算 RED；批准前的需求、计划和文档工作不要求 RED/GREEN。
+- 新发现的待办按[模板](ai-docs/todo/TEMPLATE.md)编号，记录背景、问题、原因、期望结果和完成判定，不写实现方案；`OPEN` / `IN_PROGRESS` 进入当前索引，`DONE` / `CANCELLED` 进入已完成索引。ticket 不授权越过计划 review。
+- 六边形架构违规先修复。确需暂留时逐条登记分类、稳定身份、具体理由、关联计划/ADR 或 ticket、消除条件及代码旁注释，并将该类数字基线加 1；修复时删条目、数字减 1。详见项目契约 ARCH-09。
+- 完成工作后同步功能、计划、索引和必要 ADR，报告实际验证证据；`IMPLEMENTED`、`VERIFIED`、`RELEASED` 分开。批准实现不等于授权生产部署、付费资源或不可逆数据操作。
 
-## Review 门槛
+## 架构入口与优先级
 
-- 每项新功能先创建 `ai-docs/features/NNNN-name.md` 与 `ai-docs/implement-plan/NNNN-name.md`，使用同一个 ID，互相链接。
-- **用户 review 并明确同意计划之前，不得写该功能的实现代码。** 可以继续需求分析、只读调查、文档和计划编写。
-- 把计划整理到可 review 后，提供链接、具体实现范围、验收与需要决定的问题；不能只提供目录名称或空白模板。
-- 用户批准后，在计划记录批准日期、依据原话、revision、范围及条件。沉默、经过一段时间或 AI 自己判断不算批准。
-- 在批准范围内自主实现、测试、更新文档，不逐文件重复确认。实质改变范围、验收、架构、数据或成本时增加修订号并重新 review。
-- 完成后同步更新计划步骤、实际变更、验证证据、功能文档、两个索引和必要 ADR。
-- 未实际运行的测试不得报告通过；IMPLEMENTED、VERIFIED、RELEASED 分开。
-- 用户批准实现不等于批准生产部署、新增实际付费资源或不可逆数据操作；遵守现有授权和工具/文件系统权限。
+Java/Spring Boot、MySQL、模块化单体及模块内六边形架构的详细硬约束见项目契约 ARCH/DEP/DATA/SEC 等规则；精确版本与业务状态以已批准计划、源码和验证结果为准。当前完成状态以功能和计划索引为准，不在本入口重复维护。
 
-## 架构与产品硬约束
-
-- Java/Spring Boot、MySQL；按业务模块组织的单体，模块内六边形架构。
-- domain 和应用端口纯 Java；外部机制位于 adapter；用例不得依赖 adapter 实现。
-- 跨模块只用明确发布的入站端口/事件，禁止访问内部 service/mapper/业务表和循环依赖。
-- MySQL 并发保障靠事务、稳定锁目标/条件更新和约束；关键测试使用真实 MySQL。
-- 新项目独立配置与数据库；不得复制 v1 密钥、个人数据或旧依赖树。
-- 保留学员注册、自助预约、查看本人课程；教练拥有管理权限。
-- AWS EC2 继续使用，预算目标 30 CAD/月；初期前端/入口、Java、MySQL 同机，视频规划 S3/CloudFront。
-- 精确依赖版本和业务规则以已批准计划为准；不得把文档规划当作已实现。
-
-## 当前状态与指令优先级
-
-工程底座计划 [0001](ai-docs/implement-plan/0001-project-foundation.md) revision 2 与身份功能计划 [0002](ai-docs/implement-plan/0002-student-identity.md) revision 2 已获用户批准并完成本地验证，0002 的最终页面视觉已由用户确认；尚未生产发布。[架构违规基线计划 0003](ai-docs/implement-plan/0003-architecture-violation-baseline.md) revision 1 已获批准并完成本地验证，初始各类基线为 0；预约等业务功能仍需单独计划与 review。
-
-用户当前指令优先；本文件不能覆盖系统、开发者及工具权限规则。若用户修改已确认决策，先更新计划/契约/ADR，再实现相关变化。
+用户当前指令优先；本文件不覆盖系统、开发者或工具权限。用户改变已确认决策时，按项目契约更新相应计划、契约或 ADR。

@@ -1,0 +1,15 @@
+# 已完成与取消的 Ticket
+
+本页是历史索引。ticket 正文保留在原路径，供追溯问题背景、完成判定和关联计划使用；日常工作先看[当前待办](README.md)。
+
+| ID | Ticket | 状态 | 关联功能/计划 | 更新时间 |
+|---|---|---|---|---|
+| TODO-0001 | [文档检查忽略生成的依赖文件](0001-doc-checker-ignores-generated-files.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0002 | [本地后端启动失败](0002-local-backend-startup-failure.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0003 | [前端开发代理无法连接本地后端](0003-frontend-dev-proxy-reaches-backend.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0004 | [同源 API 入口未保留演示接口路径](0004-api-proxy-preserves-route.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0005 | [基础页向访客显示内部开发流程](0005-visitor-copy-avoids-internal-process.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0006 | [本地容器缺少可复用的启动配置](0006-local-stack-restart-configuration.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0007 | [演示预览写请求无法获取 CSRF token](0007-demo-preview-csrf-token-access.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0009 | [IDEA 本地数据库凭据不易核对](0009-idea-db-credentials-check.md) | DONE | [0002](../implement-plan/0002-student-identity.md) | 2026-09-29 |
+| TODO-0010 | [身份页面与已选蓝色设计稿明显不一致](0010-identity-visual-mismatch.md) | DONE | [0002 revision 2](../implement-plan/0002-student-identity.md) | 2026-09-29 |

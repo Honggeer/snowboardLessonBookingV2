@@ -126,15 +126,19 @@ def check_records():
 
 
 def check_todos():
-    index_path = TODO_DIR / "README.md"
+    active_path = TODO_DIR / "README.md"
+    completed_path = TODO_DIR / "DONE.md"
     template_path = TODO_DIR / "TEMPLATE.md"
-    if not index_path.is_file() or not template_path.is_file():
-        fail("todo directory must contain README.md and TEMPLATE.md")
+    if not all(path.is_file() for path in (active_path, completed_path, template_path)):
+        fail("todo directory must contain README.md, DONE.md and TEMPLATE.md")
         return
 
-    index = index_path.read_text(encoding="utf-8")
+    indexes = {
+        "active": active_path.read_text(encoding="utf-8"),
+        "completed": completed_path.read_text(encoding="utf-8"),
+    }
     tickets = sorted(p for p in TODO_DIR.glob("*.md")
-                     if p.name not in {"README.md", "TEMPLATE.md"})
+                     if p.name not in {"README.md", "DONE.md", "TEMPLATE.md"})
     expected_ids = set()
     for path in tickets:
         if not TODO_NAME.fullmatch(path.name):
@@ -161,17 +165,19 @@ def check_todos():
         if headings != [(str(n), name) for n, name in enumerate(TODO_SECTIONS, 1)]:
             fail(f"{path.relative_to(ROOT)}: ticket sections must match template")
 
-        row = next((line for line in index.splitlines()
+        destination = "active" if status in {"OPEN", "IN_PROGRESS"} else "completed"
+        row = next((line for line in indexes[destination].splitlines()
                     if line.startswith(f"| {ticket_id} |")), None)
         cells = [cell.strip() for cell in row.strip().strip("|").split("|")] if row else []
         if (len(cells) != 5 or f"({path.name})" not in cells[1]
                 or cells[2] != status or not cells[3]
                 or cells[4] != values.get("updated")):
-            fail(f"{ticket_id}: index row missing or out of sync")
+            fail(f"{ticket_id}: {destination} index row missing or out of sync")
 
-    indexed_ids = re.findall(r"^\| (TODO-\d{4}) \|", index, re.MULTILINE)
+    indexed_ids = [ticket_id for index in indexes.values()
+                   for ticket_id in re.findall(r"^\| (TODO-\d{4}) \|", index, re.MULTILINE)]
     if len(indexed_ids) != len(expected_ids) or set(indexed_ids) != expected_ids:
-        fail("todo index IDs do not match ticket files")
+        fail("active/completed todo index IDs do not match ticket files or contain duplicates")
 
 
 def main():

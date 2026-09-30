@@ -8,7 +8,7 @@ updated: YYYY-MM-DD
 
 # TODO-NNNN — 简短、具体的问题标题
 
-> 复制为 `NNNN-short-kebab-name.md`，替换编号和占位内容，并更新 [Ticket 索引](README.md)。本票只记录待办事项，不代表实施计划已获批准。
+> 复制为 `NNNN-short-kebab-name.md`，替换编号和占位内容，并更新[当前索引](README.md)；结案后移到[已完成索引](DONE.md)。本票只记录待办事项，不代表实施计划已获批准。
 
 ## 1. 来源与关联
 
