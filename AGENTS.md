@@ -42,6 +42,6 @@
 
 ## 当前状态与指令优先级
 
-工程底座计划 [0001](ai-docs/implement-plan/0001-project-foundation.md) revision 2 已获用户批准并通过本地验证，尚未生产发布；注册和预约等业务功能仍需单独计划与 review。
+工程底座计划 [0001](ai-docs/implement-plan/0001-project-foundation.md) revision 2 与身份功能计划 [0002](ai-docs/implement-plan/0002-student-identity.md) revision 2 已获用户批准并完成本地实现与技术检查，尚未生产发布；0002 的最终页面视觉仍待用户确认；预约等业务功能仍需单独计划与 review。
 
 用户当前指令优先；本文件不能覆盖系统、开发者及工具权限规则。若用户修改已确认决策，先更新计划/契约/ADR，再实现相关变化。

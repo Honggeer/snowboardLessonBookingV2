@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-独立 v2 工程底座 [0001](ai-docs/implement-plan/0001-project-foundation.md) revision 2 已获批准并通过本地验证。当前只包含基础页面、健康接口、时间范围演示用例、架构检查与独立 MySQL 基线；注册、登录、预约及生产部署尚未实现。
+独立 v2 工程底座 [0001](ai-docs/implement-plan/0001-project-foundation.md) 已通过本地验证。身份功能 [0002](ai-docs/implement-plan/0002-student-identity.md) revision 2 已实现：学员注册、邮箱验证、学员/教练登录、安全 Session、8–128 字符密码边界和按 GEER 蓝色稿呈现的响应式页面。本地测试通过，页面最终视觉待用户确认；预约及生产部署尚未实现。
 
 本地启动和验证命令见 [部署说明](deploy/README.md)、[后端说明](backend/README.md) 和 [前端说明](frontend/README.md)。
 
@@ -25,7 +25,7 @@ snowboardLessonBookingApp-v2/
 │       └── NNNN-name.md      # 功能实施计划
 ├── backend/                  # Spring Boot 六边形单体
 ├── frontend/                 # React/Vite 页面
-├── deploy/                   # 本地三容器配置与冒烟检查
+├── deploy/                   # 本地 MySQL、后端、前端、邮件沙箱与冒烟检查
 └── .github/workflows/ci.yml # 后端、前端、文档与 Compose 检查
 ```
 

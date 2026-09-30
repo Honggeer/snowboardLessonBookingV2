@@ -20,7 +20,7 @@ class FoundationMigrationTest {
             .withPassword("test_password");
 
     @Test
-    void freshV2DatabaseHasVersionedBaselineAndNoBusinessTables() throws Exception {
+    void freshV2DatabaseHasIdentityAndSessionTablesWithUniqueEmail() throws Exception {
         var flyway = Flyway.configure()
                 .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
                 .locations("classpath:db/migration")
@@ -29,13 +29,17 @@ class FoundationMigrationTest {
         var result = flyway.migrate();
         assertThat(result.success).isTrue();
         assertThat(flyway.info().current()).isNotNull();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("2");
 
         try (var connection = DriverManager.getConnection(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
              var statement = connection.createStatement();
              var tables = statement.executeQuery("SELECT table_name FROM information_schema.tables "
-                     + "WHERE table_schema = DATABASE() AND table_name <> 'flyway_schema_history'")) {
-            assertThat(tables.next()).isFalse();
+                     + "WHERE table_schema = DATABASE() AND table_name IN "
+                     + "('identity_account','identity_verification','identity_mail_task','identity_rate_limit',"
+                     + "'SPRING_SESSION','SPRING_SESSION_ATTRIBUTES')")) {
+            int count = 0;
+            while (tables.next()) count++;
+            assertThat(count).isEqualTo(6);
         }
     }
 }

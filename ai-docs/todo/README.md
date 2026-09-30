@@ -31,3 +31,6 @@ ticket 是待办记录，**不批准实现代码**。若工作已在获批计划
 | TODO-0005 | [基础页向访客显示内部开发流程](0005-visitor-copy-avoids-internal-process.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
 | TODO-0006 | [本地容器缺少可复用的启动配置](0006-local-stack-restart-configuration.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
 | TODO-0007 | [演示预览写请求无法获取 CSRF token](0007-demo-preview-csrf-token-access.md) | DONE | [0001](../implement-plan/0001-project-foundation.md) | 2026-09-27 |
+| TODO-0008 | [已注册账号缺少安全的密码找回流程](0008-password-recovery.md) | OPEN | [0002](../implement-plan/0002-student-identity.md) | 2026-09-28 |
+| TODO-0009 | [IDEA 本地数据库凭据不易核对](0009-idea-db-credentials-check.md) | DONE | [0002](../implement-plan/0002-student-identity.md) | 2026-09-29 |
+| TODO-0010 | [身份页面与已选蓝色设计稿明显不一致](0010-identity-visual-mismatch.md) | IN_PROGRESS | [0002 revision 2](../implement-plan/0002-student-identity.md) | 2026-09-29 |

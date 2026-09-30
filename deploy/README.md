@@ -1,21 +1,36 @@
-# 部署
+# 本地环境
 
-`compose.yaml` 建立 MySQL 8.4、Java 后端和 NGINX/前端三个容器。数据库使用独立 `snowboard-v2` 命名卷；此卷不是备份。此配置用于本地验证，不构成 EC2 生产部署方案。
+`compose.yaml` 在本机启动 MySQL 8.4、Java 后端、NGINX 前端和 [Mailpit 邮件沙箱](https://mailpit.axllent.org/docs/install/docker/)。Mailpit 只用于本地测试，不是正式 Gmail 发信服务。本配置未部署到 AWS。
 
-## 启动
+## 首次启动
 
-需要 Docker Compose、可运行的 Docker 守护进程。先复制 `deploy/.env.example` 为 `deploy/.env`，将两个示例密码改为仅本地使用的不同密码，再在仓库根运行：
+复制 `deploy/.env.example` 为被 Git 忽略的 `deploy/.env`，把数据库密码改为本地独立密码，并用 `openssl rand -hex 32` 生成 `VERIFICATION_KEY`。在仓库根目录运行：
 
 ```sh
-docker compose -f deploy/compose.yaml config --quiet
-docker compose -f deploy/compose.yaml up --build -d --wait
+docker-compose -f deploy/compose.yaml config --quiet
+docker-compose -f deploy/compose.yaml up --build -d --wait
 python3 deploy/smoke.py
+python3 deploy/smoke_identity.py
 ```
 
-默认入口是 `http://localhost:8088`。前端请求同源 `/api/actuator/health`，NGINX 转发为后端 `/actuator/health`。后端另仅在本机 `127.0.0.1:8080` 开放，供 Vite 开发服务器代理；可通过 `V2_BACKEND_PORT` 调整，但使用默认 Vite 配置时保持 8080。若本机只有独立的 `docker-compose` 命令，可把上述 `docker compose` 换成 `docker-compose`。
+若安装的是 `docker compose` 子命令，可等价替换 `docker-compose`。`smoke.py` 只读检查静态页、照片、健康端点、CSRF 和匿名权限；`smoke_identity.py` 会在本地数据库创建一个 `smoke-…@example.test` 学员，经过 Mailpit 验证、登录、退出。设置 `SMOKE_RESTART_BACKEND=1` 可在登录后重启后端容器，检查 Session 在 MySQL 中恢复。
 
-停止容器用 `docker compose -f deploy/compose.yaml down`，这会保留 MySQL 数据卷。重新构建时 Flyway 不重复执行已应用的 V1。需要检查迁移记录时，用 `docker compose -f deploy/compose.yaml exec db mysql -u snowboard_v2 -p snowboard_v2` 登录后查询 `flyway_schema_history`。
+| 服务 | 本机地址 |
+|---|---|
+| 前端与同源 API | `http://localhost:8088` |
+| Mailpit 收件箱 | `http://localhost:8025` |
+| 后端，供 Vite 代理 | `http://127.0.0.1:8080` |
+| Docker MySQL，供 IDEA 连接 | `127.0.0.1:3307` |
+| Mailpit SMTP，供 IDEA 后端连接 | `127.0.0.1:1025` |
 
-## 验证与边界
+在 IDEA 开发后端时，可保留 `db` 与 `mailpit` 并停掉占用 8080 的容器后端及前端：
 
-`smoke.py` 默认检查静态页和同源健康接口；若设置 `SMOKE_BASIC_PASSWORD` 为后端本地启动日志给出的开发用密码，还会以本地 Basic 认证验证演示 API 的路由、CSRF token、创建与读取。`backend/` 的 Testcontainers 测试另用真实 MySQL 8.4 验证空业务库的 V1 迁移。容器有健康检查、重启策略和日志轮转。本计划不创建 AWS 资源、不迁移 v1 数据、不验证生产容量或恢复；这些需要单独批准和验证。
+```sh
+docker-compose -f deploy/compose.yaml stop backend frontend
+```
+
+IDEA 所需环境变量与启动类见[后端说明](../backend/README.md)。Mac 自身的 MySQL 若占用 3306，不影响此处的 3307。`docker-compose -f deploy/compose.yaml down` 会停止容器但保留 MySQL 命名卷；命名卷不是备份，删除卷会丢数据。
+
+## 验证边界
+
+本地冒烟已通过 Mailpit 测试真实 SMTP 投递、邮箱验证、登录、重启后 Session 恢复与退出。它不证明 Gmail 真实邮箱送达、生产 HTTPS Cookie、EC2 性能或备份恢复。生产部署、实际付费资源和 v1 数据迁移均需另行批准。

@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import com.geer.snowboard.v2.bootstrap.SecurityConfig;
+import com.geer.snowboard.v2.bootstrap.TimeConfig;
 import com.geer.snowboard.v2.scheduling.adapter.out.memory.InMemoryTimeWindowPreviewStore;
 import com.geer.snowboard.v2.scheduling.application.service.TimeWindowPreviewService;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(TimeWindowPreviewController.class)
-@Import({SecurityConfig.class, TimeWindowPreviewService.class,
+@Import({SecurityConfig.class, TimeConfig.class, TimeWindowPreviewService.class,
         InMemoryTimeWindowPreviewStore.class})
 @ActiveProfiles("local")
 class TimeWindowPreviewControllerTest {

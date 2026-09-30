@@ -5,7 +5,7 @@ status: VERIFIED
 revision: 2
 approved_revision: 2
 created: 2026-09-27
-updated: 2026-09-27
+updated: 2026-09-28
 feature: "../features/0001-project-foundation.md"
 ---
 
@@ -65,7 +65,7 @@ Revision 2 补充用户新要求的测试先行流程：本计划获批后，各
 | AC-04 | 后端/前端/文档检查 | Maven test；`npm run typecheck/test/build/lint`；`python3 ai-docs/check_docs.py` | 实际命令均通过，CI 同步运行 |
 | AC-05 | v1 隔离与云部署状态 | 新旧仓库 diff、配置检查 | v1 不变，无真实 AWS 变更 |
 
-上述命令与本地同等验证均已实际执行，结果见第 8 节。GitHub 托管 CI 尚未运行；工作流文件已通过静态校验，用户自行 push 后才会触发。
+上述命令与本地同等验证均已实际执行，结果见第 8 节。首次推送后，[GitHub 托管 CI #1](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/36367077646) 已成功，三个 job 均通过。
 
 对 AC-01 至 AC-04 的可执行改动，先建立相关失败用例并记录 RED（目标行为缺失，而非依赖/环境或测试错误），再完成实现并记录同一用例 GREEN 和适用回归结果。新增容器、CI、文档检查规则时也先定义可执行失败条件。验收证据按 RED、GREEN 分别填写第 8 节。
 
@@ -84,7 +84,7 @@ Revision 2 补充用户新要求的测试先行流程：本计划获批后，各
 | 2026-09-27 | P-02/P-03：`scheduling` domain、应用端口/服务、Web 与内存适配器；`ArchitectureTest` | 时间边界、预览用例、Web 权限与错误、架构依赖方向及反例均通过 | 演示 API 仅 `local` profile 开放，不代表预约可用。实际客户端获取 CSRF token 的入口后补并验证，见 [TODO-0007](../todo/0007-demo-preview-csrf-token-access.md)。 |
 | 2026-09-27 | P-04：Flyway V1、MySQL 8.4、整应用启动测试 | 新库只生成 Flyway 历史表；真实 MySQL 测试与容器启动通过 | 初次 Colima socket 配置错误属于环境失败；随后在有效 RED 后实现迁移。启动时发现 `final` 内存组件无法被 Spring 代理，补整应用测试 RED/GREEN 后修复，记录 [TODO-0002](../todo/0002-local-backend-startup-failure.md)。 |
 | 2026-09-27 | P-05：React/Vite/TypeScript 页面与锁文件 | 加载、成功、错误/重试、访客文案交互测试及类型/构建/lint 通过 | 浏览器开发代理起初不可达，见 [TODO-0003](../todo/0003-frontend-dev-proxy-reaches-backend.md)；访客文案剔除内部流程，见 [TODO-0005](../todo/0005-visitor-copy-avoids-internal-process.md)。 |
-| 2026-09-27 | P-06：NGINX、三容器 Compose、冒烟脚本、CI 工作流、README | 本地三容器 healthy；同源页面/API 与 Vite 开发代理通过；CI YAML 通过 actionlint | 初次普通 API 代理路径未保留，按 [TODO-0004](../todo/0004-api-proxy-preserves-route.md) 补冒烟用例并修复；当前环境的本地凭据配置按 [TODO-0006](../todo/0006-local-stack-restart-configuration.md) 留在被 Git 忽略的 `deploy/.env`。GitHub 托管 CI 尚未运行，生产部署未执行。 |
+| 2026-09-27 | P-06：NGINX、三容器 Compose、冒烟脚本、CI 工作流、README | 本地三容器 healthy；同源页面/API 与 Vite 开发代理通过；CI YAML 通过 actionlint | 初次普通 API 代理路径未保留，按 [TODO-0004](../todo/0004-api-proxy-preserves-route.md) 补冒烟用例并修复；当前环境的本地凭据配置按 [TODO-0006](../todo/0006-local-stack-restart-configuration.md) 留在被 Git 忽略的 `deploy/.env`。2026-09-28 GitHub 托管 CI 首次运行成功，生产部署未执行。 |
 | 2026-09-27 | P-07：功能/计划/索引、契约状态文字、待办 ticket | 文档检查通过；误扫第三方依赖文档的问题已处理，见 [TODO-0001](../todo/0001-doc-checker-ignores-generated-files.md) | 未新增架构 ADR；既有 ADR 已更新事实状态。 |
 
 ## 8. 实际验证证据
@@ -104,8 +104,9 @@ Revision 2 补充用户新要求的测试先行流程：本计划获批后，各
 | 2026-09-27 回归 | Java 25 / Colima Docker / MySQL 8.4 | `./mvnw -q -o -Dmaven.repo.local=<本机临时仓库> test`，设置 `JAVA_HOME`、`DOCKER_HOST`、`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE` | 最终 16 个后端测试通过，0 失败、0 错误、0 跳过；Wrapper 实际运行 Maven 3.9.16 | Testcontainers 需要 Docker；CI 的 Linux runner 由 Docker 提供环境。 |
 | 2026-09-27 回归 | Node 24 / frontend | `npm ci`；`npm run typecheck`；`npm test`；`npm run build`；`npm run lint` | 全部通过；最终 4 个交互测试通过 | 依赖版本由 `package-lock.json` 锁定。 |
 | 2026-09-27 回归 | Colima Docker / Compose | `docker-compose -f deploy/compose.yaml config --quiet`；`up --build -d --wait`；`python3 deploy/smoke.py`；查询 `flyway_schema_history` | 三容器 healthy；页面/API 冒烟通过；实际库 V1 `success=1` | 本地容器运行；未执行 EC2 或 AWS 变更。 |
-| 2026-09-27 回归 | 项目根目录 | `python3 ai-docs/check_docs.py`；`actionlint .github/workflows/ci.yml` | 文档检查与 CI YAML 静态检查通过 | GitHub 工作流没有在远端执行；用户尚未 push。 |
+| 2026-09-27 回归 | 项目根目录 | `python3 ai-docs/check_docs.py`；`actionlint .github/workflows/ci.yml` | 文档检查与 CI YAML 静态检查通过 | 首次推送后的远端 CI 结果见下一行。 |
+| 2026-09-28 远端 CI | GitHub Actions / commit `9c98639` | [CI #1](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/36367077646) | 状态 Success；backend、frontend、docs-and-compose 三个 job 均成功，耗时 1 分 15 秒 | 这是首次推送的远端结果；未进行生产部署。 |
 
 ## 9. 完成状态与后续
 
-状态 VERIFIED：0001 revision 2 的本地工程底座、测试与文档验收已完成。未进行生产部署，故不标记 RELEASED；GitHub 托管 CI 等用户自行 push 后才可运行。后续注册和预约各自需要独立功能文档、实施计划与用户批准。
+状态 VERIFIED：0001 revision 2 的本地工程底座、测试与文档验收已完成，首次推送的 GitHub 托管 CI 也已成功。未进行生产部署，故不标记 RELEASED。后续注册和预约各自需要独立功能文档、实施计划与用户批准。

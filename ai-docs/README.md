@@ -11,8 +11,8 @@
 ## 一项功能，两份配对文档
 
 ```text
-ai-docs/features/0002-student-registration.md
-ai-docs/implement-plan/0002-student-registration.md
+ai-docs/features/0002-student-identity.md
+ai-docs/implement-plan/0002-student-identity.md
 ```
 
 同 ID、同业务范围、互相链接。功能文档维护规则/接口/验收；计划维护步骤、文件、review、偏差和结果，避免同一细节在两处重复且相互矛盾。

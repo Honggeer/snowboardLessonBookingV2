@@ -1,0 +1,71 @@
+CREATE TABLE identity_account (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    email VARCHAR(254) NOT NULL,
+    email_key VARCHAR(254) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    level VARCHAR(20) NULL,
+    role VARCHAR(20) NOT NULL,
+    coach_guard VARCHAR(20) GENERATED ALWAYS AS (IF(role = 'COACH', 'SINGLE_COACH', NULL)) STORED,
+    password_hash VARCHAR(255) NOT NULL,
+    verified_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT uq_identity_email_key UNIQUE (email_key),
+    CONSTRAINT uq_single_coach UNIQUE (coach_guard),
+    CONSTRAINT ck_identity_role CHECK (role IN ('STUDENT', 'COACH')),
+    CONSTRAINT ck_identity_level CHECK ((role = 'COACH' AND level IS NULL) OR
+        (role = 'STUDENT' AND level IN ('BEGINNER', 'NOVICE', 'ADVANCED')))
+);
+
+CREATE TABLE identity_verification (
+    id CHAR(36) NOT NULL PRIMARY KEY,
+    account_id CHAR(36) NOT NULL,
+    token_digest BINARY(32) NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    consumed_at DATETIME(6) NULL,
+    invalidated_at DATETIME(6) NULL,
+    created_at DATETIME(6) NOT NULL,
+    CONSTRAINT fk_verification_account FOREIGN KEY (account_id) REFERENCES identity_account(id),
+    INDEX ix_verification_account (account_id)
+);
+
+CREATE TABLE identity_mail_task (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    verification_id CHAR(36) NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    attempts INT NOT NULL DEFAULT 0,
+    next_attempt_at DATETIME(6) NOT NULL,
+    claim_until DATETIME(6) NULL,
+    last_error VARCHAR(255) NULL,
+    CONSTRAINT fk_mail_verification FOREIGN KEY (verification_id) REFERENCES identity_verification(id),
+    INDEX ix_mail_claim (status, next_attempt_at, claim_until)
+);
+
+CREATE TABLE identity_rate_limit (
+    rate_key VARCHAR(300) NOT NULL PRIMARY KEY,
+    attempts INT NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    INDEX ix_rate_expiry (expires_at)
+);
+
+CREATE TABLE SPRING_SESSION (
+    PRIMARY_ID CHAR(36) NOT NULL,
+    SESSION_ID CHAR(36) NOT NULL,
+    CREATION_TIME BIGINT NOT NULL,
+    LAST_ACCESS_TIME BIGINT NOT NULL,
+    MAX_INACTIVE_INTERVAL INT NOT NULL,
+    EXPIRY_TIME BIGINT NOT NULL,
+    PRINCIPAL_NAME VARCHAR(100) NULL,
+    CONSTRAINT SPRING_SESSION_PK PRIMARY KEY (PRIMARY_ID),
+    CONSTRAINT SPRING_SESSION_IX1 UNIQUE (SESSION_ID)
+);
+CREATE INDEX SPRING_SESSION_IX2 ON SPRING_SESSION (EXPIRY_TIME);
+CREATE INDEX SPRING_SESSION_IX3 ON SPRING_SESSION (PRINCIPAL_NAME);
+
+CREATE TABLE SPRING_SESSION_ATTRIBUTES (
+    SESSION_PRIMARY_ID CHAR(36) NOT NULL,
+    ATTRIBUTE_NAME VARCHAR(200) NOT NULL,
+    ATTRIBUTE_BYTES LONGBLOB NOT NULL,
+    CONSTRAINT SPRING_SESSION_ATTRIBUTES_PK PRIMARY KEY (SESSION_PRIMARY_ID, ATTRIBUTE_NAME),
+    CONSTRAINT SPRING_SESSION_ATTRIBUTES_FK FOREIGN KEY (SESSION_PRIMARY_ID)
+        REFERENCES SPRING_SESSION(PRIMARY_ID) ON DELETE CASCADE
+);

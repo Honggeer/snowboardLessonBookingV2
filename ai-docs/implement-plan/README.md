@@ -36,7 +36,8 @@
 | ID | 计划 | 功能设计 | 状态 | revision | 更新时间 |
 |---|---|---|---|---|---|
 | 0000 | [独立项目与文档骨架](0000-project-bootstrap.md) | [0000](../features/0000-project-bootstrap.md) | VERIFIED | 1 | 2026-09-27 |
-| 0001 | [工程底座](0001-project-foundation.md) | [0001](../features/0001-project-foundation.md) | VERIFIED | 2 | 2026-09-27 |
+| 0001 | [工程底座](0001-project-foundation.md) | [0001](../features/0001-project-foundation.md) | VERIFIED | 2 | 2026-09-28 |
+| 0002 | [学员注册、邮箱验证与账号登录](0002-student-identity.md) | [0002](../features/0002-student-identity.md) | IMPLEMENTED | 2 | 2026-09-29 |
 
 ## 可运行文档检查
 

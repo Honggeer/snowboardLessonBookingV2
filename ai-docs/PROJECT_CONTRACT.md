@@ -2,7 +2,7 @@
 document: project-contract
 version: 1.3
 status: active
-updated: 2026-09-27
+updated: 2026-09-29
 ---
 
 # v2 项目契约
@@ -32,7 +32,7 @@ updated: 2026-09-27
 
 已确认：Java 后端、MySQL、AWS EC2、预算目标 30 CAD/月、前后端分离、初期同机部署、模块化单体与六边形架构、每项新功能必须维护功能 Markdown 和独立实施计划，计划由用户 review 后实施，完成后同步状态与证据。
 
-工程底座 0001 revision 2 已获用户批准：Java 25 / Spring Boot 4.1.1、TypeScript + React/Vite、MyBatis/Flyway、NGINX 本地三容器。实际版本、运行验证与限制以 [0001 实施计划](implement-plan/0001-project-foundation.md) 为准。宣传媒体 S3 + CloudFront 仍属规划，未创建资源。
+工程底座 0001 revision 2 已获用户批准：Java 25 / Spring Boot 4.1.1、TypeScript + React/Vite、MyBatis/Flyway、NGINX 本地容器。身份功能 0002 revision 2 已获用户批准并完成本地实现：按 GEER 蓝色稿呈现页面、密码范围 8–128 个 Unicode 字符；本地邮件沙箱仅供开发验证，页面最终视觉待用户确认。实际版本、运行验证与限制分别以 [0001](implement-plan/0001-project-foundation.md) 和 [0002](implement-plan/0002-student-identity.md) 实施计划为准。宣传媒体 S3 + CloudFront 仍属规划，未创建资源。
 
 待定业务规则：提交预约是否直接确认、待确认是否占位、课程人数/容量、可变课程时长、同日跨雪场限制、取消期限、自动完成课程、课程包与支付方式。复用 v1 的业务规则时先核对实现与测试，再由功能计划明确采用的语义；发现缺陷或不确定规则不得直接复制为新项目规范。
 
