@@ -5,7 +5,7 @@ status: VERIFIED
 revision: 2
 approved_revision: 2
 created: 2026-09-28
-updated: 2026-09-29
+updated: 2026-09-30
 feature: "../features/0002-student-identity.md"
 ---
 
@@ -68,7 +68,7 @@ Gmail 新应用密码由用户私下配置；本计划不要求在对话里提�
 | P-01 | backend 测试、identity/domain、application/port | 先写注册字段/水平、状态转换、验证 token 规则测试并确认 RED，再实现纯 Java 模型/用例 | 同一测试 GREEN | 完成 |
 | P-02 | Flyway V2、identity/adapter/out/persistence、真实 MySQL 测试 | 账号唯一邮箱、验证 token 摘要/有效期、投递任务、认证限流计数、并发注册与验证/重发；迁移 append-only | MySQL 8.4 测试 GREEN | 完成 |
 | P-03 | SecurityConfig、认证 Web adapter、Session JDBC、API 安全测试 | 公开入口、登录/退出/当前身份、会话持久化、Session ID 轮换、Cookie、CSRF、授权、限流 | 401/403/429、过期/退出/重启场景通过 | 完成 |
-| P-03a | identity 初始化入口/测试 | 受控创建唯一教练账号；不开放公开 API，用户私下提供凭据 | 用户能在本地安全初始化，第二个教练创建被拒绝 | 实现与测试完成；实际教练账号由用户创建 |
+| P-03a | identity 初始化入口/测试 | 受控创建唯一教练账号；不开放公开 API，私下提供凭据 | 用户能在本地安全初始化，第二个教练创建被拒绝 | 实现与测试完成；2026-09-30 用户授权 Codex 初始化本地测试账号 |
 | P-04 | 邮件 out adapter/任务执行器、本地邮件沙箱配置、API/故障测试 | 注册事务保存投递任务，提交后有界领取/发送/退避重试；进程重启恢复，重发使旧任务失效；不保存原始验证密钥，不复制 v1 凭据 | 邮件被本地沙箱接收；故障和中断可恢复 | 完成，本地 Mailpit 验证 |
 | P-05 | frontend/src、交互测试、样式、用户原始照片 | 按最终批准方向做登录/注册/待验证/验证结果、会话恢复及退出；桌面左右分区，手机上下重排，注册手机照片区更短，登录与注册照片下缘均渐变至白色表单区；真实照片按视口裁切不改写 | 手机/平板/电脑、键盘、照片焦点与状态交互通过 | 完成 |
 | P-06 | 文档、索引、配置示例 | 记录实际文件、RED/GREEN 命令与结果、环境配置、风险及差异 | 文档检查通过、状态一致 | 完成 |
@@ -165,7 +165,8 @@ Gmail 新应用密码由用户私下配置；本计划不要求在对话里提�
 | 2026-09-29 | frontend / Node 24 | `npm run typecheck`、`npm run lint`、`npm run build` | 均通过；生产构建生成 CSS/JS 静态资产 | 不代替正式浏览器端到端认证链路与 Gmail 送达验证 |
 | 2026-09-29 | Chrome / 1672×941、1440×900、768×900、390×844、360×780 | 实际截图并检查 `document.documentElement.scrollWidth === innerWidth`；对照[桌面实现](../design/0002-implemented-desktop-login.png)、[手机登录实现](../design/0002-implemented-mobile-login.png)、[手机注册实现](../design/0002-implemented-mobile-register.png)与对应批准稿 | 锐角字标、明亮雪景、蓝色线条、斜切边界及桌面表单位置接近目标；手机登录/注册品牌区、注册照片渐变与真实表单可见；以上宽度无横向溢出 | 360px 与 768px 的长页面需纵向滚动；截图时仅运行前端开发服务，认证 API 未联机，截图只用于视觉核对，交互由测试验证；超高 DPI 清晰度需实际设备复核 |
 | 2026-09-29 | 用户对话 | 用户明确回复“todo 10可以关了” | 视觉确认条件满足；TODO-0010 标为 DONE，0002 本地验收状态改为 VERIFIED | 不构成生产发布或真实 Gmail/HTTPS 验证 |
+| 2026-09-30 | 本地 Compose、MySQL 8.4 与 Mailpit | 用户改为明确授权 Codex 创建本地测试教练；构建 backend，交互式运行 `identity.coach-init`，启动 backend/frontend，使用 Mailpit 验证链接，再以实际 HTTP Session 登录并读取教练工作区 API | 初始化、邮箱验证、登录、`/api/auth/me`、`/api/coach/courses` 均成功；角色为 COACH；本地前后端服务健康 | 这是已实现命令的本地操作验证，不改变 revision 2 的功能/架构；不记录凭据或 token，不代表生产或真实 Gmail 送达 |
 
 ## 9. 完成状态与后续
 
-- VERIFIED：revision 2 的视觉和 8–128 字符密码规则已按批准范围实现，本地技术检查通过；用户确认可关闭 [TODO-0010](../todo/0010-identity-visual-mismatch.md)。未生产发布；真实 Gmail 送达、HTTPS Cookie、EC2 容量与备份恢复仍需相应环境/授权。教练实际账号由用户按[后端说明](../../backend/README.md)私下初始化；密码找回另见 [TODO-0008](../todo/0008-password-recovery.md)。
+- VERIFIED：revision 2 的视觉和 8–128 字符密码规则已按批准范围实现，本地技术检查通过；用户确认可关闭 [TODO-0010](../todo/0010-identity-visual-mismatch.md)。2026-09-30 用户授权 Codex 在本地测试库初始化并验证了实际教练账号；未生产发布，真实 Gmail 送达、HTTPS Cookie、EC2 容量与备份恢复仍需相应环境/授权。初始化说明见[后端 README](../../backend/README.md)；密码找回另见 [TODO-0008](../todo/0008-password-recovery.md)。

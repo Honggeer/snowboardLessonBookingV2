@@ -15,3 +15,4 @@
 | TODO-0009 | [IDEA 本地数据库凭据不易核对](0009-idea-db-credentials-check.md) | DONE | [0002](../implement-plan/0002-student-identity.md) | 2026-09-29 |
 | TODO-0010 | [身份页面与已选蓝色设计稿明显不一致](0010-identity-visual-mismatch.md) | DONE | [0002 revision 2](../implement-plan/0002-student-identity.md) | 2026-09-29 |
 | TODO-0011 | [集成测试收尾时邮件轮询任务记录数据库连接错误](0011-mail-poller-test-shutdown-noise.md) | DONE | [0005](../implement-plan/0005-test-scheduler-lifecycle.md) | 2026-09-30 |
+| TODO-0012 | [本地教练新增雪场和发布日程无响应](0012-local-coach-submit-buttons-no-feedback.md) | DONE | [0006](../implement-plan/0006-post-login-booking-home.md) | 2026-10-01 |

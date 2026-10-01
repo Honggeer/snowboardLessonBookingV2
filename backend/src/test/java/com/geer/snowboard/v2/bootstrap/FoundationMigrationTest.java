@@ -20,7 +20,7 @@ class FoundationMigrationTest {
             .withPassword("test_password");
 
     @Test
-    void freshV2DatabaseHasIdentitySessionAndPasswordRecoveryTables() throws Exception {
+    void freshV2DatabaseHasIdentitySessionRecoveryAndBookingTables() throws Exception {
         var flyway = Flyway.configure()
                 .dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
                 .locations("classpath:db/migration")
@@ -29,7 +29,7 @@ class FoundationMigrationTest {
         var result = flyway.migrate();
         assertThat(result.success).isTrue();
         assertThat(flyway.info().current()).isNotNull();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("3");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("7");
 
         try (var connection = DriverManager.getConnection(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
              var statement = connection.createStatement();
@@ -37,10 +37,13 @@ class FoundationMigrationTest {
                      + "WHERE table_schema = DATABASE() AND table_name IN "
                      + "('identity_account','identity_verification','identity_mail_task','identity_rate_limit',"
                      + "'SPRING_SESSION','SPRING_SESSION_ATTRIBUTES',"
-                     + "'identity_password_reset','identity_password_reset_mail_task')")) {
+                     + "'identity_password_reset','identity_password_reset_mail_task',"
+                     + "'catalog_course','scheduling_coach_guard','scheduling_slot',"
+                     + "'scheduling_mountain','scheduling_day','scheduling_batch',"
+                     + "'bookings_student_guard','bookings_request')")) {
             int count = 0;
             while (tables.next()) count++;
-            assertThat(count).isEqualTo(8);
+            assertThat(count).isEqualTo(16);
         }
     }
 }

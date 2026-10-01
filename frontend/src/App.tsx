@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import BookingHome from './BookingHome';
 import './style.css';
 
 type View = 'login' | 'register' | 'check-email' | 'verify' | 'verified' | 'account'
@@ -85,6 +86,7 @@ export default function App() {
         const current = await post('/api/auth/login', { email, password }) as Account;
         setAccount(current);
         setPassword('');
+        setCsrf(null);
         setView('account');
         await refreshCsrf();
       } else if (view === 'register') {
@@ -164,6 +166,10 @@ export default function App() {
     setView('login');
   }
 
+  if (view === 'account' && account) return <BookingHome key={account.id} account={account} csrf={csrf}
+    refreshCsrf={refreshCsrf} onLogout={logout} authMessage={message}
+    onUnauthorized={() => { setAccount(null); setCsrf(null); setView('login'); setMessage('登录已失效，请重新登录。'); }} />;
+
   return (
     <main className={'auth-layout view-' + view}>
       <section className="brand-panel" aria-label="GEER 单板教学">
@@ -175,14 +181,7 @@ export default function App() {
 
       <section className="form-panel">
         <div className="form-wrap">
-          {view === 'account' && account ? (
-            <>
-              <h1>欢迎回来，{account.name}</h1>
-              <p className="section-intro">{account.role === 'COACH' ? '教练账号已登录。' : '准备好留下新的雪道轨迹了吗？'}</p>
-              <div className="account-card"><span>当前身份</span><strong>{account.role === 'COACH' ? '教练' : '学员'}</strong>{account.level && <small>当前水平 · {account.level}</small>}</div>
-              <button className="primary-button" type="button" disabled={busy} onClick={logout}>退出登录</button>
-            </>
-          ) : view === 'verified' ? (
+          {view === 'verified' ? (
             <>
               <h1>邮箱已验证</h1>
               <p className="section-intro">现在可以用邮箱和密码登录。</p>

@@ -1,6 +1,6 @@
 # 后端
 
-Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本。预约尚未实现；`scheduling` 的时间范围预览只是本地架构示例。
+Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
 
 ## IDEA 本地开发
 
@@ -34,7 +34,7 @@ MAIL_FROM=geer@local.test
 java -jar target/snowboard-v2-backend-0.1.0-SNAPSHOT.jar --spring.profiles.active=local --spring.main.web-application-type=none --identity.coach-init=true --identity.mail.worker.enabled=false
 ```
 
-账号先处于待验证状态；正常启动后，邮件任务发送验证链接。第二位教练会被数据库约束拒绝。初始化命令由用户自行执行，Codex 未创建实际教练账号。
+账号先处于待验证状态；正常启动后，邮件任务发送验证链接。第二位教练会被数据库约束拒绝。2026-09-30 用户明确授权 Codex 在本地测试库初始化并验证了一个教练账号；生产账号仍需独立按部署流程处理，凭据不记录在仓库。
 
 ## 测试
 
@@ -49,3 +49,11 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 架构测试位于 `src/test/java/com/geer/snowboard/v2/architecture/`。`ArchitectureTest` 扫描实际生产类，并通过 `ArchitectureBaseline` 将违规分为 `DOMAIN_PURITY`、`PORT_PURITY`、`APPLICATION_BOUNDARY`、`INBOUND_BOUNDARY`、`CROSS_MODULE_INTERNAL`、`MODULE_CYCLE`。`BASELINE` 显式列出每类数字，初始全为 0；`EXCEPTIONS` 保存逐条精确身份。新增违规先修复；需要暂留时按 [项目契约 ARCH-09](../ai-docs/PROJECT_CONTRACT.md) 记录理由、关联计划/ADR 或 ticket、消除条件及代码旁注释，再为每条对应类别数字加 1。修复时同步移除条目并减 1。定向运行：`./mvnw -q -Dtest=ArchitectureBaselineTest,ArchitectureTest test`。
 
 对外身份 API 见 [0002 功能文档](../ai-docs/features/0002-student-identity.md)和[0004 找回密码功能文档](../ai-docs/features/0004-password-recovery.md)。所有写请求需先通过 `GET /api/auth/csrf` 获取 token；登录、验证码核验、退出和找回成功后重新获取。Session 为服务端 MySQL 持久化，闲置 30 分钟、登录后绝对上限 12 小时。找回成功后必须重新登录，之前的登录会话会在后续受保护请求时失效。浏览器不保存认证密钥到 localStorage。
+
+## 本地约课流程
+
+先按上文初始化并验证唯一教练账号，再注册、验证至少一位学员。教练登录后默认进入「预约申请」，另有「创建课程」「管理可用时间」入口。先在可用时间页新增至少一座雪场，再在课程页填写名称、介绍和 CAD 价格并发布。雪场管理位于紧凑区域，改名和停用可按需展开。排班时在月历点选多个当地日期，统一设置起止时间和可选的当天限定雪场；特殊日期另分批处理。不选限定雪场时，教练的活动雪场均可选择。系统按 `America/Toronto` 将范围拆成完整的两小时时段，未满两小时的尾段只预览、不发布。选中日期整天替换原有未确认时段，已确认预约保留；只要其中一天有待确认申请，整批不覆盖。发布后日历标出受影响日期并显示时段。可先排班，之后再创建课程。学员登录后依次选择课程、日期、时间和雪场并提交申请；“我的预约”显示待教练确认、已确认、已拒绝或已取消。待确认不占位，同一时段可有多人申请。教练确认一人时，系统自动拒绝同一时段其他待确认申请，并锁定该多伦多当地日期的雪场、拒绝当天其他雪场的待确认申请；同山的其他时段仍可预约。教练单独拒绝一人须填理由，时段仍开放。费用线下支付。
+
+课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期、在线支付或邮件通知。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
+
+`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用 V7。生产迁移与发布另需授权。
