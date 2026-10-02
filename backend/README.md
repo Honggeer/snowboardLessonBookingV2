@@ -1,6 +1,6 @@
 # 后端
 
-Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
+Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束；V8 增加预约邮件任务表。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
 
 ## IDEA 本地开发
 
@@ -24,6 +24,8 @@ MAIL_FROM=geer@local.test
 `VERIFICATION_KEY` 至少 32 个 UTF-8 字节，可用 `openssl rand -hex 32` 生成并安全保存；它同时保护注册验证链接和找回密码验证码，两种用途隔离。更换它会使尚未使用的验证链接及找回验证码失效。不要把数据库密码、验证密钥或邮件应用密码提交到 Git。
 
 正式 Gmail SMTP 使用独立的 v2 应用密码：`MAIL_HOST=smtp.gmail.com`、`MAIL_PORT=587`、`MAIL_USER`、`MAIL_PASSWORD`、`MAIL_FROM`。若仍用 `local` profile 联调 Gmail，还需设置 `MAIL_SMTP_AUTH=true` 与 `MAIL_STARTTLS=true`。正式环境不启用 `local` profile，认证 Cookie 默认 Secure；真实邮箱送达与 HTTPS 需部署后另验。
+
+本地 Compose 会读取 `deploy/.env` 中相同的 `MAIL_*` 参数；未设置时使用 Mailpit。切换为真实 SMTP 后，注册验证、密码找回与预约通知均共用该账号；应仅用本人控制的测试邮箱验证，勿运行向 `example.test` 发信的 Mailpit 脚本。链接地址由 `V2_PUBLIC_URL` 传为 `APP_PUBLIC_URL`，本机缺省为 `http://localhost:8088`，未来部署只需换成收件人可访问的 HTTPS 地址。操作与恢复见[本地环境说明](../deploy/README.md)。
 
 ## 教练私下初始化
 
@@ -54,6 +56,12 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 先按上文初始化并验证唯一教练账号，再注册、验证至少一位学员。教练登录后默认进入「预约申请」，另有「创建课程」「管理可用时间」入口。先在可用时间页新增至少一座雪场，再在课程页填写名称、介绍和 CAD 价格并发布。雪场管理位于紧凑区域，改名和停用可按需展开。排班时在月历点选多个当地日期，统一设置起止时间和可选的当天限定雪场；特殊日期另分批处理。不选限定雪场时，教练的活动雪场均可选择。系统按 `America/Toronto` 将范围拆成完整的两小时时段，未满两小时的尾段只预览、不发布。选中日期整天替换原有未确认时段，已确认预约保留；只要其中一天有待确认申请，整批不覆盖。发布后日历标出受影响日期并显示时段。可先排班，之后再创建课程。学员登录后依次选择课程、日期、时间和雪场并提交申请；“我的预约”显示待教练确认、已确认、已拒绝或已取消。待确认不占位，同一时段可有多人申请。教练确认一人时，系统自动拒绝同一时段其他待确认申请，并锁定该多伦多当地日期的雪场、拒绝当天其他雪场的待确认申请；同山的其他时段仍可预约。教练单独拒绝一人须填理由，时段仍开放。费用线下支付。
 
-课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期、在线支付或邮件通知。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
+课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期或在线支付。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
 
-`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用 V7。生产迁移与发布另需授权。
+`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用 V8。生产迁移与发布另需授权。
+
+## 预约邮件
+
+学员申请成功进入 PENDING 时，同事务保存教练邮件任务；教练确认后，同事务保存学员邮件任务。后台另行通过现有 SMTP 发送，两封邮件分别链接到需要登录且按账号授权的预约详情。任务写入失败会回滚申请或确认；SMTP 失败只影响邮件任务，不能改变已保存的预约状态。相关状态、API 和限制见[0007 功能文档](../ai-docs/features/0007-booking-email-notifications.md)。
+
+`APP_PUBLIC_URL` 必须是收件人可访问的站点根地址；本机 `localhost:5173` 或 `localhost:8088` 只适合在运行应用的电脑上打开。不能用请求 Host 构造邮件链接。`BOOKING_MAIL_WORKER_ENABLED=false` 可暂停预约邮件轮询，`BOOKING_MAIL_WORKER_DELAY_MS` 可调整毫秒间隔。每轮最多处理 10 项；失败退避并最多尝试 8 次，超过上限记 `DEAD`。用 `SELECT id,booking_id,event_type,attempts,last_error FROM bookings_mail_task WHERE status='DEAD'` 排查，确认 SMTP 恢复后可针对指定任务重置为 `PENDING`、`attempts=0` 和当前 `next_attempt_at`；发送前 worker 仍会核对预约当前状态。邮件采用至少一次投递，发信成功后进程中断可能重复。

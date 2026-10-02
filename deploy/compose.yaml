@@ -47,10 +47,14 @@ services:
       DB_USER: snowboard_v2
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in deploy/.env}
       VERIFICATION_KEY: ${VERIFICATION_KEY:?Set VERIFICATION_KEY in deploy/.env}
-      APP_PUBLIC_URL: http://localhost:${V2_HTTP_PORT:-8088}
-      MAIL_HOST: mailpit
-      MAIL_PORT: "1025"
-      MAIL_FROM: geer@local.test
+      APP_PUBLIC_URL: ${V2_PUBLIC_URL:-http://localhost:8088}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: "${MAIL_PORT:-1025}"
+      MAIL_USER: ${MAIL_USER:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-geer@local.test}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_STARTTLS: ${MAIL_STARTTLS:-false}
       IDENTITY_TRUSTED_PROXY_HOST: frontend
     depends_on:
       db:

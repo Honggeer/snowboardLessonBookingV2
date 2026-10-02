@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import BookingHome from './BookingHome';
+import BookingHome, { type BookingDeepLink } from './BookingHome';
 import './style.css';
 
 type View = 'login' | 'register' | 'check-email' | 'verify' | 'verified' | 'account'
@@ -12,6 +12,18 @@ class ApiError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
 
+function bookingDeepLink(hash: string): BookingDeepLink | null {
+  const match = /^#\/(my-bookings|coach-applications)\/([^/?#]+)$/.exec(hash);
+  if (!match) return null;
+  try {
+    const id = decodeURIComponent(match[2]);
+    if (!id || id.length > 100) return null;
+    return { role: match[1] === 'my-bookings' ? 'STUDENT' : 'COACH', id };
+  } catch {
+    return null;
+  }
+}
+
 async function readJson(response: Response) {
   return response.json().catch(() => ({}));
 }
@@ -20,6 +32,7 @@ export default function App() {
   const initialToken = window.location.hash.startsWith('#verify?token=')
     ? new URLSearchParams(window.location.hash.slice('#verify?'.length)).get('token') : null;
   const [verificationToken] = useState(initialToken);
+  const [deepLink, setDeepLink] = useState<BookingDeepLink | null>(() => bookingDeepLink(window.location.hash));
   const [view, setView] = useState<View>(initialToken ? 'verify' : 'login');
   const [csrf, setCsrf] = useState<Csrf | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
@@ -45,6 +58,12 @@ export default function App() {
     setCsrf(next);
     return next;
   }
+
+  useEffect(() => {
+    const updateDeepLink = () => setDeepLink(bookingDeepLink(window.location.hash));
+    window.addEventListener('hashchange', updateDeepLink);
+    return () => window.removeEventListener('hashchange', updateDeepLink);
+  }, []);
 
   useEffect(() => {
     if (initialToken) window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -152,6 +171,10 @@ export default function App() {
       await post('/api/auth/logout');
       setAccount(null);
       setView('login');
+      if (deepLink) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        setDeepLink(null);
+      }
       await refreshCsrf();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '退出失败，请重试。');
@@ -167,7 +190,7 @@ export default function App() {
   }
 
   if (view === 'account' && account) return <BookingHome key={account.id} account={account} csrf={csrf}
-    refreshCsrf={refreshCsrf} onLogout={logout} authMessage={message}
+    refreshCsrf={refreshCsrf} onLogout={logout} authMessage={message} deepLink={deepLink}
     onUnauthorized={() => { setAccount(null); setCsrf(null); setView('login'); setMessage('登录已失效，请重新登录。'); }} />;
 
   return (

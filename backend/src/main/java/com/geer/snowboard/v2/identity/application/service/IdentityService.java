@@ -1,6 +1,7 @@
 package com.geer.snowboard.v2.identity.application.service;
 
 import com.geer.snowboard.v2.identity.application.port.in.AccountView;
+import com.geer.snowboard.v2.identity.application.port.in.AccountContactOperations;
 import com.geer.snowboard.v2.identity.application.port.in.AuthenticatedAccount;
 import com.geer.snowboard.v2.identity.application.port.in.IdentityOperations;
 import com.geer.snowboard.v2.identity.application.port.in.RegisterCommand;
@@ -17,7 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class IdentityService implements IdentityOperations {
+public class IdentityService implements IdentityOperations, AccountContactOperations {
     private final IdentityStore store;
     private final PasswordHashes passwords;
     private final VerificationTokenCodec tokens;
@@ -30,6 +31,12 @@ public class IdentityService implements IdentityOperations {
         this.tokens = tokens;
         this.clock = clock;
         this.dummyHash = passwords.encode(UUID.randomUUID().toString());
+    }
+
+    @Override
+    public String emailForAccount(String accountId) {
+        IdentityStore.Account account = store.findById(accountId);
+        return account == null ? null : account.email();
     }
 
     @Override

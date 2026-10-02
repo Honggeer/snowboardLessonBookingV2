@@ -37,11 +37,19 @@ public final class BookingController {
                               @RequestParam(required = false) String cursor) {
         return bookings.mine(actors.current(), limit, cursor);
     }
+    @GetMapping("/api/bookings/{id}")
+    public Booking mineOne(@PathVariable String id) {
+        return bookings.mineOne(actors.current(), id);
+    }
     @GetMapping("/api/coach/bookings")
     public Page<Booking> coach(@RequestParam(required = false) String status,
                                @RequestParam(required = false) Integer limit,
                                @RequestParam(required = false) String cursor) {
         return bookings.coach(actors.current(), status, limit, cursor);
+    }
+    @GetMapping("/api/coach/bookings/{id}")
+    public Booking coachOne(@PathVariable String id) {
+        return bookings.coachOne(actors.current(), id);
     }
     @PostMapping("/api/coach/bookings/{id}/confirm")
     public Booking confirm(@PathVariable String id) {

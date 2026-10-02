@@ -39,7 +39,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
 @SpringBootTest(webEnvironment = WebEnvironment.MOCK, properties = {
-        "identity.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
+        "identity.mail.worker.enabled=false", "booking.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
 @AutoConfigureMockMvc
 @Testcontainers
 class BookingCoreApiTest {
@@ -58,6 +58,79 @@ class BookingCoreApiTest {
     @Autowired PasswordHashes passwords;
     private final Map<String, String> slotCourses = new ConcurrentHashMap<>();
     private final Map<String, String> coachMountains = new ConcurrentHashMap<>();
+
+    @Test
+    void bookingMailTasksAreCreatedOnceAndDeepLinksRequireTheCorrectAccount() throws Exception {
+        String coach = account("COACH", null);
+        String student = account("STUDENT", "BEGINNER");
+        String other = account("STUDENT", "NOVICE");
+        String course = publishCourse(coach);
+        String date = LocalDate.now(ZoneId.of("America/Toronto")).plusDays(18).toString();
+        String slot = publishSlot(coach, course, date, "10:00");
+        String key = UUID.randomUUID().toString();
+        String body = application(course, slot, ensureMountain(coach));
+        var response = mvc.perform(post("/api/bookings").with(user(student).roles("STUDENT")).with(csrf())
+                        .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        String booking = JsonPath.read(response.getResponse().getContentAsString(), "$.id");
+
+        mvc.perform(get("/api/bookings/{id}", booking).with(user(student).roles("STUDENT")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(booking))
+                .andExpect(jsonPath("$.status").value("PENDING"));
+        mvc.perform(get("/api/coach/bookings/{id}", booking).with(user(coach).roles("COACH")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value(booking));
+        mvc.perform(get("/api/bookings/{id}", booking)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/bookings/{id}", booking).with(user(other).roles("STUDENT")))
+                .andExpect(status().isNotFound());
+        mvc.perform(get("/api/bookings/{id}", booking).with(user(coach).roles("COACH")))
+                .andExpect(status().isForbidden());
+        mvc.perform(get("/api/coach/bookings/{id}", booking).with(user(student).roles("STUDENT")))
+                .andExpect(status().isForbidden());
+
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type='APPLICATION_RECEIVED'",
+                Integer.class, booking)).isEqualTo(1);
+        mvc.perform(post("/api/bookings").with(user(student).roles("STUDENT")).with(csrf())
+                        .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",
+                Integer.class, booking)).isEqualTo(1);
+        mvc.perform(post("/api/coach/bookings/{id}/confirm", booking)
+                        .with(user(coach).roles("COACH")).with(csrf()))
+                .andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",
+                Integer.class, booking)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT recipient_account_id FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_CONFIRMED'",
+                String.class, booking)).isEqualTo(student);
+        mvc.perform(post("/api/coach/bookings/{id}/confirm", booking)
+                        .with(user(coach).roles("COACH")).with(csrf()))
+                .andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",
+                Integer.class, booking)).isEqualTo(2);
+    }
+
+    @Test
+    void failedMailTaskInsertRollsBackTheApplication() throws Exception {
+        String coach = account("COACH", null);
+        String student = account("STUDENT", "BEGINNER");
+        String course = publishCourse(coach);
+        String date = LocalDate.now(ZoneId.of("America/Toronto")).plusDays(20).toString();
+        String slot = publishSlot(coach, course, date, "10:00");
+        jdbc.update("DELETE FROM bookings_mail_task WHERE recipient_account_id=?", coach);
+        jdbc.execute("ALTER TABLE bookings_mail_task ADD CONSTRAINT ck_mail_failure_test CHECK (recipient_account_id <> '"
+                + coach + "')");
+        try {
+            mvc.perform(post("/api/bookings").with(user(student).roles("STUDENT")).with(csrf())
+                            .header("Idempotency-Key", UUID.randomUUID().toString())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(application(course, slot, ensureMountain(coach))))
+                    .andExpect(status().isServiceUnavailable());
+            assertThat(jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM bookings_request WHERE slot_id=? AND student_id=?",
+                    Integer.class, slot, student)).isZero();
+        } finally {
+            jdbc.execute("ALTER TABLE bookings_mail_task DROP CHECK ck_mail_failure_test");
+        }
+    }
 
     @Test
     void realSessionsCompleteCoachStudentCoachStudentBookingFlow() throws Exception {

@@ -7,6 +7,46 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); window.history.repl
 
 const json = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body }) as Response;
 
+it('shows the cancellation cutoff beside the application button before submission', async () => {
+  vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
+    url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: '学员', level: '零基础' }) :
+        json({ items: [], nextCursor: null }),
+  )));
+  render(<App />);
+  const button = await screen.findByRole('button', { name: '申请预约' });
+  const summary = button.closest('.booking-summary') as HTMLElement;
+  expect(within(summary).getByText(/待确认申请可取消.*教练确认后.*至少 24 小时前取消/)).toBeTruthy();
+});
+
+it('opens a mailed booking link after login and fetches the exact student booking', async () => {
+  window.history.replaceState(null, '', '/#/my-bookings/booking-target');
+  let loggedIn = false;
+  const target = { id: 'booking-target', slotId: 'slot-1', studentName: '学员', courseTitle: '邮件链接课程',
+    priceAmount: '150.00', currency: 'CAD', location: 'Blue Mountain', zoneId: 'America/Toronto',
+    localDate: '2026-10-20', startAt: '2026-10-20T14:00:00Z', endAt: '2026-10-20T16:00:00Z',
+    status: 'CONFIRMED', decisionReason: null };
+  const fetchMock = vi.fn((url: string, options?: RequestInit) => {
+    if (url === '/api/auth/login' && options?.method === 'POST') {
+      loggedIn = true;
+      return Promise.resolve(json({ id: 'student-1', role: 'STUDENT', name: '学员', level: '零基础' }));
+    }
+    return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/auth/me' ? loggedIn
+        ? json({ id: 'student-1', role: 'STUDENT', name: '学员', level: '零基础' }) : json({}, 401) :
+        url === '/api/bookings/booking-target' ? json(target) :
+          json({ items: [], nextCursor: null }));
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<App />);
+  await userEvent.type(await screen.findByLabelText('邮箱'), 'student@example.test');
+  await userEvent.type(screen.getByLabelText('密码'), 'test-password');
+  await userEvent.click(screen.getByRole('button', { name: '登录' }));
+  await waitFor(() => expect(fetchMock.mock.calls.some(([url]) => url === '/api/bookings/booking-target')).toBe(true));
+  expect(await screen.findByText('邮件链接课程')).toBeTruthy();
+  expect(screen.getByRole('button', { name: '我的预约' }).className).toContain('active');
+});
+
 it('submits mountain and availability when randomUUID is unavailable on a local network origin', async () => {
   const webCrypto = globalThis.crypto;
   vi.stubGlobal('crypto', { getRandomValues: webCrypto.getRandomValues.bind(webCrypto) });

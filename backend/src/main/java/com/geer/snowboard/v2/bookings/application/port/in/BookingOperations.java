@@ -26,6 +26,8 @@ public interface BookingOperations {
     Creation<Booking> apply(Actor actor, Apply command, String idempotencyKey);
     Page<Booking> mine(Actor actor, Integer limit, String cursor);
     Page<Booking> coach(Actor actor, String status, Integer limit, String cursor);
+    Booking mineOne(Actor actor, String bookingId);
+    Booking coachOne(Actor actor, String bookingId);
     Booking confirm(Actor actor, String bookingId);
     Booking reject(Actor actor, String bookingId, Reject command);
     Booking cancel(Actor actor, String bookingId, Cancel command);

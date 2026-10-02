@@ -66,10 +66,12 @@
 .booking-summary dd { margin: 0; font-weight: 700; text-align: right; }
 .booking-primary { width: 100%; min-height: 50px; padding: 11px 18px; border: 0; border-radius: 8px; color: #fff; background: #006dd0; font-size: 17px; font-weight: 800; }
 .booking-primary:hover:not(:disabled) { background: #005bb5; }
+.booking-cancel-policy { margin: 12px 0 0; color: #284c72; font-size: 13px; font-weight: 700; line-height: 1.55; }
 .booking-note { margin: 14px 0 0; padding: 14px 16px; border-radius: 8px; color: #325d8a; background: #eaf5ff; font-size: 13px; line-height: 1.6; }
 .booking-recent { margin-top: 18px; }
 .my-booking-list { display: grid; gap: 10px; }
 .my-booking { display: flex; justify-content: space-between; align-items: start; gap: 12px; padding: 17px; border: 1px solid #e1eaf2; border-radius: 9px; }
+.my-booking.booking-target, .coach-booking.booking-target { border: 2px solid #0074df; background: #f2f9ff; scroll-margin-top: 24px; }
 .my-booking strong { font-size: 16px; }
 .my-booking p { margin: 7px 0 3px; color: #60758b; font-size: 13px; }
 .my-booking small { color: #60758b; }

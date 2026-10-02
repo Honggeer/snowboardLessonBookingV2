@@ -31,7 +31,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
 @SpringBootTest(webEnvironment = WebEnvironment.MOCK, properties = {
-        "identity.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
+        "identity.mail.worker.enabled=false", "booking.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
 @AutoConfigureMockMvc
 @Testcontainers
 class AvailabilityRevision3ApiTest {

@@ -16,3 +16,4 @@
 | 0004 | [邮箱验证码找回密码](0004-password-recovery.md) | [0004](../implement-plan/0004-password-recovery.md) | VERIFIED | 2026-09-30 |
 | 0005 | [集成测试后台任务与数据库生命周期](0005-test-scheduler-lifecycle.md) | [0005](../implement-plan/0005-test-scheduler-lifecycle.md) | VERIFIED | 2026-09-30 |
 | 0006 | [登录后约课主界面](0006-post-login-booking-home.md) | [0006](../implement-plan/0006-post-login-booking-home.md) | VERIFIED | 2026-10-01 |
+| 0007 | [预约邮件通知与取消规则提示](0007-booking-email-notifications.md) | [0007](../implement-plan/0007-booking-email-notifications.md) | VERIFIED | 2026-10-01 |

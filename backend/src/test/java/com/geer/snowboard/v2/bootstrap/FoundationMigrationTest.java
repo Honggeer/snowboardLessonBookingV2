@@ -29,7 +29,7 @@ class FoundationMigrationTest {
         var result = flyway.migrate();
         assertThat(result.success).isTrue();
         assertThat(flyway.info().current()).isNotNull();
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("7");
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("8");
 
         try (var connection = DriverManager.getConnection(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
              var statement = connection.createStatement();
@@ -40,10 +40,10 @@ class FoundationMigrationTest {
                      + "'identity_password_reset','identity_password_reset_mail_task',"
                      + "'catalog_course','scheduling_coach_guard','scheduling_slot',"
                      + "'scheduling_mountain','scheduling_day','scheduling_batch',"
-                     + "'bookings_student_guard','bookings_request')")) {
+                     + "'bookings_student_guard','bookings_request','bookings_mail_task')")) {
             int count = 0;
             while (tables.next()) count++;
-            assertThat(count).isEqualTo(16);
+            assertThat(count).isEqualTo(17);
         }
     }
 }

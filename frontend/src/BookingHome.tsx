@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import './booking.css';
 
 type Account = { id: string; role: 'STUDENT' | 'COACH'; name: string; level: string | null };
+export type BookingDeepLink = { role: Account['role']; id: string };
 type Csrf = { token: string; headerName: string };
 type Page<T> = { items: T[]; nextCursor: string | null };
 type Course = { id: string; title: string; description: string; priceAmount: string; currency: string; active?: boolean };
@@ -96,14 +97,18 @@ function statusLabel(status: Booking['status']) {
     : status === 'CANCELLED_BY_STUDENT' ? '学员已取消' : '已拒绝';
 }
 
-export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUnauthorized, authMessage }:
+export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUnauthorized, authMessage, deepLink }:
   { account: Account; csrf: Csrf | null; refreshCsrf: () => Promise<Csrf>; onLogout: () => Promise<void>;
-    onUnauthorized: () => void; authMessage: string }) {
-  const [tab, setTab] = useState<Tab>(account.role === 'COACH' ? 'applications' : 'book');
+    onUnauthorized: () => void; authMessage: string; deepLink: BookingDeepLink | null }) {
+  const [tab, setTab] = useState<Tab>(deepLink?.role === account.role
+    ? account.role === 'COACH' ? 'applications' : 'mine'
+    : account.role === 'COACH' ? 'applications' : 'book');
   const [courses, setCourses] = useState<Course[]>([]);
   const [mountains, setMountains] = useState<Mountain[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [targetBooking, setTargetBooking] = useState<Booking | null>(null);
+  const [targetError, setTargetError] = useState('');
   const [courseCursor, setCourseCursor] = useState<string | null>(null);
   const [slotCursor, setSlotCursor] = useState<string | null>(null);
   const [bookingCursor, setBookingCursor] = useState<string | null>(null);
@@ -176,6 +181,38 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     return result as T;
   }
   function post<T>(path: string, body: object, key?: string) { return write<T>('POST', path, body, key); }
+
+  useEffect(() => {
+    if (!deepLink) { setTargetBooking(null); setTargetError(''); return; }
+    if (deepLink.role !== account.role) {
+      setTargetBooking(null);
+      setTargetError('此预约链接需要使用对应角色的账号登录。');
+      return;
+    }
+    let active = true;
+    setTab(account.role === 'COACH' ? 'applications' : 'mine');
+    setTargetBooking(null);
+    setTargetError('');
+    const path = account.role === 'COACH' ? '/api/coach/bookings/' : '/api/bookings/';
+    get<Booking>(path + encodeURIComponent(deepLink.id)).then((booking) => {
+      if (active) setTargetBooking(booking);
+    }).catch((reason) => {
+      if (!active) return;
+      if (reason instanceof BookingApiError && reason.status === 401) onUnauthorized();
+      else if (reason instanceof BookingApiError && (reason.status === 403 || reason.status === 404))
+        setTargetError('找不到这笔预约，或当前账号无权查看。');
+      else setTargetError(reason instanceof Error ? reason.message : '预约加载失败，请重试。');
+    });
+    return () => { active = false; };
+  }, [account.id, account.role, deepLink?.id, deepLink?.role, reload]);
+
+  useEffect(() => {
+    if (!targetBooking) return;
+    const timer = window.setTimeout(() => {
+      document.getElementById('booking-' + targetBooking.id)?.scrollIntoView?.({ block: 'center' });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [targetBooking, tab]);
 
   useEffect(() => {
     let active = true;
@@ -389,6 +426,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
       const result = await post<Booking>(`/api/coach/bookings/${booking.id}/${action}`,
         action === 'reject' ? { reason } : {});
       setBookings((current) => current.map((item) => item.id === result.id ? result : item));
+      setTargetBooking((current) => current?.id === result.id ? result : current);
       setRejectBookingId(null); setRejectReason('');
       setNotice(action === 'confirm' ? '已确认该申请；当天锁定这座雪场，其他雪场的待确认申请已拒绝。' : '已拒绝该申请。');
       setReload((value) => value + 1);
@@ -435,6 +473,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
       const result = await post<Booking>(`/api/bookings/${booking.id}/cancel`,
         { reason: booking.status === 'CONFIRMED' ? cancelReason : null });
       setBookings((current) => current.map((item) => item.id === result.id ? result : item));
+      setTargetBooking((current) => current?.id === result.id ? result : current);
       setCancelBookingId(null); setCancelReason('');
       setCancelFeedback('预约已取消。若该时段仍可约，可以重新提交申请。');
       setSelectedSlotId(null); setSelectedMountainId(null);
@@ -453,7 +492,9 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   const visibleSlots = slots.filter((slot) => slot.localDate === selectedDate);
   const alreadyApplied = selectedSlotId && bookings.some((booking) => booking.slotId === selectedSlotId
     && booking.status !== 'CANCELLED_BY_STUDENT');
-  const pending = bookings.filter((booking) => booking.status === 'PENDING');
+  const visibleBookings = targetBooking
+    ? [targetBooking, ...bookings.filter((booking) => booking.id !== targetBooking.id)] : bookings;
+  const pending = visibleBookings.filter((booking) => booking.status === 'PENDING');
   const draftDays = calendarSelection.map((localDate) => ({ localDate, startTime: slotStartTime,
     endTime: slotEndTime, mountainId: slotMountainId }));
   const preview = previewDays(draftDays);
@@ -497,6 +538,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
         <span>{error || authMessage}</span><button type="button" onClick={() => { setError(''); setReload((value) => value + 1); }}>重试</button>
       </div>}
       {notice && <div className="booking-alert success" role="status">{notice}</div>}
+      {targetError && <div className="booking-alert error" role="alert">{targetError}</div>}
       {loading && <p className="booking-loading" role="status">正在加载约课信息…</p>}
 
       {account.role === 'STUDENT' && tab === 'book' && <>
@@ -554,6 +596,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
               <div><dt>价格</dt><dd>{selectedCourse ? `CAD ${selectedCourse.priceAmount}` : '—'}</dd></div></dl>
             <button type="button" className="booking-primary" disabled={!selectedSlot || !selectedMountain || busy || Boolean(alreadyApplied)} onClick={submitBooking}>
               {busy ? '提交中…' : alreadyApplied ? '已申请该时段' : '申请预约'}</button>
+            <p className="booking-cancel-policy">待确认申请可取消；教练确认后，须在课程开始至少 24 小时前取消。</p>
             {bookingFeedback && <p className="booking-inline-status success" role="status">{bookingFeedback}</p>}
             {bookingWriteError && <p className="booking-inline-status error" role="alert">{bookingWriteError}</p>}
             <p className="booking-note">申请后由教练确认；待确认不占用名额。课程费用线下支付。</p>
@@ -571,8 +614,9 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
       {account.role === 'STUDENT' && tab === 'mine' && <section className="booking-panel">
         <div className="panel-heading"><h2>我的预约</h2><button type="button" onClick={() => setReload((value) => value + 1)}>刷新状态</button></div>
         {cancelFeedback && <p className="booking-inline-status success" role="status">{cancelFeedback}</p>}
-        {bookings.length === 0 ? <p className="booking-empty">还没有预约申请。回到“约课”选择课程和时段。</p> :
-          <BookingList items={bookings} busy={busy} cancelBookingId={cancelBookingId} cancelReason={cancelReason} cancelError={cancelError}
+        {visibleBookings.length === 0 ? <p className="booking-empty">还没有预约申请。回到“约课”选择课程和时段。</p> :
+          <BookingList items={visibleBookings} busy={busy} cancelBookingId={cancelBookingId} cancelReason={cancelReason} cancelError={cancelError}
+            highlightId={targetBooking?.id}
             onReasonChange={setCancelReason} onCancelStart={(booking) => { setCancelBookingId(booking.id); setCancelReason(''); setCancelError(''); }}
             onCancelClose={() => setCancelBookingId(null)} onCancel={cancelMine} />}
         {bookingCursor && <button type="button" className="booking-load-more" disabled={loadingMore}
@@ -584,8 +628,10 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
           <div className="panel-heading"><h2>预约申请 <span className="count">{pending.length} 待确认</span></h2>
             <button type="button" onClick={() => setReload((value) => value + 1)}>刷新</button></div>
           <p className="booking-note">确认第一笔申请后，当天只在该雪场授课；其他雪场的待确认申请会自动拒绝。同一时段仅确认一人。</p>
-          {bookings.length === 0 ? <p className="booking-empty">目前没有预约申请。设置雪场、发布课程和可用时间后，学员即可提交申请。</p> :
-            <div className="coach-booking-list">{bookings.map((booking) => <article className="coach-booking" key={booking.id}>
+          {visibleBookings.length === 0 ? <p className="booking-empty">目前没有预约申请。设置雪场、发布课程和可用时间后，学员即可提交申请。</p> :
+            <div className="coach-booking-list">{visibleBookings.map((booking) => <article
+              id={'booking-' + booking.id} className={'coach-booking' + (targetBooking?.id === booking.id ? ' booking-target' : '')}
+              key={booking.id}>
               <div><span className={`booking-status ${booking.status.toLowerCase()}`}>{statusLabel(booking.status)}</span>
                 <h3>{booking.studentName || '学员'} · {booking.courseTitle}</h3>
                 <p>{readableDate(booking.localDate)} · {slotTime(booking)} · {booking.location}</p>
@@ -772,11 +818,12 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   </main>;
 }
 
-function BookingList({ items, busy, cancelBookingId, cancelReason, cancelError, onReasonChange, onCancelStart, onCancelClose, onCancel }:
+function BookingList({ items, busy, cancelBookingId, cancelReason, cancelError, onReasonChange, onCancelStart, onCancelClose, onCancel, highlightId }:
   { items: Booking[]; busy: boolean; cancelBookingId: string | null; cancelReason: string; cancelError: string;
     onReasonChange: (value: string) => void; onCancelStart: (booking: Booking) => void;
-    onCancelClose: () => void; onCancel: (booking: Booking) => Promise<void> }) {
-  return <div className="my-booking-list">{items.map((booking) => <article key={booking.id} className="my-booking">
+    onCancelClose: () => void; onCancel: (booking: Booking) => Promise<void>; highlightId?: string }) {
+  return <div className="my-booking-list">{items.map((booking) => <article key={booking.id}
+    id={'booking-' + booking.id} className={'my-booking' + (highlightId === booking.id ? ' booking-target' : '')}>
     <div><strong>{booking.courseTitle}</strong><p>{readableDate(booking.localDate)} · {slotTime(booking)} · {booking.location}</p>
       <small>CAD {booking.priceAmount} · {booking.zoneId}</small>
       {booking.decisionReason && <p className="booking-reason">{booking.decisionReason}</p>}

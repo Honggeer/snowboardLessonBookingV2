@@ -30,6 +30,7 @@ class CoachInitApplicationTest {
                         "--spring.datasource.password=" + mysql.getPassword(),
                         "--identity.verification-key=a-private-test-key-with-at-least-32-bytes",
                         "--identity.mail.worker.enabled=false",
+                        "--booking.mail.worker.enabled=false",
                         "--spring.profiles.active=local",
                         "--identity.coach-init=true")) {
             JdbcTemplate jdbc = context.getBean(JdbcTemplate.class);

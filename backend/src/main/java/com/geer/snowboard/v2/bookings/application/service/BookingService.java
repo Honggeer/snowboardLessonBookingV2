@@ -3,6 +3,7 @@ package com.geer.snowboard.v2.bookings.application.service;
 import com.geer.snowboard.v2.bookings.application.port.in.BookingOperations;
 import com.geer.snowboard.v2.bookings.application.port.out.BookedCourseLookup;
 import com.geer.snowboard.v2.bookings.application.port.out.BookedSlotAccess;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingMailQueue;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingStore;
 import com.geer.snowboard.v2.bookings.domain.BookingStatus;
 import com.geer.snowboard.v2.sharedkernel.Actor;
@@ -24,9 +25,12 @@ public class BookingService implements BookingOperations {
     private final BookingStore store;
     private final BookedSlotAccess slots;
     private final BookedCourseLookup courses;
+    private final BookingMailQueue mailQueue;
     private final Clock clock;
-    public BookingService(BookingStore store, BookedSlotAccess slots, BookedCourseLookup courses, Clock clock) {
-        this.store = store; this.slots = slots; this.courses = courses; this.clock = clock;
+    public BookingService(BookingStore store, BookedSlotAccess slots, BookedCourseLookup courses,
+                          BookingMailQueue mailQueue, Clock clock) {
+        this.store = store; this.slots = slots; this.courses = courses;
+        this.mailQueue = mailQueue; this.clock = clock;
     }
 
     @Override @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -65,7 +69,10 @@ public class BookingService implements BookingOperations {
                 slot.coachId(), actor.id(), actor.name(), "PENDING", null, course.title(),
                 course.priceAmount(), course.currency(), mountain.id(), mountain.name(), slot.zoneId(), slot.localDate(),
                 slot.startAt(), slot.endAt(), now, null);
-        if (store.insert(booking, key, fingerprint)) return new Creation<>(booking, true);
+        if (store.insert(booking, key, fingerprint)) {
+            mailQueue.enqueue(booking.id(), BookingMailQueue.APPLICATION_RECEIVED, booking.coachId(), now);
+            return new Creation<>(booking, true);
+        }
         existing = store.findByKey(actor.id(), key);
         if (existing != null) return replay(existing, store.fingerprint(actor.id(), key), fingerprint);
         throw new BusinessProblem(409, "你已申请过这个时段，请查看我的预约");
@@ -82,6 +89,19 @@ public class BookingService implements BookingOperations {
             catch (IllegalArgumentException error) { throw new BusinessProblem(400, "无效申请状态"); }
         }
         return store.coach(actor.id(), status, RequestKeys.limit(limit), cursor);
+    }
+
+    @Override public Booking mineOne(Actor actor, String bookingId) {
+        actor.require("STUDENT");
+        Booking booking = store.findById(bookingId);
+        if (booking == null || !actor.id().equals(booking.studentId()))
+            throw new BusinessProblem(404, "预约不存在");
+        return booking;
+    }
+
+    @Override public Booking coachOne(Actor actor, String bookingId) {
+        actor.require("COACH");
+        return own(actor, bookingId);
     }
 
     @Override @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -111,6 +131,7 @@ public class BookingService implements BookingOperations {
         if (!store.confirm(candidate.id(), now)) throw new BusinessProblem(409, "申请已被处理");
         store.rejectOtherPending(slot.id(), candidate.id(), now);
         store.rejectOtherMountains(actor.id(), candidate.localDate(), candidate.mountainId(), now);
+        mailQueue.enqueue(candidate.id(), BookingMailQueue.BOOKING_CONFIRMED, candidate.studentId(), now);
         return store.findById(candidate.id());
     }
 

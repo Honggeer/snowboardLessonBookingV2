@@ -1,0 +1,20 @@
+CREATE TABLE bookings_mail_task (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    booking_id CHAR(36) NOT NULL,
+    event_type VARCHAR(32) NOT NULL,
+    recipient_account_id CHAR(36) NOT NULL,
+    status VARCHAR(16) NOT NULL DEFAULT 'PENDING',
+    attempts INT NOT NULL DEFAULT 0,
+    next_attempt_at DATETIME(6) NOT NULL,
+    claim_until DATETIME(6) NULL,
+    claim_token CHAR(36) NULL,
+    last_error VARCHAR(100) NULL,
+    created_at DATETIME(6) NOT NULL,
+    sent_at DATETIME(6) NULL,
+    CONSTRAINT fk_booking_mail_booking FOREIGN KEY (booking_id) REFERENCES bookings_request(id),
+    CONSTRAINT fk_booking_mail_recipient FOREIGN KEY (recipient_account_id) REFERENCES identity_account(id),
+    CONSTRAINT uq_booking_mail_event UNIQUE (booking_id, event_type),
+    CONSTRAINT ck_booking_mail_event CHECK (event_type IN ('APPLICATION_RECEIVED', 'BOOKING_CONFIRMED')),
+    CONSTRAINT ck_booking_mail_status CHECK (status IN ('PENDING', 'CLAIMED', 'SENT', 'SKIPPED', 'DEAD')),
+    INDEX ix_booking_mail_claim (status, next_attempt_at, claim_until, id)
+);
