@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-独立 v2 工程底座 [0001](ai-docs/implement-plan/0001-project-foundation.md) 已通过本地验证。身份功能 [0002](ai-docs/implement-plan/0002-student-identity.md) revision 2 已实现：学员注册、邮箱验证、学员/教练登录、安全 Session、8–128 字符密码边界和按 GEER 蓝色稿呈现的响应式页面。本地测试通过，页面最终视觉待用户确认；预约及生产部署尚未实现。
+已完成并本地验证工程底座、注册/邮箱验证与登录、密码找回、学员约课、教练排班/课程管理和预约邮件；当前状态以[功能索引](ai-docs/features/README.md)为准。“关于 GEER”与媒体管理见 [0008](ai-docs/implement-plan/0008-about-geer.md)，提供公开主页及教练编辑、草稿预览和发布。生产部署尚未执行。
 
 本地启动和验证命令见 [部署说明](deploy/README.md)、[后端说明](backend/README.md) 和 [前端说明](frontend/README.md)。
 

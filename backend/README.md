@@ -1,6 +1,6 @@
 # 后端
 
-Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束；V8 增加预约邮件任务表。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
+Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束；V8 增加预约邮件任务表；V9 增加个人主页、媒体与任务/引用/配额表。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
 
 ## IDEA 本地开发
 
@@ -58,10 +58,31 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期或在线支付。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
 
-`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用 V8。生产迁移与发布另需授权。
+`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V9。生产迁移与发布另需授权。
 
 ## 预约邮件
 
 学员申请成功进入 PENDING 时，同事务保存教练邮件任务；教练确认后，同事务保存学员邮件任务。后台另行通过现有 SMTP 发送，两封邮件分别链接到需要登录且按账号授权的预约详情。任务写入失败会回滚申请或确认；SMTP 失败只影响邮件任务，不能改变已保存的预约状态。相关状态、API 和限制见[0007 功能文档](../ai-docs/features/0007-booking-email-notifications.md)。
 
 `APP_PUBLIC_URL` 必须是收件人可访问的站点根地址；本机 `localhost:5173` 或 `localhost:8088` 只适合在运行应用的电脑上打开。不能用请求 Host 构造邮件链接。`BOOKING_MAIL_WORKER_ENABLED=false` 可暂停预约邮件轮询，`BOOKING_MAIL_WORKER_DELAY_MS` 可调整毫秒间隔。每轮最多处理 10 项；失败退避并最多尝试 8 次，超过上限记 `DEAD`。用 `SELECT id,booking_id,event_type,attempts,last_error FROM bookings_mail_task WHERE status='DEAD'` 排查，确认 SMTP 恢复后可针对指定任务重置为 `PENDING`、`attempts=0` 和当前 `next_attempt_at`；发送前 worker 仍会核对预约当前状态。邮件采用至少一次投递，发信成功后进程中断可能重复。
+
+## 关于 GEER 与媒体（0008）
+
+公开页面在 `/about-geer`；教练登录后点击“个人主页”，填写资料并上传人物照、证书、微信二维码、视频封面及一个 MP4。保存草稿不会改变公开内容，预览最新已保存草稿后再发布。发布至少需要称呼、一句话介绍和已验证人物照片；证书说明/图片、社交账号/链接、视频/封面分别成对填写。实际资料由教练填写，首次未发布时显示准备中。
+
+IDEA 开发前，在仓库根运行：
+
+```sh
+docker-compose -f deploy/compose.yaml up -d db mailpit s3mock
+scripts/install-media-probe.sh
+```
+
+第二条从官方固定版本源码编译 ffprobe 9.0.2 到被 Git 忽略的 `backend/.local/bin/ffprobe`，不升级系统 Homebrew；需 curl、tar/xz、make 和 C 编译器。已安装者无需重复执行。应用自动查找 `.local/bin/ffprobe`、`backend/.local/bin/ffprobe`，也可在 IDEA 设置 `FFPROBE_PATH` 为绝对路径。启动 `local` profile 后，新媒体任务专用 worker 自动处理，S3Mock 在 `http://localhost:9090`；8080 由 IDEA 后端使用。现有 IDEA 进程需重新加载 Maven 依赖并重启，才能加载新模块和 V9 迁移。
+
+图片要求真实 JPG/PNG、8 MiB 内、宽高不超过 4096；视频要求真实 MP4/H.264/yuv420p、最多一个 AAC 音轨、100 MiB/120 秒/1080p/60 fps 内，不自动转码。选择文件后浏览器直传，后台固定版本并校验；校验失败保留旧素材，可重新选择。最多一个未终结上传、每小时 20 个新申请、逻辑容量 1 GiB。未完成上传 24 小时过期；后台删除过期暂存全部版本，未引用素材保留 7 天，保留 tombstone 回扫迟到对象。逻辑容量不限制实际 S3 写入量或账单。
+
+`MEDIA_WORKER_ENABLED=false` 暂停媒体任务。验证临时故障最多执行 4 次；删除最多 9 次（首次加 8 次重试），最终失败留在 `media_job`。可只读查询 `SELECT id,asset_id,kind,attempts,error_code FROM media_job WHERE status='FAILED'`；排除存储/ffprobe 故障后，对明确的失败任务单独恢复，不批量重置或删除已发布引用。数据库与 S3 操作不能共用事务；发布只原子切换已验证引用。
+
+生产须显式 `MEDIA_STORAGE_MODE=aws`，提供 `MEDIA_REGION`、两个独立私有桶 `MEDIA_STAGING_BUCKET`/`MEDIA_FROZEN_BUCKET`、`MEDIA_CDN_BASE_URL`、`MEDIA_KEY_PAIR_ID`、秘密文件路径 `MEDIA_SIGNING_KEY_PATH`，并开启 worker。staging 必须开启 versioning；生产权限用 IAM Role，签名私钥另外注入。CloudFront OAC 保护私有源站，frozen 分发还必须要求可信 key group 的 viewer 签名。公开 API 只签已发布引用，签名 15 分钟；预览仅限教练。尚未创建或验证这些 AWS 资源，实际 CORS、IAM、OAC、费用与备份随生产部署方案 review。
+
+S3Mock 忽略真实签名/过期校验，且 CORS 宽松，只用于本地测试；不能作为生产授权证明。新增目标测试位于 `coachprofile/` 和 `media/`，实际 MP4 样本是蓝色测试片段，不是真实教练视频。CI 同样先运行固定版本探测工具的安装脚本。

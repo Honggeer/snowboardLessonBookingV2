@@ -19,10 +19,23 @@
 
     <properties>
         <java.version>25</java.version>
+        <aws-sdk.version>2.55.10</aws-sdk.version>
         <archunit.version>1.5.0</archunit.version>
     </properties>
 
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId><artifactId>bom</artifactId>
+                <version>${aws-sdk.version}</version><type>pom</type><scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
+        <dependency><groupId>software.amazon.awssdk</groupId><artifactId>s3</artifactId></dependency>
+        <dependency><groupId>software.amazon.awssdk</groupId><artifactId>cloudfront</artifactId></dependency>
+        <dependency><groupId>software.amazon.awssdk</groupId><artifactId>url-connection-client</artifactId></dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>

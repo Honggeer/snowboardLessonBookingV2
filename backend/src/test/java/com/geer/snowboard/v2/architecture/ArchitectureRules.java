@@ -16,7 +16,7 @@ final class ArchitectureRules {
     private static final String ROOT = "com.geer.snowboard.v2.";
     private static final Set<String> BUSINESS_MODULES = Set.of(
             "identity", "students", "catalog", "scheduling", "bookings",
-            "notifications", "media");
+            "notifications", "media", "coachprofile");
 
     private ArchitectureRules() {}
 

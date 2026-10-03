@@ -3,6 +3,7 @@ package com.geer.snowboard.v2.bootstrap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.geer.snowboard.v2.identity.adapter.in.jobs.MailPoller;
+import com.geer.snowboard.v2.media.adapter.in.jobs.MediaPoller;
 import com.geer.snowboard.v2.scheduling.application.port.out.TimeWindowPreviewStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
 
-@SpringBootTest(properties = {"identity.mail.worker.enabled=false", "booking.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
+@SpringBootTest(properties = {"identity.mail.worker.enabled=false", "booking.mail.worker.enabled=false",
+        "media.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
 @ActiveProfiles("local")
 @Testcontainers
 class LocalApplicationStartupTest {
@@ -48,6 +50,11 @@ class LocalApplicationStartupTest {
     @Test
     void temporaryDatabaseContextDoesNotStartAutomaticMailPolling() {
         assertThat(context.getBeansOfType(MailPoller.class)).isEmpty();
+    }
+
+    @Test
+    void temporaryDatabaseContextDoesNotStartAutomaticMediaPolling() {
+        assertThat(context.getBeansOfType(MediaPoller.class)).isEmpty();
     }
 
     @Test

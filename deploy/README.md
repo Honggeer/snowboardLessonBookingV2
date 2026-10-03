@@ -1,6 +1,6 @@
 # 本地环境
 
-`compose.yaml` 在本机启动 MySQL 8.4、Java 后端、NGINX 前端和 [Mailpit 邮件沙箱](https://mailpit.axllent.org/docs/install/docker/)。未设置 `MAIL_*` 参数时默认发送到 Mailpit；在被 Git 忽略的 `deploy/.env` 配置真实 SMTP 后，注册验证、密码找回和预约通知共用该发信账号。本配置未部署到 AWS。
+`compose.yaml` 在本机启动 MySQL 8.4、Java 后端、NGINX 前端、S3Mock 本地对象存储和 [Mailpit 邮件沙箱](https://mailpit.axllent.org/docs/install/docker/)。未设置 `MAIL_*` 参数时默认发送到 Mailpit；在被 Git 忽略的 `deploy/.env` 配置真实 SMTP 后，注册验证、密码找回和预约通知共用该发信账号。本配置未部署到 AWS。
 
 ## 首次启动
 
@@ -29,6 +29,7 @@ python3 deploy/smoke.py
 | 后端，供 Vite 代理 | `http://127.0.0.1:8080` |
 | Docker MySQL，供 IDEA 连接 | `127.0.0.1:3307` |
 | Mailpit SMTP，供 IDEA 后端连接 | `127.0.0.1:1025` |
+| S3Mock 本地媒体，供 IDEA 与浏览器 | `http://localhost:9090` |
 
 在 IDEA 开发后端时，可保留 `db` 与 `mailpit` 并停掉占用 8080 的容器后端及前端：
 
@@ -41,3 +42,11 @@ IDEA 所需环境变量与启动类见[后端说明](../backend/README.md)。Mac
 ## 验证边界
 
 Mailpit 模式的本地冒烟覆盖邮箱验证、登录、Session、退出、密码找回及预约两类邮件；实际执行结果见相应功能计划。真实 SMTP 模式需使用本人控制的邮箱单独验证，SMTP 接受也不等于收件箱最终送达。本地检查不证明生产 HTTPS Cookie、EC2 性能或备份恢复。生产部署、实际付费资源和 v1 数据迁移均需另行批准。
+
+## IDEA 开发“关于 GEER”
+
+保留 `db`、`mailpit`、`s3mock`，运行 `docker-compose -f deploy/compose.yaml up -d db mailpit s3mock`。S3Mock 5.2.3 仅绑定 `127.0.0.1:9090`，数据保存在 `media_v2_data` 命名卷；后端由 IDEA 启动在 8080，前端由 Vite 启动在 5173。ffprobe 安装、上传上限和生产配置见[后端媒体说明](../backend/README.md)。修改后需重新加载 Maven 并重启 IDEA 后端。
+
+容器内 S3 endpoint 为 `http://s3mock:9090`，浏览器 URL 默认使用 `http://localhost:9090`；若从其他设备查看本地页面，需为 `MEDIA_PUBLIC_ENDPOINT` 配置该设备能访问的开发存储地址，并调整本地端口绑定，不能把 localhost 作为远程可达地址。生产使用 HTTPS 的 CloudFront URL。
+
+构建镜像包含固定 ffprobe 9.0.2，运行账号非 root；构建不等于启动后端或生产部署。S3Mock 不校验预签名有效性，private S3/OAC/可信 key group、存储生命周期和费用须在实际 AWS 部署另验。

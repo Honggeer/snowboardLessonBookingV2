@@ -4,3 +4,5 @@ mvnw
 mvnw.cmd
 README.md
 AGENTS.md
+.local/
+.cache/

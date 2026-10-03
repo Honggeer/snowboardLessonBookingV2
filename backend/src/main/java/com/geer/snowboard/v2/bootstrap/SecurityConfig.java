@@ -26,6 +26,7 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, Clock clock, IdentityOperations identity) throws Exception {
         http.authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/coach-profile").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                 .requestMatchers("/api/auth/csrf", "/api/auth/register", "/api/auth/email-verification",
                         "/api/auth/email-verification/resend", "/api/auth/login",

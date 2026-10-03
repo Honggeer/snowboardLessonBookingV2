@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 final class ArchitectureBaseline {
     private static final String ROOT = "com.geer.snowboard.v2.";
     private static final Set<String> BUSINESS_MODULES = Set.of(
-            "identity", "students", "catalog", "scheduling", "bookings", "notifications", "media");
+            "identity", "students", "catalog", "scheduling", "bookings", "notifications", "media", "coachprofile");
     private static final Pattern REFERENCE = Pattern.compile(
             "(?:TODO|ADR|PLAN)-[0-9]{4}|ai-docs/(?:implement-plan|decisions|todo)/[A-Za-z0-9./-]+\\.md");
 

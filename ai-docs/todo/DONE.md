@@ -16,3 +16,8 @@
 | TODO-0010 | [身份页面与已选蓝色设计稿明显不一致](0010-identity-visual-mismatch.md) | DONE | [0002 revision 2](../implement-plan/0002-student-identity.md) | 2026-09-29 |
 | TODO-0011 | [集成测试收尾时邮件轮询任务记录数据库连接错误](0011-mail-poller-test-shutdown-noise.md) | DONE | [0005](../implement-plan/0005-test-scheduler-lifecycle.md) | 2026-09-30 |
 | TODO-0012 | [本地教练新增雪场和发布日程无响应](0012-local-coach-submit-buttons-no-feedback.md) | DONE | [0006](../implement-plan/0006-post-login-booking-home.md) | 2026-10-01 |
+| TODO-0013 | [根 README 的功能状态落后于功能索引](0013-root-readme-feature-status-stale.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-02 |
+| TODO-0014 | [首次访问时并行会话初始化使登录偶发失败](0014-anonymous-session-bootstrap-race.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-02 |
+| TODO-0015 | [新增媒体轮询在临时测试库关闭后继续访问数据库](0015-media-poller-test-lifecycle.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-02 |
+| TODO-0016 | [登录页关于 GEER 入口不醒目且缺少可点击提示](0016-login-about-geer-visibility.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-03 |
+| TODO-0017 | [实施计划索引把实现中和已实现定义误写为已验证](0017-plan-status-definitions-duplicated.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-03 |

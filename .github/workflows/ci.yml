@@ -19,6 +19,8 @@ jobs:
           java-version: '25'
           cache: maven
           cache-dependency-path: backend/pom.xml
+      - name: Build pinned media probe
+        run: scripts/install-media-probe.sh
       - name: Backend tests, including MySQL 8.4
         working-directory: backend
         run: ./mvnw -B test

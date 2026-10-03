@@ -26,4 +26,5 @@ ticket 是待办记录，**不批准实现代码**。若工作已在获批计划
 
 | ID | Ticket | 状态 | 关联功能/计划 | 更新时间 |
 |---|---|---|---|---|
-当前没有 `OPEN` 或 `IN_PROGRESS` ticket。
+
+当前无 OPEN / IN_PROGRESS ticket。

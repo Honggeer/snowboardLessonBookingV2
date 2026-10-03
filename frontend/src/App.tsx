@@ -1,6 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import BookingHome, { type BookingDeepLink } from './BookingHome';
 import './style.css';
+import AboutGeerPage from './AboutGeerPage';
+import CoachProfileEditor from './CoachProfileEditor';
 
 type View = 'login' | 'register' | 'check-email' | 'verify' | 'verified' | 'account'
   | 'recover-request' | 'recover-code' | 'recover-password' | 'recover-done';
@@ -33,8 +35,10 @@ export default function App() {
     ? new URLSearchParams(window.location.hash.slice('#verify?'.length)).get('token') : null;
   const [verificationToken] = useState(initialToken);
   const [deepLink, setDeepLink] = useState<BookingDeepLink | null>(() => bookingDeepLink(window.location.hash));
+  const [page, setPage] = useState<'home' | 'about' | 'editor'>(() => window.location.pathname === '/about-geer' ? 'about' : 'home');
   const [view, setView] = useState<View>(initialToken ? 'verify' : 'login');
   const [csrf, setCsrf] = useState<Csrf | null>(null);
+  const csrfRequest = useRef<Promise<Csrf> | null>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
@@ -47,35 +51,40 @@ export default function App() {
   const [message, setMessage] = useState('');
 
   async function refreshCsrf() {
-    let response: Response;
-    try {
-      response = await fetch('/api/auth/csrf', { credentials: 'same-origin' });
-    } catch {
-      throw new Error('无法建立安全连接，请稍后重试。');
-    }
-    if (!response.ok) throw new Error('无法建立安全连接，请稍后重试。');
-    const next = await readJson(response) as Csrf;
-    setCsrf(next);
-    return next;
+    if (csrfRequest.current) return csrfRequest.current;
+    const request = (async () => {
+      let response: Response;
+      try { response = await fetch('/api/auth/csrf', { credentials: 'same-origin' }); }
+      catch { throw new Error('无法建立安全连接，请稍后重试。'); }
+      if (!response.ok) throw new Error('无法建立安全连接，请稍后重试。');
+      const next = await readJson(response) as Csrf;
+      setCsrf(next);
+      return next;
+    })();
+    csrfRequest.current = request;
+    try { return await request; }
+    finally { csrfRequest.current = null; }
   }
 
   useEffect(() => {
     const updateDeepLink = () => setDeepLink(bookingDeepLink(window.location.hash));
+    const updatePage = () => setPage(window.location.pathname === '/about-geer' ? 'about' : 'home');
     window.addEventListener('hashchange', updateDeepLink);
-    return () => window.removeEventListener('hashchange', updateDeepLink);
+    window.addEventListener('popstate', updatePage);
+    return () => { window.removeEventListener('hashchange', updateDeepLink); window.removeEventListener('popstate', updatePage); };
   }, []);
 
   useEffect(() => {
     if (initialToken) window.history.replaceState(null, '', window.location.pathname + window.location.search);
     let active = true;
-    Promise.all([
-      fetch('/api/auth/csrf', { credentials: 'same-origin' }).then(readJson),
-      fetch('/api/auth/me', { credentials: 'same-origin' }).then(async (response) => response.ok ? readJson(response) : null),
-    ]).then(([token, current]) => {
-      if (!active) return;
-      setCsrf(token as Csrf);
-      if (current && !initialToken) { setAccount(current as Account); setView('account'); }
-    }).catch(() => { if (active) setMessage('无法连接服务，请稍后重试。'); });
+    // The CSRF endpoint establishes the session cookie. Account discovery must
+    // follow it; concurrent anonymous requests can otherwise create two sessions.
+    refreshCsrf().then(() => fetch('/api/auth/me', { credentials: 'same-origin' }))
+      .then(async (response) => response.ok ? readJson(response) : null)
+      .then((current) => {
+        if (!active) return;
+        if (current && !initialToken) { setAccount(current as Account); setView('account'); }
+      }).catch(() => { if (active) setMessage('无法连接服务，请稍后重试。'); });
     return () => { active = false; };
   }, []);
 
@@ -189,12 +198,24 @@ export default function App() {
     setView('login');
   }
 
+  function navigate(next: 'home' | 'about' | 'editor') {
+    if (next !== 'editor') window.history.pushState(null, '', next === 'about' ? '/about-geer' : '/' + window.location.hash);
+    setPage(next);
+  }
+  const unauthorized = () => { setAccount(null); setCsrf(null); setView('login'); setPage('home'); setMessage('登录已失效，请重新登录。'); };
+  if (page === 'about') return <AboutGeerPage onBook={() => navigate('home')} onHome={() => navigate('home')} loggedIn={!!account} />;
+  if (page === 'editor' && account?.role === 'COACH') return <CoachProfileEditor key={account.id} refreshCsrf={refreshCsrf} onUnauthorized={unauthorized} onBack={() => navigate('home')} />;
+
   if (view === 'account' && account) return <BookingHome key={account.id} account={account} csrf={csrf}
     refreshCsrf={refreshCsrf} onLogout={logout} authMessage={message} deepLink={deepLink}
-    onUnauthorized={() => { setAccount(null); setCsrf(null); setView('login'); setMessage('登录已失效，请重新登录。'); }} />;
+    onAbout={() => navigate('about')} onProfile={() => navigate('editor')} onUnauthorized={unauthorized} />;
 
   return (
     <main className={'auth-layout view-' + view}>
+      {view === 'login' && <button type="button" className="auth-about-link" onClick={() => navigate('about')}>
+        <span>关于 GEER</span>
+        <span className="auth-about-arrow" aria-hidden="true">↗</span>
+      </button>}
       <section className="brand-panel" aria-label="GEER 单板教学">
         <picture>
           <source media="(max-width: 900px)" srcSet={view === 'register' ? '/images/geer-blue-mobile-register.png' : '/images/geer-blue-mobile-login.png'} />
@@ -270,7 +291,7 @@ export default function App() {
           )}
           {message && <p role="alert" className="feedback">{message}</p>}
         </div>
-        <div className="panel-bottom"><span>MORE THAN A RIDE</span></div>
+        <div className="panel-bottom">{view !== 'login' && <button type="button" className="text-button" onClick={() => navigate('about')}>关于 GEER</button>}<span>MORE THAN A RIDE</span></div>
       </section>
     </main>
   );

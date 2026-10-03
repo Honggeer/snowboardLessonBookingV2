@@ -97,9 +97,9 @@ function statusLabel(status: Booking['status']) {
     : status === 'CANCELLED_BY_STUDENT' ? '学员已取消' : '已拒绝';
 }
 
-export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUnauthorized, authMessage, deepLink }:
+export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUnauthorized, authMessage, deepLink, onAbout, onProfile }:
   { account: Account; csrf: Csrf | null; refreshCsrf: () => Promise<Csrf>; onLogout: () => Promise<void>;
-    onUnauthorized: () => void; authMessage: string; deepLink: BookingDeepLink | null }) {
+    onUnauthorized: () => void; authMessage: string; deepLink: BookingDeepLink | null; onAbout: () => void; onProfile: () => void }) {
   const [tab, setTab] = useState<Tab>(deepLink?.role === account.role
     ? account.role === 'COACH' ? 'applications' : 'mine'
     : account.role === 'COACH' ? 'applications' : 'book');
@@ -514,11 +514,13 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
         <nav aria-label="主导航">
           {account.role === 'STUDENT' ? <>
             <button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => setTab('book')}>约课</button>
+            <button type="button" onClick={onAbout}>关于 GEER</button>
             <button type="button" className={tab === 'mine' ? 'active' : ''} onClick={() => setTab('mine')}>我的预约</button>
           </> : <>
             <button type="button" className={tab === 'courses' ? 'active' : ''} onClick={() => setTab('courses')}>创建课程</button>
             <button type="button" className={tab === 'availability' ? 'active' : ''} onClick={() => setTab('availability')}>管理可用时间</button>
             <button type="button" className={tab === 'applications' ? 'active' : ''} onClick={() => setTab('applications')}>预约申请</button>
+            <button type="button" onClick={onProfile}>个人主页</button>
           </>}
         </nav>
         <div className="booking-account"><span>{account.name}</span><button type="button" onClick={onLogout}>退出</button></div>
