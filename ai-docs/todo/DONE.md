@@ -25,3 +25,4 @@
 | TODO-0019 | [课程照片边缘采用斜向渐变并去掉默认纹理](0019-course-cover-diagonal-fade.md) | DONE | [0009 revision 3](../implement-plan/0009-course-selection-visuals.md) | 2026-10-03 |
 | TODO-0020 | [教练课程列表先展示发布中的课程](0020-coach-course-display-order.md) | DONE | [0006 revision 4](../implement-plan/0006-post-login-booking-home.md) | 2026-10-03 |
 | TODO-0021 | [教练列表移除已下架课程并保留数据库记录](0021-remove-archived-courses.md) | DONE | [0006 revision 4](../implement-plan/0006-post-login-booking-home.md) | 2026-10-03 |
+| TODO-0023 | [CI 的 Compose 配置检查缺少验证密钥](0023-ci-compose-verification-key.md) | DONE | [0010 revision 2](../implement-plan/0010-production-delivery.md) | 2026-10-04 |

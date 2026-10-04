@@ -15,3 +15,5 @@ target/
 .cache/
 mysql-data/
 backups/
+__pycache__/
+*.py[cod]

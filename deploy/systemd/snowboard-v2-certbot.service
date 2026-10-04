@@ -1,0 +1,12 @@
+[Unit]
+Description=Renew Snowboard v2 HTTPS certificate
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+UMask=0077
+ExecStart=/opt/snowboard-v2/certbot/bin/certbot renew --quiet --deploy-hook /opt/snowboard-v2/bin/renew-certificate.sh
+TimeoutStartSec=600
+

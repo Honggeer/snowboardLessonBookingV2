@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from test_delivery_support import COMPOSE as DOCKER_COMPOSE
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,7 +29,7 @@ def backend_environment(extra):
         }):
             process_env.pop(key, None)
         result = subprocess.run(
-            ["docker-compose", "--env-file", str(config), "-f", str(COMPOSE),
+            DOCKER_COMPOSE + ["--env-file", str(config), "-f", str(COMPOSE),
              "config", "--format", "json"],
             cwd=ROOT, env=process_env, capture_output=True, text=True, check=True,
         )

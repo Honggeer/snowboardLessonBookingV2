@@ -1,0 +1,10 @@
+{
+  "account_id": "123456789012",
+  "instance_id": "i-0c7978984740cbd58",
+  "oidc_subject": "repo:Honggeer@123456/snowboardLessonBookingV2@789012:environment:production",
+  "staging_bucket": "geer-example-staging",
+  "frozen_bucket": "geer-example-frozen",
+  "operations_bucket": "geer-example-operations",
+  "origin": "https://lessons.example.test",
+  "distribution_id": "EEXAMPLEDISTRIBUTION"
+}

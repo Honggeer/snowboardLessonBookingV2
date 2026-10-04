@@ -55,9 +55,12 @@ jobs:
     env:
       DB_PASSWORD: ci-config-only
       MYSQL_ROOT_PASSWORD: ci-config-only-root
+      VERIFICATION_KEY: ci-config-only-invalid-key-never-use-in-production
     steps:
       - uses: actions/checkout@v7
       - name: Documentation checks
         run: python3 ai-docs/check_docs.py
       - name: Compose configuration
-        run: docker compose -f deploy/compose.yaml config --quiet
+        run: docker compose --env-file /dev/null -f deploy/compose.yaml config --quiet
+      - name: Delivery behavior and configuration checks
+        run: python3 -m unittest discover -s deploy -p 'test_*.py'

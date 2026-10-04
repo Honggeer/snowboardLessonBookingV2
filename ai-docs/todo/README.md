@@ -27,3 +27,5 @@ ticket 是待办记录，**不批准实现代码**。若工作已在获批计划
 | ID | Ticket | 状态 | 关联功能/计划 | 更新时间 |
 |---|---|---|---|---|
 | TODO-0022 | [本地高光视频接近一分钟时传输中断](0022-local-highlight-video-stalls.md) | OPEN | [0008 revision 1](../implement-plan/0008-about-geer.md) | 2026-10-03 |
+| TODO-0024 | [现有 EC2 根盘未启用加密](0024-ec2-root-volume-unencrypted.md) | IN_PROGRESS | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
+| TODO-0025 | [当前 Git remote 的 SSH 身份认证失败](0025-github-ssh-auth-unavailable.md) | IN_PROGRESS | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |

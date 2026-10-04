@@ -1,0 +1,117 @@
+name: Production delivery
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: snowboard-v2-production-delivery
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    if: >-
+      vars.PRODUCTION_DELIVERY_ENABLED == 'true' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04-arm
+    outputs:
+      allowed: ${{ steps.gate.outputs.allowed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ENABLED: ${{ vars.PRODUCTION_DELIVERY_ENABLED }}
+        run: |
+          current_sha=$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)
+          if python3 deploy/release_gate.py --event "$GITHUB_EVENT_PATH" --repository "$REPOSITORY" --current-sha "$current_sha" --enabled "$ENABLED"; then
+            echo 'allowed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    needs: gate
+    if: needs.gate.outputs.allowed == 'true'
+    runs-on: ubuntu-24.04-arm
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ca-central-1
+      RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+      REPOSITORY: ${{ github.repository }}
+      BACKEND_REPOSITORY: ${{ vars.BACKEND_ECR_REPOSITORY }}
+      FRONTEND_REPOSITORY: ${{ vars.FRONTEND_ECR_REPOSITORY }}
+      RELEASE_BUCKET: ${{ vars.RELEASE_BUCKET }}
+      INSTANCE_ID: ${{ vars.PRODUCTION_INSTANCE_ID }}
+      SSM_DOCUMENT: ${{ vars.PRODUCTION_SSM_DOCUMENT }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Check current main before AWS authentication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$RUN_SHA" = "$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+      - uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
+        with:
+          role-to-assume: ${{ vars.PRODUCTION_CI_ROLE_ARN }}
+          aws-region: ca-central-1
+          role-session-name: snowboard-v2-delivery
+      - name: Login to ECR
+        run: |
+          registry="${BACKEND_REPOSITORY%%/*}"
+          aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$registry"
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Reuse already built immutable SHA images
+        id: existing
+        run: python3 deploy/ecr_existing.py
+      - id: backend
+        if: steps.existing.outputs.backend == ''
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: backend
+          platforms: linux/arm64
+          push: true
+          tags: ${{ vars.BACKEND_ECR_REPOSITORY }}:${{ github.event.workflow_run.head_sha }}
+      - id: frontend
+        if: steps.existing.outputs.frontend == ''
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: frontend
+          platforms: linux/arm64
+          push: true
+          tags: ${{ vars.FRONTEND_ECR_REPOSITORY }}:${{ github.event.workflow_run.head_sha }}
+      - name: Run ARM64 media probe from the published backend image
+        env:
+          BACKEND_DIGEST: ${{ steps.existing.outputs.backend || steps.backend.outputs.digest }}
+        run: docker run --rm --entrypoint /usr/local/bin/ffprobe "$BACKEND_REPOSITORY@$BACKEND_DIGEST" -version
+      - name: Upload matching configuration bundle
+        id: bundle
+        run: |
+          python3 deploy/bundle_delivery.py --sha "$RUN_SHA" --output "$RUNNER_TEMP/delivery.tar.gz"
+          checksum=$(sha256sum "$RUNNER_TEMP/delivery.tar.gz" | cut -d ' ' -f 1)
+          aws s3 cp "$RUNNER_TEMP/delivery.tar.gz" "s3://$RELEASE_BUCKET/releases/$RUN_SHA.tar.gz" --sse AES256 --only-show-errors
+          echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
+      - name: Recheck main, dispatch, and wait for actual SSM result
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUNDLE_CHECKSUM: ${{ steps.bundle.outputs.checksum }}
+          BACKEND_DIGEST: ${{ steps.existing.outputs.backend || steps.backend.outputs.digest }}
+          FRONTEND_DIGEST: ${{ steps.existing.outputs.frontend || steps.frontend.outputs.digest }}
+        run: |
+          test "$RUN_SHA" = "$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
+          python3 deploy/send_release.py

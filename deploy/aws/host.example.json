@@ -1,0 +1,15 @@
+{
+  "repository": "Honggeer/snowboardLessonBookingV2",
+  "project": "snowboard-v2-production",
+  "public_url": "https://lessons.example.test",
+  "tls_dir": "/etc/snowboard-v2/tls",
+  "certificate_lineage": "/etc/letsencrypt/live/lessons.example.test",
+  "env_file": "/etc/snowboard-v2/production.env",
+  "state_dir": "/var/lib/snowboard-v2/state",
+  "releases_dir": "/opt/snowboard-v2/releases",
+  "backup_work_dir": "/var/lib/snowboard-v2/backup-work",
+  "release_bucket": "geer-example-operations",
+  "backup_bucket": "geer-example-operations",
+  "backend_repository": "123456789012.dkr.ecr.ca-central-1.amazonaws.com/snowboard-v2-backend",
+  "frontend_repository": "123456789012.dkr.ecr.ca-central-1.amazonaws.com/snowboard-v2-frontend"
+}
