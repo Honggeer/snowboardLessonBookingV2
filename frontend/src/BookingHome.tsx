@@ -1,11 +1,13 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import './booking.css';
+import CourseCard, { type Course } from './CourseCard';
+import CourseCoverEditor, { emptyCover, type CoverDraft } from './CourseCoverEditor';
+import type { MediaLink } from './coachProfileApi';
 
 type Account = { id: string; role: 'STUDENT' | 'COACH'; name: string; level: string | null };
 export type BookingDeepLink = { role: Account['role']; id: string };
 type Csrf = { token: string; headerName: string };
 type Page<T> = { items: T[]; nextCursor: string | null };
-type Course = { id: string; title: string; description: string; priceAmount: string; currency: string; active?: boolean };
 type Mountain = { id: string; name: string; active: boolean };
 type Slot = { id: string; zoneId: string; localDate: string; startAt: string; endAt: string;
   status: string; availableMountains: Mountain[] };
@@ -128,6 +130,10 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   const [courseTitle, setCourseTitle] = useState('');
   const [courseDescription, setCourseDescription] = useState('');
   const [coursePrice, setCoursePrice] = useState('');
+  const [courseCover, setCourseCover] = useState<CoverDraft>(emptyCover);
+  const [editCover, setEditCover] = useState<CoverDraft>(emptyCover);
+  const [coverPending, setCoverPending] = useState(false);
+  const [editCoverPending, setEditCoverPending] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState(dateOffset(startingDate, 1).slice(0, 7));
   const [calendarDays, setCalendarDays] = useState<MonthDay[]>([]);
   const [calendarSelection, setCalendarSelection] = useState<string[]>([]);
@@ -334,15 +340,32 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     finally { setBusy(false); }
   }
 
+  async function refreshCourseCover(id: string): Promise<MediaLink | null> {
+    let cursor: string | null = null;
+    const visited = new Set<string>();
+    try {
+      for (let count = 0; count < Math.max(1, Math.ceil(courses.length / 50)); count++) {
+        const page: Page<Course> = await getPage<Course>(`/api/courses?limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`);
+        const course = page.items.find((item) => item.id === id);
+        if (course) return course.cover ?? null;
+        cursor = page.nextCursor;
+        if (!cursor || visited.has(cursor)) break;
+        visited.add(cursor);
+      }
+    } catch (reason) { if (reason instanceof BookingApiError && reason.status === 401) onUnauthorized(); }
+    return null;
+  }
+
   async function publishCourse(event: FormEvent) {
-    event.preventDefault(); if (busy) return;
+    event.preventDefault(); if (busy || coverPending) return;
     setBusy(true); setError(''); setNotice('');
     try {
       const key = courseKey ?? newIdempotencyKey(); setCourseKey(key);
       await post<Course>('/api/coach/courses', { title: courseTitle, description: courseDescription,
-        priceAmount: coursePrice, currency: 'CAD' }, key);
+        priceAmount: coursePrice, currency: 'CAD', coverAssetId: courseCover.coverAssetId,
+        coverPositionX: courseCover.coverPositionX, coverPositionY: courseCover.coverPositionY }, key);
       setCourseKey(null);
-      setCourseTitle(''); setCourseDescription(''); setCoursePrice('');
+      setCourseTitle(''); setCourseDescription(''); setCoursePrice(''); setCourseCover(emptyCover());
       setNotice('课程已发布。'); setReload((value) => value + 1);
     } catch (reason) { fail(reason); }
     finally { setBusy(false); }
@@ -438,11 +461,12 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   }
 
   async function updateCourse(event: FormEvent) {
-    event.preventDefault(); if (!editingCourseId || busy) return;
+    event.preventDefault(); if (!editingCourseId || busy || editCoverPending) return;
     setBusy(true); setError(''); setCourseActionError(''); setCourseFeedback('正在保存课程…');
     try {
       const course = await write<Course>('PATCH', `/api/coach/courses/${editingCourseId}`,
-        { ...courseEdit, currency: 'CAD' });
+        { ...courseEdit, currency: 'CAD', coverAssetId: editCover.coverAssetId,
+          coverPositionX: editCover.coverPositionX, coverPositionY: editCover.coverPositionY });
       setCourses((current) => current.map((item) => item.id === course.id ? course : item));
       setEditingCourseId(null); setCourseFeedback('课程已更新，已有预约保持原课程与价格。');
     } catch (reason) {
@@ -486,6 +510,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   }
 
   const selectedCourse = courses.find((course) => course.id === selectedCourseId);
+  const visibleCoachCourses = courses.filter((course) => course.active !== false);
   const selectedSlot = slots.find((slot) => slot.id === selectedSlotId);
   const selectedMountain = selectedSlot?.availableMountains?.find((mountain) => mountain.id === selectedMountainId);
   const dates = Array.from(new Set(slots.map((slot) => slot.localDate))).sort();
@@ -510,7 +535,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   return <main className="booking-app">
     <header className="booking-header">
       <div className="booking-header-inner">
-        <span className="booking-logo" aria-label="GEER">GEER</span>
+        <img className="booking-logo" src="/images/geer-logo.png" alt="GEER" width="132" height="26" />
         <nav aria-label="主导航">
           {account.role === 'STUDENT' ? <>
             <button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => setTab('book')}>约课</button>
@@ -548,14 +573,10 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
           <section className="booking-panel booking-picker" aria-label="选择课程和时段">
             <div className="panel-heading"><h2>选择课程</h2><span>一对一 · 固定 2 小时</span></div>
             {!loading && courses.length === 0 && <p className="booking-empty">教练还没有发布课程，请稍后再来看看。</p>}
-            <div className="course-options">{courses.map((course) => <button key={course.id} type="button"
-              className={`course-option ${selectedCourseId === course.id ? 'selected' : ''}`}
-              onClick={() => { setSelectedCourseId(course.id); setSelectedDate(null); setSelectedSlotId(null);
-                setSelectedMountainId(null); setNotice(''); }}>
-              <span className="course-symbol" aria-hidden="true">◇</span>
-              <span className="course-copy"><strong>{course.title}</strong><small>{course.description || '两小时一对一教学'}</small><em>2 小时 · 一对一</em></span>
-              <b>CAD {course.priceAmount}</b>
-            </button>)}</div>
+            <div className="course-options">{courses.map((course) => <CourseCard key={`${course.id}:${course.coverAssetId ?? ''}`}
+              course={course} selected={selectedCourseId === course.id} refreshCover={() => refreshCourseCover(course.id)}
+              onSelect={() => { setSelectedCourseId(course.id); setSelectedDate(null); setSelectedSlotId(null);
+                setSelectedMountainId(null); setNotice(''); }} />)}</div>
             {courseCursor && <button type="button" className="booking-load-more" disabled={loadingMore}
               onClick={() => loadMore('courses')}>加载更多课程</button>}
 
@@ -688,7 +709,13 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
               <label htmlFor="course-title">课程名称</label><input id="course-title" required maxLength={100} value={courseTitle} onChange={(event) => { setCourseTitle(event.target.value); setCourseKey(null); }} />
               <label htmlFor="course-description">课程介绍</label><textarea id="course-description" maxLength={1000} value={courseDescription} onChange={(event) => { setCourseDescription(event.target.value); setCourseKey(null); }} />
               <label htmlFor="course-price">课程价格（CAD）</label><input id="course-price" required type="number" min="0" max="99999999.99" step="0.01" value={coursePrice} onChange={(event) => { setCoursePrice(event.target.value); setCourseKey(null); }} />
-              <button type="submit" className="booking-primary" disabled={busy}>发布课程</button>
+              <CourseCoverEditor value={courseCover} course={{ title: courseTitle, description: courseDescription, priceAmount: coursePrice }} onChange={(value) => {
+                setCourseCover(value);
+                if (value.coverAssetId !== courseCover.coverAssetId || value.coverPositionX !== courseCover.coverPositionX
+                    || value.coverPositionY !== courseCover.coverPositionY) setCourseKey(null);
+              }}
+                disabled={busy} refreshCsrf={refreshCsrf} onUnauthorized={onUnauthorized} onPendingChange={setCoverPending} />
+              <button type="submit" className="booking-primary" disabled={busy || coverPending}>发布课程</button>
             </form>
           </section>}
           {tab === 'availability' && <section className="booking-panel"><h2>批量发布可用时间</h2>
@@ -782,7 +809,9 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
           {tab === 'courses' && <section className="booking-panel"><h2>已发布课程</h2>
             {courseFeedback && <p className="booking-inline-status success" role="status">{courseFeedback}</p>}
             {courseActionError && <p className="booking-inline-status error" role="alert">{courseActionError}</p>}
-            {courses.length === 0 ? <p className="booking-empty">尚无课程。</p> : courses.map((course) =>
+            {visibleCoachCourses.length === 0 ? <p className="booking-empty">
+              {courseCursor ? '当前暂无可显示课程，请加载更多。' : '尚无已发布课程。'}
+            </p> : visibleCoachCourses.map((course) =>
               <article className="coach-course-row" key={course.id}>
                 <div><strong>{course.title}</strong> · CAD {course.priceAmount}
                   {course.active === false && <span className="course-archived">已下架</span>}
@@ -790,6 +819,8 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                 {course.active !== false && <div className="coach-course-actions">
                   <button type="button" disabled={busy} onClick={() => { setEditingCourseId(course.id);
                     setCourseEdit({ title: course.title, description: course.description, priceAmount: String(course.priceAmount) });
+                    setEditCover({ coverAssetId: course.coverAssetId ?? null, cover: course.cover ?? null,
+                      coverPositionX: course.coverPositionX ?? 50, coverPositionY: course.coverPositionY ?? 50 }); setEditCoverPending(false);
                     setArchiveCourseId(null); }}>编辑</button>
                   <button type="button" disabled={busy} onClick={() => { setArchiveCourseId(course.id); setEditingCourseId(null); }}>删除课程</button>
                 </div>}
@@ -803,8 +834,10 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                   <label htmlFor={`edit-price-${course.id}`}>课程价格（CAD）</label>
                   <input id={`edit-price-${course.id}`} type="number" required min="0" step="0.01" value={courseEdit.priceAmount}
                     onChange={(event) => setCourseEdit((current) => ({ ...current, priceAmount: event.target.value }))} />
-                  <div className="coach-course-actions"><button type="submit" disabled={busy}>保存修改</button>
-                    <button type="button" onClick={() => setEditingCourseId(null)}>取消</button></div>
+                  <CourseCoverEditor key={course.id} value={editCover} course={courseEdit} onChange={setEditCover}
+                    disabled={busy} refreshCsrf={refreshCsrf} onUnauthorized={onUnauthorized} onPendingChange={setEditCoverPending} />
+                  <div className="coach-course-actions"><button type="submit" disabled={busy || editCoverPending}>保存修改</button>
+                    <button type="button" onClick={() => { setEditingCourseId(null); setEditCoverPending(false); }}>取消编辑</button></div>
                 </form>}
                 {archiveCourseId === course.id && <div className="course-archive-confirm" role="group" aria-label={`删除${course.title}`}>
                   <p>删除后学员将无法选择这门课程，已有预约不受影响。</p>

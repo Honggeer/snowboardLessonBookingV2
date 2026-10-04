@@ -26,5 +26,4 @@ ticket 是待办记录，**不批准实现代码**。若工作已在获批计划
 
 | ID | Ticket | 状态 | 关联功能/计划 | 更新时间 |
 |---|---|---|---|---|
-
-当前无 OPEN / IN_PROGRESS ticket。
+| TODO-0022 | [本地高光视频接近一分钟时传输中断](0022-local-highlight-video-stalls.md) | OPEN | [0008 revision 1](../implement-plan/0008-about-geer.md) | 2026-10-03 |

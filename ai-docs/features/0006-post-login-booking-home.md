@@ -4,7 +4,7 @@ title: "登录后约课主界面"
 status: VERIFIED
 plan: "../implement-plan/0006-post-login-booking-home.md"
 created: 2026-09-30
-updated: 2026-10-01
+updated: 2026-10-04
 contract_version: "1.6"
 modules: [frontend, identity, catalog, scheduling, bookings]
 ---
@@ -247,3 +247,18 @@ revision 2 已 VERIFIED：先写目标测试取得有效 RED，再完成 API 与
 | REJECTED/CANCELLED_BY_STUDENT | 教练确认或拒绝相反动作 | 终态不可逆 | 409；不改变历史 |
 
 课程下架和编辑只由教练执行；下架不是删除数据库行。预约取消使用具名用例而非通用状态更新；取消后重新申请保留旧申请并产生新记录，数据库对同学员同一时段只允许一条非已取消记录。V7 追加状态约束和课程可见性迁移，保留已应用 V4–V6；无新外部服务或生产部署。revision 4 已按测试先行流程实现并本地 VERIFIED：真实 MySQL 8.4 定向与全量 API/迁移/架构测试、前端交互与构建、390px/1440px Chrome 模拟 API 检查通过；具体命令、证据及限制见[实施计划 revision 4 实际验证](../implement-plan/0006-post-login-booking-home.md)。尚未 RELEASED。
+
+### 0009 关联扩展
+
+课程封面、选课卡片与拖动构图由 [0009 功能文档](0009-course-selection-visuals.md)及[配对计划](../implement-plan/0009-course-selection-visuals.md)单独维护。复用当前约课规则和媒体校验/清理，课程 consumer 与主页 GEER 隔离；不改变历史预约或主页发布契约。
+
+
+### 教练课程列表显示顺序维护（2026-10-03）
+
+此段保留排序维护的历史证据；当前列表规则已由下面的隐藏已下架课程维护替代。
+
+用户要求「已发布课程」先列仍在发布的课程，下架课程放在后面，关联 [TODO-0020](../todo/0020-coach-course-display-order.md)及配对计划 revision 4 的局部维护记录。教练当前已加载列表稳定分组，组内保持接口顺序；加载更多和下架成功后重新按状态显示。缺省 active 兼容为仍在发布；服务端 ID 游标分页、课程原数据及学员选课行为不变。两条目标交互测试已取得有效 RED → GREEN；前端全量 50/50、构建（含类型检查）与 lint 均通过，具体证据见配对计划。本地 VERIFIED，尚未 RELEASED。
+
+### 教练课程列表隐藏已下架课程（2026-10-03）
+
+用户在明确展示/永久删除的区别后确认“从列表移除，数据库保留”，关联 [TODO-0021](../todo/0021-remove-archived-courses.md)及配对计划 revision 4 维护记录。此决定替代上面的下架组展示和 revision 4 原有教练可见下架记录的页面行为：只显示已加载的发布中课程，同组保留原顺序；下架成功即隐藏，失败保留。全部已下架时显示空状态，有下一页时仍可加载更多。数据库课程、历史预约、下架用例和后端分页协议保留。三条目标交互测试已取得有效 RED → GREEN，前端全量 51/51、构建（含类型检查）与 lint 通过；本地 VERIFIED，实际命令和限制见配对计划末尾。

@@ -41,14 +41,14 @@ public class JdbcMediaStore implements MediaStore {
         if(jdbc.update("UPDATE media_asset SET status='VERIFYING',source_version=?,actual_size=? WHERE id=? AND status='UPLOADING'",version,size,id)==1)
             jdbc.update("INSERT INTO media_job (asset_id,kind,next_run_at) VALUES (?,'VERIFY',?)",id,now);
     }
-    public List<String> referenceIds(String slot){return jdbc.query("SELECT asset_id FROM media_reference WHERE consumer='GEER' AND slot=?",(r,n)->r.getString(1),slot);}
-    public void replaceReferences(String slot,Map<String,String> ids,Instant now){
-        var old=referenceIds(slot);jdbc.update("DELETE FROM media_reference WHERE consumer='GEER' AND slot=?",slot);
-        ids.forEach((purpose,id)->jdbc.update("INSERT INTO media_reference (consumer,slot,purpose,asset_id) VALUES ('GEER',?,?,?)",slot,purpose,id));
+    public List<String> referenceIds(String consumer,String slot){return jdbc.query("SELECT asset_id FROM media_reference WHERE consumer=? AND slot=?",(r,n)->r.getString(1),consumer,slot);}
+    public void replaceReferences(String consumer,String slot,Map<String,String> ids,Instant now){
+        var old=referenceIds(consumer,slot);jdbc.update("DELETE FROM media_reference WHERE consumer=? AND slot=?",consumer,slot);
+        ids.forEach((purpose,id)->jdbc.update("INSERT INTO media_reference (consumer,slot,purpose,asset_id) VALUES (?,?,?,?)",consumer,slot,purpose,id));
         for(String id:old)if(!referenced(id))jdbc.update("UPDATE media_asset SET unreferenced_at=? WHERE id=?",now,id);
     }
     public boolean referenced(String id){return jdbc.queryForObject("SELECT COUNT(*) FROM media_reference WHERE asset_id=?",Long.class,id)>0;}
-    public boolean publishedReference(String id){return jdbc.queryForObject("SELECT COUNT(*) FROM media_reference WHERE asset_id=? AND consumer='GEER' AND slot='PUBLISHED'",Long.class,id)>0;}
+    public boolean publishedReference(String consumer,String id){return jdbc.queryForObject("SELECT COUNT(*) FROM media_reference WHERE asset_id=? AND consumer=? AND slot='PUBLISHED'",Long.class,id,consumer)>0;}
     @Transactional(isolation=Isolation.READ_COMMITTED)
     public Job claim(Instant now,Instant until){
         var jobs=jdbc.query("SELECT id,asset_id,kind,attempts,claim_token FROM media_job WHERE (status='PENDING' AND next_run_at<=?) OR (status='RUNNING' AND lease_until<=?) ORDER BY next_run_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",(r,n)->new Job(r.getLong(1),r.getString(2),r.getString(3),r.getInt(4)+1,r.getLong(5)+1),now,now);

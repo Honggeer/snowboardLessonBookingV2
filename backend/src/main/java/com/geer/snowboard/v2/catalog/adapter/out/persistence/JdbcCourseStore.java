@@ -14,7 +14,8 @@ import org.springframework.stereotype.Repository;
 public class JdbcCourseStore implements CourseStore {
     private static final RowMapper<Course> MAPPER = (rs, row) -> new Course(
             rs.getString("id"), rs.getString("coach_id"), rs.getString("title"), rs.getString("description"),
-            rs.getBigDecimal("price_amount"), rs.getString("currency"), rs.getBoolean("active"));
+            rs.getBigDecimal("price_amount"), rs.getString("currency"), rs.getBoolean("active"),
+            rs.getString("cover_asset_id"),rs.getBigDecimal("cover_position_x"),rs.getBigDecimal("cover_position_y"));
     private final JdbcTemplate jdbc;
     public JdbcCourseStore(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
@@ -34,9 +35,9 @@ public class JdbcCourseStore implements CourseStore {
                 rs -> rs.next() ? rs.getString(1) : null, coachId, key);
     }
     @Override public boolean insert(Course course, String key, String fingerprint) {
-        return jdbc.update("INSERT IGNORE INTO catalog_course (id,coach_id,title,description,price_amount,currency,idempotency_key,request_fingerprint,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+        return jdbc.update("INSERT IGNORE INTO catalog_course (id,coach_id,title,description,price_amount,currency,idempotency_key,request_fingerprint,created_at,cover_asset_id,cover_position_x,cover_position_y) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 course.id(), course.coachId(), course.title(), course.description(), course.priceAmount(),
-                course.currency(), key, fingerprint, Instant.now()) == 1;
+                course.currency(), key, fingerprint, Instant.now(),course.coverAssetId(),course.coverPositionX(),course.coverPositionY()) == 1;
     }
     @Override public Page<Course> list(String coachId, int limit, String cursor) {
         if (cursor != null && !cursor.matches("[0-9a-fA-F-]{36}")) throw new BusinessProblem(400, "无效分页游标");
@@ -45,11 +46,11 @@ public class JdbcCourseStore implements CourseStore {
         String next = rows.size() > limit ? rows.get(limit - 1).id() : null;
         return new Page<>(rows.subList(0, Math.min(limit, rows.size())), next);
     }
-    @Override public void update(String id, String title, String description, java.math.BigDecimal price) {
-        jdbc.update("UPDATE catalog_course SET title=?,description=?,price_amount=? WHERE id=? AND active=TRUE",
-                title, description, price, id);
+    @Override public void update(Course course) {
+        jdbc.update("UPDATE catalog_course SET title=?,description=?,price_amount=?,cover_asset_id=?,cover_position_x=?,cover_position_y=? WHERE id=? AND active=TRUE",
+                course.title(),course.description(),course.priceAmount(),course.coverAssetId(),course.coverPositionX(),course.coverPositionY(),course.id());
     }
     @Override public void archive(String id) {
-        jdbc.update("UPDATE catalog_course SET active=FALSE WHERE id=?", id);
+        jdbc.update("UPDATE catalog_course SET active=FALSE,cover_asset_id=NULL,cover_position_x=50,cover_position_y=50 WHERE id=?", id);
     }
 }

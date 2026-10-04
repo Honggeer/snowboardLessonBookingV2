@@ -52,19 +52,35 @@ public class MediaService implements MediaOperations {
     }
     @Override @Transactional(isolation=Isolation.READ_COMMITTED)
     public void replaceReferences(String owner,String slot,Map<String,String> ids){
+        replaceReferences(owner,"GEER",slot,ids);
+    }
+    @Override @Transactional(isolation=Isolation.READ_COMMITTED)
+    public void replaceReferences(String owner,String consumer,String slot,Map<String,String> ids){
+        consumer(consumer,ids);
         if(!Set.of("DRAFT","PUBLISHED").contains(slot))throw new IllegalArgumentException("slot");
-        var all=new TreeSet<String>(store.referenceIds(slot));all.addAll(ids.values());
+        var all=new TreeSet<String>(store.referenceIds(consumer,slot));all.addAll(ids.values());
         for(String id:all){var a=store.lock(id);if(ids.containsValue(id)){
             if(a==null||!owner.equals(a.ownerId())||!a.status().equals("READY"))throw new BusinessProblem(409,"素材尚未验证完成或已失效");
             if(!a.id().equals(ids.get(a.purpose())))throw new BusinessProblem(400,"素材用途不匹配");
         }}
-        store.replaceReferences(slot,ids,clock.instant());
+        store.replaceReferences(consumer,slot,ids,clock.instant());
     }
     @Override public Map<String,Link> previews(String owner,Map<String,String> ids){
         var result=new HashMap<String,Link>();ids.forEach((p,id)->{var a=store.get(id);if(a!=null&&a.ownerId().equals(owner)&&a.purpose().equals(p)&&a.status().equals("READY"))result.put(p,link(a));});return Map.copyOf(result);
     }
     @Override public Map<String,Link> published(Map<String,String> ids){
-        var result=new HashMap<String,Link>();ids.forEach((p,id)->{var a=store.get(id);if(a!=null&&a.status().equals("READY")&&a.purpose().equals(p)&&store.publishedReference(id))result.put(p,link(a));});return Map.copyOf(result);
+        return publishedFor("GEER",ids);
+    }
+    @Override public Map<String,Link> publishedFor(String consumer,Map<String,String> ids){
+        consumer(consumer,ids);
+        var result=new HashMap<String,Link>();ids.forEach((p,id)->{var a=store.get(id);if(a!=null&&a.status().equals("READY")&&a.purpose().equals(p)&&store.publishedReference(consumer,id))result.put(p,link(a));});return Map.copyOf(result);
+    }
+    private static void consumer(String consumer,Map<String,String> ids){
+        if("GEER".equals(consumer)){
+            if(ids.containsKey("COURSE_COVER"))throw new IllegalArgumentException("profile purpose");
+        }else if(consumer!=null&&consumer.matches("COURSE:[0-9a-fA-F-]{36}")){
+            if(ids.keySet().stream().anyMatch(p->!p.equals("COURSE_COVER")))throw new IllegalArgumentException("course purpose");
+        }else throw new IllegalArgumentException("consumer");
     }
     private Link link(MediaAsset a){Instant expires=clock.instant().plusSeconds(900);String url;
         try{url=objects.readUrl(a,expires);}catch(MediaFailure e){throw new BusinessProblem(503,"媒体地址暂不可用，请重试");}

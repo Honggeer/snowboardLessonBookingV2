@@ -5,7 +5,7 @@ status: VERIFIED
 revision: 4
 approved_revision: 4
 created: 2026-09-30
-updated: 2026-10-01
+updated: 2026-10-04
 feature: "../features/0006-post-login-booking-home.md"
 ---
 
@@ -369,3 +369,47 @@ revision 4 状态为 **VERIFIED**，尚未 RELEASED。V7 保留全部课程/预�
 在 `frontend/src/App.test.tsx` 增加模拟缺少 `randomUUID` 的真实提交交互，运行 `npm test -- --run App.test.tsx -t 'submits mountain and availability when randomUUID is unavailable'`：目标因 `TypeError: crypto.randomUUID is not a function` 且雪场请求未发出而 RED。随后给请求键加入 `getRandomValues` 生成 UUID v4 的回退路径，并将四处请求键生成放入已有错误处理范围；相同测试 1/1 GREEN，确认雪场和覆盖请求都带有效 UUID。前端全量 `npm test -- --run` 为 30/30，`npm run typecheck`、`npm run lint`、`npm run build` 通过。
 
 真实 Chrome 在局域网地址的 5173 页面登录教练后，填写一座已有雪场名称以安全触发重复名错误：页面发出 `POST /api/coach/mountains` 并在表单旁显示服务端错误。选中未来日期后，浏览器将覆盖请求截获并返回测试错误：确认 `POST /api/coach/availability/replacements` 发出且表单旁显示错误，没有改动排班。随后使用 `docker-compose --env-file deploy/.env -f deploy/compose.yaml up -d --build --no-deps frontend` 更新 8088 镜像，在其局域网地址重复上述两步，两个请求与就地反馈也均出现。此修复不改变服务端业务、数据库或成本；本地镜像更新不等于生产 RELEASED，未执行 Git commit/push。
+
+
+### 2026-10-03 教练课程列表显示排序维护
+
+此段保留排序维护的历史证据；当前显示行为见后面的隐藏已下架课程维护。
+
+- 用户原话：“教练创建课程页面 已发布课程里，麻烦先列出来发布了的，下架的放在后面”；关联 [TODO-0020](../todo/0020-coach-course-display-order.md)。这属于 revision 4 已批准的教练课程管理展示细化，不改变发布/下架/预约业务、API/分页协议、架构、数据或成本；按 WORK-06 在原范围内维护，保留 approved_revision 4。
+- 显示规则：仅「创建课程」的「已发布课程」列表，对当前已加载课程稳定分组；`active !== false`（兼容旧字段缺省）在前，`active === false` 在后。组内保留 API 返回/加载的原顺序，不原地修改 courses 状态。加载更多后重新分组，下架成功后进入后组。
+- 边界：服务端仍按现有 ID 游标分页；只重排已加载内容，不自动读取所有页或改变接口顺序；学员课程选择和历史预约继续按既有契约。
+- 文件：`frontend/src/BookingHome.tsx`；`frontend/src/CoachCourseOrdering.test.tsx`；必要 README/文档索引与票据。
+- 实施：先建立混排/缺省 active/加载更多及下架后的 DOM 顺序目标测试并执行有效 RED，再实现同一测试 GREEN；完成前端回归与构建/lint。
+
+| 验证 | 命令（前端命令在 `frontend/` 执行） | 实际结果 |
+|---|---|---|
+| 目标 RED → GREEN | `npm test -- --run src/CoachCourseOrdering.test.tsx` | 实现前 2/2 失败：初始列表仍混排，下架成功后该课程仍排在发布中课程之前；均为行为缺失。显示稳定分组后相同命令 2/2 通过，覆盖加载更多、组内顺序、缺省 active、原数组不变和下架后的控件状态。 |
+| 前端回归 | `npm test -- --run` | 最终 5 个文件、50/50 通过；使用模拟 API 的实际页面交互。 |
+| 类型与构建 | `npm run build` | 通过，含 `tsc --noEmit` 与 Vite 生产构建。首次类型检查指出新增测试使用了 `findByRole` 不支持的 `exact` 选项；删除该多余选项后全量测试与构建通过，此测试代码类型错误不计行为 RED。 |
+| 静态检查 | `npm run lint` | 通过。 |
+| 文档与空白 | 仓库根目录：`python3 ai-docs/check_docs.py`、`git diff --check` | 均通过；10 对功能/计划、20 张 ticket、索引/状态/review 门槛与 Markdown 链接一致。 |
+
+本次维护为本地 **VERIFIED**；未改变后端/数据库，不额外运行后端回归。未执行生产部署、Git commit 或 push。
+
+### 2026-10-03 教练课程列表隐藏已下架课程维护
+
+- 范围与确认：用户先要求“已下架的直接删掉就好了，留着没意义”，在收到“只从列表移除、保留历史预约关联”的提案后明确回复“从列表移除，数据库保留”。关联 [TODO-0021](../todo/0021-remove-archived-courses.md)。这是已批准 revision 4 课程管理的局部展示调整，按 WORK-06 维护；替代同日 TODO-0020 的下架组展示，数据库保留、历史预约及原下架用例继续执行。
+- 具体方案：`BookingHome.tsx` 的教练「已发布课程」由已加载课程中过滤 `active === false`，保留 `active` 缺省兼容及其余课程原顺序；下架成功后根据返回状态立即隐藏，失败时保留原卡片；初次读取及加载更多始终应用同一过滤。原课程数组、后端分页游标/API/数据存储不变。
+- 空状态：以过滤后的可见数量判定。无可见课程且有后续游标时提示可加载更多，并保留按钮；没有后续页时显示“尚无已发布课程”。不自动读取全部页。教练预约申请及学员列表按既有规则，不增加永久删除接口或执行数据清除。
+- 文件：`frontend/src/BookingHome.tsx`、`CoachCourseOrdering.test.tsx`、`App.test.tsx`；配对功能/计划、索引、前端 README 及 TODO-0021。
+- 测试与步骤：先修改混排/加载更多和下架交互目标测试，补充全下架页及最后一门课程下架的空状态，实际执行 `npm test -- --run src/CoachCourseOrdering.test.tsx` 取得行为 RED；再实现至同一命令 GREEN，运行 `npm test -- --run`、`npm run build`、`npm run lint`、根目录 `python3 ai-docs/check_docs.py` 与 `git diff --check`，记录实际结果。
+- 数据/架构/成本与恢复：仅前端渲染，保留现有 POST archive 的活动态与媒体引用处理、预约外键和历史快照；无 SQL/迁移/后端变更或新增费用。恢复旧展示不涉及数据恢复；8080 的 IDEA 后端继续使用，不重启服务。不执行 commit/push 或生产部署。
+- 实际执行与验证：已按测试先行完成，本地 **VERIFIED**。同一批测试从行为 RED 到 GREEN；不触碰当前本地数据库、预约或 IDEA 运行服务。
+
+| 验证 | 命令（前端命令在 `frontend/` 执行） | 实际结果与限制 |
+|---|---|---|
+| 目标 RED → GREEN | `npm test -- --run src/CoachCourseOrdering.test.tsx` | 实现前 3/3 因初始混排仍显示下架课程、下架成功后课程未隐藏、全下架页没有空状态而失败；实现后同一命令 3/3 通过。覆盖初次加载、加载更多、缺省 active、发布中顺序、原数组不变、下架最后一门课程和继续分页；断言前端不发 DELETE。 |
+| 适用回归 | `npm test -- --run` | 5 个文件、51/51 通过。原课程编辑/下架/拒绝申请交互已改为验证下架后隐藏，并继续验证原预约处理；模拟 API，不代表真实数据库端到端验收。 |
+| 类型/构建与静态检查 | `npm run build`、`npm run lint` | 均通过，构建包含 `tsc --noEmit`。 |
+| 文档与空白 | 仓库根目录 `python3 ai-docs/check_docs.py`、`git diff --check` | 均通过；10 对功能/计划、21 张 ticket、索引/状态/review 门槛及 Markdown 链接一致。 |
+
+本次没有后端变更，数据库保留依据是继续使用原 POST archive 活动态用例且不引入删除写入；既有后端验证证据保留，未重复运行后端或浏览器检查。未执行 Git commit/push 或生产部署。
+
+### 2026-10-04 提交授权
+
+用户明确要求“提交推送”，授权随 0009 当前工作区提交课程列表维护及关联文档；此前各阶段未提交记录作为历史保留。提交前统一检查见 [0009 配对计划](0009-course-selection-visuals.md)，不改变 revision 4、本地 VERIFIED 状态或生产部署边界。

@@ -5,7 +5,7 @@ status: VERIFIED
 revision: 1
 approved_revision: 1
 created: 2026-10-02
-updated: 2026-10-03
+updated: 2026-10-04
 feature: "../features/0008-about-geer.md"
 ---
 
@@ -223,3 +223,27 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 当前 **VERIFIED（本地，测试素材），revision 1 已批准**。P-00～06 完成，后端 118/118、前端 36/36 和构建/架构/浏览器/镜像/路由/文档门禁通过。2026-10-03 用户已授权提交并推送当前实现与登录入口视觉调整；本提交包含实现、配置、关联修复、测试和验证文档。未部署生产，状态不是 RELEASED。真实简介、CASI 证书、账号、二维码和高光成片由用户后台填写，真实内容与 AWS 发布另验。
 
 8080 仍由用户 IDEA 进程使用，未停止或替换。本次独立联调用的 Java 19089、Vite 5174、临时 MySQL 和专用测试桶已清理；用户 MySQL/Mailpit/S3Mock 保留。使用新功能前，IDEA 重新加载 Maven 并重启后端（加载 V9 和媒体模块），随后在现有 Vite 页面进入教练“个人主页”。固定版本 ffprobe 已安装在本机 `backend/.local/bin/ffprobe`；本地启动说明见 backend/README。
+
+### 2026-10-03 真实长视频播放只读诊断
+
+用户报告“每到一分钟就会卡一下”，补充“快满一分钟的时候，是5173”，关联 [TODO-0022](../todo/0022-local-highlight-video-stalls.md)。本轮目标为解释原因，仅读取已发布内容和现有服务、在独立 Chrome 播放，不修改功能、存储配置、素材或数据库；没有新增付费资源、重启 IDEA/S3Mock 或执行 Git commit/push。
+
+| 检查与实际命令/方式 | 结果 | 限制 |
+|---|---|---|
+| 源码 `AboutGeerPage.tsx`、`MediaService.link` 及匿名 GET `/api/coach-profile` | 点击后挂载原生 video，主动播放；没有每分钟刷新或重置播放器的任务。签名约 899/900 秒，当前视频元数据 65.292993 秒、89,123,600 字节、1080p H.264/AAC | 用户口述约 63 秒，以当前公开文件为此次诊断对象 |
+| Python urllib 读取 HEAD、`Range: bytes=0-65535`、最后 8 MiB 及完整文件 | HEAD 200，正确 Content-Length/video/mp4；两个 Range 为正确 206，分别约 0.007/0.062 秒；完整 89,123,600 字节下载约 0.268 秒 | 快速下载正常不代表持续缓慢消费的浏览器连接正常 |
+| `backend/.local/bin/ffprobe -v error -show_entries format=duration,size,bit_rate:stream=index,codec_name,codec_type,width,height,avg_frame_rate,bit_rate,duration,start_time -of json /tmp/geer-0022-current-video.mp4`；解析 MP4 顶层 box、视频 packet 时间戳 | 平均约 10.92 Mbps；moov 在文件末尾；视频 PTS/DTS 没有超过 150ms 的间断 | 未把末尾索引或码率本身当作此次卡顿的确定原因 |
+| `node /tmp/geer-0022-video-browser.mjs`：实际 5173/about-geer、当前公开内容、系统 Chrome headless、主动点击、原速连续播放，记录事件/缓冲/Range/网络错误 | 60.220114 秒出现 waiting/stalled；约 32 秒后尾段重请求，网络有 ERR_CONTENT_LENGTH_MISMATCH；随后硬件解码 code 3 / VTDecompressionOutputCallback，未正常结束。无页面 JS 错误 | 后续解码错误发生在异常传输后，不能单独据此断言原片损坏 |
+| `docker logs --since 12m --tail 160 snowboard-v2-s3mock-1` | 同次视频请求约 30 秒后记录 AsyncRequestTimeoutException / Response already committed；也有此前相同告警 | 与异步响应中断吻合；未调整超时来验证修复 |
+| `backend/.local/bin/ffprobe -v warning -select_streams v:0 -count_frames -show_entries stream=nb_read_frames,nb_frames -of json /tmp/geer-0022-current-video.mp4` | 软件读取全部 1867/1867 帧；只有非核心 UDTA 解析警告 | 不能代替所有浏览器解码验收。临时 ffmpeg 为旧测试片段生成器、未启用 MOV 输入，初次解码尝试的环境失败不算文件损坏证据 |
+| `node /tmp/geer-0022-video-file-control.mjs`：同一 Chrome 读取完整下载文件，从 54 秒播放到结尾 | 正常到达 65.292993 秒 ended；仅开始 seek 时 waiting，播放后无停顿/解码错误；最后 totalVideoFrames=372，dropped/corrupted=0 | 对照覆盖一分钟与尾段，没有声称从头完整播放或真实 AWS 验收 |
+
+临时诊断结果位于 `/tmp/geer-0022-video-browser-result.json` 和 `/tmp/geer-0022-video-file-control-result.json`，不记录完整签名 URL；上述表格保存实际结果，临时视频副本在诊断后删除。曾尝试浏览器拦截 Range 对照，因动态签名匹配及关闭的上下文没有形成有效证据，未将其算为通过；有效对照采用本地完整文件。
+
+结论：已复现本地问题，证据指向 **S3Mock 异步下载超时导致响应截断**；Vite 不代理此次 localhost:9090 视频流。既有短测试片段（1 秒）的 VERIFIED 证据保留，当前约 65 秒真实素材的连续播放仍未通过，TODO-0022 OPEN。
+
+官方核查：[S3Mock 5.2.3 GET/Range 源码](https://github.com/adobe/S3Mock/blob/5.2.3/server/src/main/kotlin/com/adobe/testing/s3mock/s3/controller/ObjectController.kt)使用 StreamingResponseBody；[该版本默认配置](https://github.com/adobe/S3Mock/blob/5.2.3/server/src/main/resources/application.properties)未显式设置异步超时；[Spring Boot 配置说明](https://docs.spring.io/spring-boot/appendix/application-properties/index.html)的 `spring.mvc.async.request-timeout` 可控制异步请求超时。后续修复候选为本地 S3Mock 配置有限的较长超时（例如 300 秒），验证同一页面从头到 ended、无异常日志/响应截断/解码错误，并回归图片和上传；该候选尚未执行或验证，不保证真实 AWS 结果。若调整媒体预处理或引入自动转码，需另经计划 review。
+
+### 2026-10-04 提交授权
+
+用户明确要求“提交推送”，授权提交当前工作区及上述诊断文档；提交前统一检查见 [0009 配对计划](0009-course-selection-visuals.md)。TODO-0022 仍为 OPEN，本次不修改视频传输配置或宣称卡顿已修复，不改变本地 VERIFIED 与生产未发布的边界。

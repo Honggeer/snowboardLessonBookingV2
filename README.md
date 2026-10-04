@@ -4,7 +4,7 @@
 
 ## 当前状态
 
-已完成并本地验证工程底座、注册/邮箱验证与登录、密码找回、学员约课、教练排班/课程管理和预约邮件；当前状态以[功能索引](ai-docs/features/README.md)为准。“关于 GEER”与媒体管理见 [0008](ai-docs/implement-plan/0008-about-geer.md)，提供公开主页及教练编辑、草稿预览和发布。生产部署尚未执行。
+已完成并本地验证工程底座、注册/邮箱验证与登录、密码找回、学员约课、教练排班/课程管理和预约邮件；当前状态以[功能索引](ai-docs/features/README.md)为准。“关于 GEER”与媒体管理见 [0008](ai-docs/implement-plan/0008-about-geer.md)，提供公开主页及教练编辑、草稿预览和发布。选课页的品牌、课程封面与拖动构图见 [0009](ai-docs/implement-plan/0009-course-selection-visuals.md)。生产部署尚未执行。
 
 本地启动和验证命令见 [部署说明](deploy/README.md)、[后端说明](backend/README.md) 和 [前端说明](frontend/README.md)。
 

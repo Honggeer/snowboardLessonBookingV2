@@ -3,7 +3,7 @@ import com.geer.snowboard.v2.sharedkernel.BusinessProblem;
 import java.util.Set;
 public final class MediaRules {
     public static final long IMAGE_LIMIT=8L*1024*1024,VIDEO_LIMIT=100L*1024*1024,QUOTA=1024L*1024*1024;
-    public static final Set<String> PURPOSES=Set.of("HERO","CERTIFICATE","WECHAT_QR","VIDEO_POSTER","HIGHLIGHT_VIDEO");
+    public static final Set<String> PURPOSES=Set.of("HERO","CERTIFICATE","WECHAT_QR","VIDEO_POSTER","HIGHLIGHT_VIDEO","COURSE_COVER");
     private MediaRules(){}
     public static long limit(String purpose){return "HIGHLIGHT_VIDEO".equals(purpose)?VIDEO_LIMIT:IMAGE_LIMIT;}
     public static void upload(String purpose,String type,long size){

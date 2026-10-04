@@ -4,7 +4,7 @@ title: "关于 GEER：教练主页与媒体管理"
 status: VERIFIED
 plan: "../implement-plan/0008-about-geer.md"
 created: 2026-10-02
-updated: 2026-10-03
+updated: 2026-10-04
 contract_version: "1.6"
 modules: [frontend, coachprofile, media]
 ---
@@ -159,3 +159,11 @@ modules: [frontend, coachprofile, media]
 ## 11. 交付状态与后续
 
 **VERIFIED（本地，测试素材），revision 1 已批准**：实现与必要门禁全部通过；后端 118/118、前端 36/36，架构例外 0，真实浏览器、构建与 NGINX 路由通过。2026-10-03 用户已授权提交并推送当前实现与登录入口视觉调整。未部署生产，状态不是 RELEASED；真实内容由用户后台填写，真实内容/云发布另验。IDEA 需重新加载 Maven 并重启后端以加载新模块和 V9；8080 未被本次联调占用。
+
+### 0009 关联扩展
+
+课程封面、选课卡片与拖动构图由 [0009 功能文档](0009-course-selection-visuals.md)及[配对计划](../implement-plan/0009-course-selection-visuals.md)单独维护。复用当前约课规则和媒体校验/清理，课程 consumer 与主页 GEER 隔离；不改变历史预约或主页发布契约。
+
+### 2026-10-03 长视频播放诊断
+
+用户报告 5173 公开页的视频接近一分钟时停顿，已在同一已发布视频上用 Chrome headless 复现，记录 [TODO-0022](../todo/0022-local-highlight-video-stalls.md)。65.29 秒/89.12 MB 文件在 S3Mock 传输时约 60.22 秒卡住，出现响应长度错误，服务日志有异步下载超时；同一完整下载文件从 54 秒至结尾连续播放正常。证据指向本地传输超时，尚未应用或验证修复。既有 revision 1 VERIFIED 的短视频功能测试证据保留；本次较长真实素材连续播放场景仍待闭环，不能当作已修复或 AWS 验收通过。具体环境、命令、对照与限制见配对计划末尾。

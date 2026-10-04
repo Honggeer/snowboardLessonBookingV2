@@ -1,6 +1,6 @@
 # 后端
 
-Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束；V8 增加预约邮件任务表；V9 增加个人主页、媒体与任务/引用/配额表。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
+Java 25 / Spring Boot 4.1.1 模块化单体。身份功能位于 `identity` 业务模块：domain 与 application ports 为纯 Java，Web、MySQL、密码散列和 SMTP 位于 adapters。Flyway V2 建立身份与 Spring Session JDBC 表；V3 增加密码找回记录及账号凭据版本；V4 增加课程、时段和预约申请表；V5 增加独立可用时间、雪场和日级地点策略；V6 增加排班撤回状态与按日查询索引；V7 增加课程下架和学员取消状态及约束；V8 增加预约邮件任务表；V9 增加个人主页、媒体与任务/引用/配额表；V10 增加可选课程封面、构图位置和课程媒体引用隔离。`catalog`、`scheduling`、`bookings` 提供真实约课；`scheduling` 的时间范围预览仍只是本地架构示例。
 
 ## IDEA 本地开发
 
@@ -58,7 +58,7 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期或在线支付。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
 
-`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V9。生产迁移与发布另需授权。
+`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V10。生产迁移与发布另需授权。
 
 ## 预约邮件
 
@@ -86,3 +86,11 @@ scripts/install-media-probe.sh
 生产须显式 `MEDIA_STORAGE_MODE=aws`，提供 `MEDIA_REGION`、两个独立私有桶 `MEDIA_STAGING_BUCKET`/`MEDIA_FROZEN_BUCKET`、`MEDIA_CDN_BASE_URL`、`MEDIA_KEY_PAIR_ID`、秘密文件路径 `MEDIA_SIGNING_KEY_PATH`，并开启 worker。staging 必须开启 versioning；生产权限用 IAM Role，签名私钥另外注入。CloudFront OAC 保护私有源站，frozen 分发还必须要求可信 key group 的 viewer 签名。公开 API 只签已发布引用，签名 15 分钟；预览仅限教练。尚未创建或验证这些 AWS 资源，实际 CORS、IAM、OAC、费用与备份随生产部署方案 review。
 
 S3Mock 忽略真实签名/过期校验，且 CORS 宽松，只用于本地测试；不能作为生产授权证明。新增目标测试位于 `coachprofile/` 和 `media/`，实际 MP4 样本是蓝色测试片段，不是真实教练视频。CI 同样先运行固定版本探测工具的安装脚本。
+
+## 课程封面（0009）
+
+教练创建或编辑课程时可上传一张可选 JPG/PNG，限制仍为 8 MiB、宽高各不超过 4096，建议 16:9。媒体用途为 `COURSE_COVER`，与主页共享限额与后台校验/清理；仅本人 READY 图片可保存。保存课程时原子维护 `COURSE:<courseId>` 的 PUBLISHED 引用，与主页 GEER 引用隔离。下架或移除封面解除该课程引用，历史预约不变。
+
+创建请求可带 `coverAssetId` 和数字 `coverPositionX/Y`（0–100，最多两位小数，默认 50）。PATCH 缺省字段保留，`coverAssetId: null` 清除；替换图片未提供的位置归中。支持只更新构图；无图位置统一归中。列表新增 `coverAssetId`、位置和可空 `cover`（id/url/expiresAt/width/height），含签名响应 no-store，媒体故障降级无图。预约内部取课/锁课不签名。
+
+本地 IDEA 重启后自动应用追加 V10，无需修改旧迁移或重置数据。完整契约、并发协议与验证见 [0009](../ai-docs/implement-plan/0009-course-selection-visuals.md)。回退到不支持封面的旧应用时需暂停封面编辑及媒体清理，保留 V10。

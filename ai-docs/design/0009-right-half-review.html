@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>0009 revision 3 · 右半边封面设计稿</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f2f7fc; color: #172b40; font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif; }
+    main { max-width: 1150px; margin: 0 auto; padding: 36px; }
+    header { display: flex; align-items: center; gap: 22px; margin-bottom: 28px; }
+    header img { width: 132px; height: 26px; object-fit: contain; }
+    header span { font-size: 13px; color: #60788f; }
+    h1 { margin: 0 0 8px; font-size: 25px; }
+    .intro { margin: 0 0 26px; font-size: 14px; color: #536d85; line-height: 1.8; }
+    .layout { display: grid; grid-template-columns: minmax(0, 1fr) 302px; gap: 26px; align-items: start; }
+    .panel { padding: 22px; border: 1px solid #dce7f1; border-radius: 12px; background: #fff; }
+    h2 { margin: 0 0 20px; font-size: 17px; }
+    .label { margin: 20px 0 8px; font-size: 12px; color: #647e96; }
+    .label:first-of-type { margin-top: 0; }
+    .card { position: relative; overflow: hidden; min-height: 170px; border: 2px solid #dce7f1; border-radius: 12px; background: #fff; }
+    .photo { position: absolute; top: 0; right: 0; bottom: 0; width: 50%; overflow: hidden; background: #edf6ff; }
+    .photo img { position: absolute; top: 50%; width: 100%; height: auto; transform: translateY(-50%); }
+    .photo::after { position: absolute; inset: 0; content: ''; background: linear-gradient(to right, #fff 0, #ffffffd6 8%, #ffffff6b 19%, #ffffff00 35%); }
+    .card.default .photo { background: linear-gradient(116deg, #f8fbff 24%, #edf6ff 24.3%, #f8fbff 73%, #deefff 73.3%); }
+    .card.default .photo::after { background: linear-gradient(to right, #fff, #ffffff00 45%); }
+    .copy { position: relative; width: 50%; display: flex; flex-direction: column; gap: 7px; padding: 22px 15px 22px 22px; }
+    .copy strong { font-size: 18px; line-height: 1.4; overflow-wrap: anywhere; }
+    .copy small { color: #52667b; font-size: 12px; line-height: 1.5; }
+    .copy em { font-size: 11px; color: #52667b; font-style: normal; }
+    .price { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 4px; color: #0063b9; }
+    .price b { font-size: 19px; }
+    .price span { font-size: 11px; font-weight: 600; }
+    .hover { border-color: #94c5f4; box-shadow: 0 8px 24px #17477314; }
+    .selected { border-color: #0074df; }
+    .mobile-panel { padding: 0; overflow: hidden; }
+    .mobile-panel h2 { margin: 0; padding: 20px 18px 12px; }
+    .mobile-panel .label { padding: 0 18px; margin-top: 0; }
+    .phone { padding: 14px; background: #f2f7fc; }
+    .phone .card { min-height: 206px; margin-bottom: 12px; }
+    .phone .copy { padding: 17px 6px 17px 14px; gap: 8px; }
+    .phone .copy strong { font-size: 16px; }
+    .phone .copy small { font-size: 11px; }
+    .phone .copy em { font-size: 10px; }
+    .phone .price b { font-size: 16px; }
+    .note { margin: 18px 0 0; color: #647e96; font-size: 12px; line-height: 1.8; }
+    .mobile-panel .note { margin: 0; padding: 8px 18px 18px; }
+    @media (max-width: 800px) { main { padding: 22px; } .layout { grid-template-columns: 1fr; } .mobile-panel { max-width: 302px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><img src="../../frontend/public/images/geer-logo.png" alt="GEER"><span>0009 · revision 3 · 静态设计稿 / 待审核</span></header>
+    <h1>左侧课程信息，右半边展示照片</h1>
+    <p class="intro">右侧固定 50% 宽度，照片按宽度等比显示。中间由白色渐变过渡，文字和价格保持原色。构图只上下调整。</p>
+    <div class="layout">
+      <section class="panel">
+        <h2>桌面课程卡片</h2>
+        <p class="label">默认：照片隐藏</p>
+        <div class="card default"><div class="photo"></div><div class="copy"><strong>单板基础入门</strong><small>从站姿和落叶飘开始，建立稳定的滑行习惯。</small><em>2 小时 · 一对一</em><div class="price"><b>CAD 120</b></div></div></div>
+        <p class="label">悬停 / 键盘聚焦：右半边照片显露</p>
+        <div class="card hover"><div class="photo"><img src="0002-geer-photo-original.png" alt="滑行示例"></div><div class="copy"><strong>单板基础入门</strong><small>从站姿和落叶飘开始，建立稳定的滑行习惯。</small><em>2 小时 · 一对一</em><div class="price"><b>CAD 120</b></div></div></div>
+        <p class="label">选中：保留照片与蓝色边框</p>
+        <div class="card selected"><div class="photo"><img src="0002-geer-photo-original.png" alt="滑行示例"></div><div class="copy"><strong>流畅转弯进阶</strong><small>找到节奏，练习刃的控制与流畅转弯。</small><em>2 小时 · 一对一</em><div class="price"><b>CAD 150</b><span>✓ 已选</span></div></div></div>
+        <p class="note">名称、介绍、时长、价格集中在左半边。右侧宽度始终为卡片的一半，悬停不缩放照片。</p>
+      </section>
+      <section class="panel mobile-panel">
+        <h2>手机 / 触屏</h2><p class="label">直接显示右半边照片</p>
+        <div class="phone">
+          <div class="card"><div class="photo"><img src="0002-geer-photo-original.png" alt="滑行示例"></div><div class="copy"><strong>单板基础入门</strong><small>建立稳定的滑行习惯。</small><em>2 小时 · 一对一</em><div class="price"><b>CAD 120</b></div></div></div>
+          <div class="card selected"><div class="photo"><img src="0002-geer-photo-original.png" alt="滑行示例"></div><div class="copy"><strong>流畅转弯进阶</strong><small>练习控制与流畅转弯。</small><em>2 小时 · 一对一</em><div class="price"><b>CAD 150</b><span>✓ 已选</span></div></div></div>
+        </div>
+        <p class="note">教练预览同步这一布局，保留垂直位置滑杆和重置居中。</p>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -294,7 +294,8 @@ it('lets the coach edit and archive a course and requires a rejection reason', a
   await userEvent.click(screen.getByRole('button', { name: '删除课程' }));
   expect(screen.getByText(/已有预约不受影响/)).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: '确认删除' }));
-  expect(await screen.findByText('已下架')).toBeTruthy();
+  await screen.findByText('课程已从学员选课列表移除；已有预约不受影响。');
+  expect(screen.queryByText('进阶课')).toBeNull();
   await userEvent.click(screen.getByRole('button', { name: '预约申请' }));
   await userEvent.click(await screen.findByRole('button', { name: '拒绝' }));
   expect(screen.getByRole('button', { name: '确认拒绝' }).hasAttribute('disabled')).toBe(true);

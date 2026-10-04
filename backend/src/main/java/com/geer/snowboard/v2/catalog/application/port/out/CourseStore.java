@@ -10,6 +10,6 @@ public interface CourseStore {
     String fingerprint(String coachId, String key);
     boolean insert(Course course, String key, String fingerprint);
     Page<Course> list(String coachId, int limit, String cursor);
-    void update(String id, String title, String description, java.math.BigDecimal price);
+    void update(Course course);
     void archive(String id);
 }

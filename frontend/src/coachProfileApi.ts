@@ -1,5 +1,5 @@
 export type ProfileContent = Record<string, string>;
-export type MediaPurpose = 'HERO' | 'CERTIFICATE' | 'WECHAT_QR' | 'VIDEO_POSTER' | 'HIGHLIGHT_VIDEO';
+export type MediaPurpose = 'HERO' | 'CERTIFICATE' | 'WECHAT_QR' | 'VIDEO_POSTER' | 'HIGHLIGHT_VIDEO' | 'COURSE_COVER';
 export type MediaLink = { id: string; url: string; expiresAt: string; width?: number; height?: number; duration?: number; size?: number };
 export type CoachProfile = { published: boolean; version: number; publishedVersion: number; content: ProfileContent; media: Partial<Record<MediaPurpose, MediaLink>> };
 export type Upload = { id: string; purpose: MediaPurpose; status: string; size: number; uploadUrl: string | null;

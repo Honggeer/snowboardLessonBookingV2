@@ -11,6 +11,8 @@ public interface MediaOperations {
     Upload complete(Actor actor,String id);
     Upload status(Actor actor,String id);
     void replaceReferences(String owner,String slot,Map<String,String> purposeIds);
+    void replaceReferences(String owner,String consumer,String slot,Map<String,String> purposeIds);
     Map<String,Link> previews(String owner,Map<String,String> purposeIds);
     Map<String,Link> published(Map<String,String> purposeIds);
+    Map<String,Link> publishedFor(String consumer,Map<String,String> purposeIds);
 }

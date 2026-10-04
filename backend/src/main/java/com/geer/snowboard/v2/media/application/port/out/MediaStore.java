@@ -14,9 +14,12 @@ public interface MediaStore {
     long hourlyUploads(String owner,Instant since);
     void insert(MediaAsset asset);
     void verifying(String id,String sourceVersion,long actualSize,Instant now);
-    List<String> referenceIds(String slot);
-    void replaceReferences(String slot,Map<String,String> ids,Instant now);
-    boolean publishedReference(String id);
+    List<String> referenceIds(String consumer,String slot);
+    void replaceReferences(String consumer,String slot,Map<String,String> ids,Instant now);
+    boolean publishedReference(String consumer,String id);
+    default List<String> referenceIds(String slot){return referenceIds("GEER",slot);}
+    default void replaceReferences(String slot,Map<String,String> ids,Instant now){replaceReferences("GEER",slot,ids,now);}
+    default boolean publishedReference(String id){return publishedReference("GEER",id);}
     boolean referenced(String id);
     Job claim(Instant now,Instant leaseUntil);
     boolean claimed(Job job);
