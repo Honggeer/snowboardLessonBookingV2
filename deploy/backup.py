@@ -32,7 +32,8 @@ def table_counts(path):
     with path.open("rb") as source:
         for line in source:
             created = re.match(rb"CREATE TABLE `([a-zA-Z0-9_]+)`", line)
-            inserted = re.match(rb"INSERT INTO `([a-zA-Z0-9_]+)` VALUES", line)
+            # mysqldump names writable columns when a table has generated columns.
+            inserted = re.match(rb"INSERT INTO `([a-zA-Z0-9_]+)`(?: \([^)]*\))? VALUES", line)
             if created:
                 tables[created[1].decode()] = 0
             if inserted:

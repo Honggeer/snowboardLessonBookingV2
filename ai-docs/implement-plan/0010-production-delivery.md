@@ -71,10 +71,10 @@ feature: "../features/0010-production-delivery.md"
 2. 固定 EIP；无业务数据时停机、快照、新加密卷、换根盘，核对系统/SSM/加密/容量/CPU Standard；失败先恢复旧根盘。此过程有服务器短暂停机。
 3. 创建以上限定 ECR/S3/CloudFront/IAM/SSM 对象；按真实 IDs render，核验 OIDC 的 aud/sub。仓库公开 API 的 owner ID `60202820`、repo ID `1391576226`、创建于 2026-09-28；默认 immutable ID subject 的候选为 `repo:Honggeer@60202820/snowboardLessonBookingV2@1391576226:environment:production`，最终以实际非密钥声明为准，不凭候选放宽 trust。
 4. 装保护配置/密钥和 IP 证书；执行本地文档/交付门禁后，在**明确 commit/push 授权**下提交并推送。先确认同一 main SHA 的 CI 全部 success，再启用自动发布；触发方式须确保是可信 push/main，远端受测 SHA 才可成为首发 SHA，不以未提交工作区冒充已受测版本。
-5. 首发到限制入口，真实验证邮箱注册/找回、教练/学员登录、预约申请/确认/取消和实际邮件链接、权限/CSRF、容器重启后会话；重新上传现有宣传素材。正式媒体核对私有 S3、无签名 CloudFront 拒绝、Range 206、同一 65 秒视频从头到 ended，不把本地 S3Mock 故障直接移作 AWS 结论。
+5. 首发到限制入口，核对 HTTPS、Cookie/CSRF、匿名访问边界和初始教练邮箱。用户随后明确“初始教练账号用honggeer1208@gmail.com,你上线了就可以了，账号还有什么的我可以自己搞，我自己测试”：初始邮箱使用该地址，账号操作、注册/找回、预约/邮件、会话及真实媒体上传/完整播放验收交给用户上线后自行测试；Codex 不将这些场景记为已通过，也不导入本地业务数据或宣传素材。
 6. 从真实 EC2 上传备份到 operations，下载到本机受控独立 Docker 主机恢复，核对校验和/全部表/行数/schema；记录实际恢复耗时和完整步骤，以 4 小时 RTO 为评估目标，RPO 目标 24 小时。不在 2 GiB 生产机上额外并行启动恢复库；测试实际 timer 与最新成功快照，密钥另存仓库外受控恢复副本。
-7. 容量验收场景先按小规模候选执行：10 个并发用户、15 分钟浏览/查询/受控预约，视频流经 CloudFront；观察 CPU credits、内存/OOM、数据库连接、应用错误和磁盘至少 5 GiB 余量。此场景是首发验收范围提议，不声称用户保证只有 10 人；不满足则报告并暂停开放，不自动加大实例或新增付费服务。
-8. 以上门禁通过才开放 443、记录实际 SHA/digest/证书/备份/资源 IDs，进入 RELEASED；不能用 health UP 或本地测试数量代替首发验收。首次无上一版，失败停止应用并保留库；已有兼容上一版时执行已实现的回退。不逆向迁移，不覆盖/删除生产库。
+7. 按用户上述自行测试的交付要求，首发核对实际容器健康、内存/OOM 和磁盘余量；原定 10 个并发用户、15 分钟业务/媒体负载场景未执行，留作上线后验证，不能宣称容量压测通过。不自动加大实例或新增付费服务。
+8. 用户明确接受上线后自行业务测试；完成远端 CI/CD、可信 HTTPS/续期、运行状态和异机备份恢复后开放 443，记录实际 SHA/digest/证书/备份/资源 IDs，技术发布进入 RELEASED，业务/媒体/并发验收保留为用户待验证项。首次无上一版，失败停止应用并保留库；已有兼容上一版时执行已实现的回退。不逆向迁移，不覆盖/删除生产库。
 
 用户已明确批准 revision 3 并允许 commit/push。P-08 正在执行；实际云资源/主机准备已完成的部分见第 8 节，应用首发尚未执行；GitHub 登录已成功，正在提交与核对远端 CI。
 
@@ -87,6 +87,7 @@ feature: "../features/0010-production-delivery.md"
 | 2026-10-04 | “接着做”；选择“自动发布：main 分支测试通过后，自动更新 EC2”和“每日备份、保留 7 天：最多可能丢失 24 小时数据” | N/A（继续调查及需求决定） | 恢复上线准备，确认自动发布与备份目标；revision 2 本地实现仍需 review，未把继续调查当成具体计划批准 |
 | 2026-10-04 | “开始实现”（紧接 revision 2 P-02 至 P-07 review 提交） | 2 | 批准 P-02 至 P-07 本地交付实现及隔离验证；不包含 P-08 真实资源创建、生产初始化、发布、Git commit/push |
 | 2026-10-04 | “按 revision 3 上线，并允许你 commit/push。我有个问题，不需要我提供任何key认证吗？如果需要我亲手做的跟我说，我本地varification key是以传参给到idea的” | 3 | 明确批准第 1 节 P-08 现有实例/EIP/IP TLS、加密换盘与限定临时资源清理、云资源、空库初始化、首发验收与公网开放；明确允许 Codex commit/push，禁止 amend/force push。生产密钥独立生成；需要用户亲手认证或非密钥账号信息时说明，不索取本地 verification key |
+| 2026-10-04 | “初始教练账号用honggeer1208@gmail.com,你上线了就可以了，账号还有什么的我可以自己搞，我自己测试” | 3（用户直接调整交付条件） | 指定初始邮箱并要求完成公网发布；账号、业务和媒体由用户上线后自测，原定业务/媒体/并发场景不再阻塞本次技术发布。保留 HTTPS、自动发布、运行状态与备份恢复验证；未测项目不得记为通过。不新增资源、架构、费用或业务实现 |
 
 revision 2 的 P-02 至 P-07 已完成测试先行、本地实现及隔离验证，证据保留。用户已明确批准 revision 3 并允许 commit/push；当前 `approved_revision: 3` / IMPLEMENTING，按 P-08 具体范围执行，整体真实环境验收未完成，不进入 VERIFIED/RELEASED。
 
@@ -262,6 +263,10 @@ Shell 检查使用受控替身验证参数/状态，并在隔离实际 Compose �
 
 ### revision 3 批准后的云端执行证据
 
+- 初次实际提交 `26e51ae` 与格式修正 `62fddc9` 已按授权 push；[CI 37241265913](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37241265913) 对 SHA `62fddc915cdcbe6799bdaf3c7155710c4ceae5e9` 三个 job success。启用发布变量后的 [Production delivery 37241885733](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37241885733) gate/publish success；真实 OIDC/STS、ARM64 ECR 构建、ffprobe、配置包及专用 SSM `62f5a514-14bd-4a98-8a60-a70066dc606b` Success / 0，三容器健康，V1–V10 迁移成功，受限入口 HTTPS/health/CSRF 200、匿名 me 401，SESSION Secure/HttpOnly/SameSite=Lax。
+- 用户最后指定 `honggeer1208@gmail.com` 并要求账号/业务自行测试。初始化后纠正同一个初始教练邮箱，SSM `9d5fcd20-7ec9-4d4d-a255-ca4444f95cf1` Success / 0：保持单教练及已有数据、使旧验证/找回凭据失效、待验证新邮箱、credential version 增加；未导入本地数据。新验证邮件实际任务 SENT / attempts 1，SMTP 接受；收件与账号设置由用户操作。临时初始化输入的实际 S3 VersionId 已删除。
+- 续期检查 SSM `aee268dc-e052-4fab-8654-55c9c135bc4d` Success / 0：Certbot reconfigure webroot 成功，`renew --dry-run --run-deploy-hooks` 成功，新证书 hook 校验并 reload NGINX，twice daily timer enabled/running。
+- 首次真实备份 `77fcfd26-34f5-42f8-9c10-7c0805543fba` 上传 S3 并通过 24 小时状态检查；异机恢复发现 `identity_account` SQL 实际 1 行而 manifest 为 0，**不算恢复通过**，记录 [TODO-0026](../todo/0026-backup-generated-column-row-count.md)。含生成列的 mysqldump INSERT 带列名列表，原统计漏计。目标测试先执行 `python3 -m unittest discover -s deploy -p 'test_backup_restore.py'`，6 tests / 1 failure，0 != 1；修正统计后 `python3 -m unittest discover -s deploy -p 'test_*.py'` 25 tests / OK。生产修正版部署及新备份恢复仍待验证。
 - 用户原话及日期见第 2 节，已批准真实资源、生产首发和 commit/push。GitHub CLI 2.102.0 已安装；第一次 device login 未完成并过期，用户要求重新验证；第二次浏览器登录成功为 Honggeer，仓库 permissions.admin/push 均 true，HTTPS git ls-remote 成功。origin 改为同一仓库的 HTTPS 通道，不保存或输出 token。
 - 固定 IPv4 `52.60.174.156` / allocation `eipalloc-083305819fd58e611` 已关联既有实例；安全组只开放公网 80、443 暂限本机验收地址 `/32`。没有开放 22/8080/3306；网站尚未启动。
 - 停机一致快照 `snap-09c0367d328529bec`，新根盘 `vol-00a6aa379a31df78d` 为同 AZ、20 GiB gp3、Encrypted true / AWS 托管 EBS key；实例恢复 running，根盘 DeleteOnTermination true。旧根盘 `vol-01afc752b9b52dd07` 与快照保留用于回退，按批准范围在复核成功 48 小时后清理，暂时额外计费；尚未删除。

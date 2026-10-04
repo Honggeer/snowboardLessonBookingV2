@@ -12,6 +12,18 @@ DUMP = b'CREATE TABLE `sample` (id int);\nINSERT INTO `sample` VALUES (1);\nCREA
 
 
 class BackupRestoreBehaviorTest(unittest.TestCase):
+    def test_generated_column_table_insert_column_list_is_counted(self):
+        backup = module(self, "backup")
+        dump = DUMP + (
+            b'CREATE TABLE `identity_account` (`id` char(36), `email` varchar(255), '
+            b'`coach_guard` varchar(16) GENERATED ALWAYS AS (NULL) STORED);\n'
+            b'INSERT INTO `identity_account` (`id`, `email`) VALUES (\'coach-id\',\'coach@example.invalid\');\n'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            package = backup.create_backup(Path(directory), "10", lambda p: p.write_bytes(dump), lambda p: None)
+            metadata = backup.validate_backup(package, "10")
+            self.assertEqual(metadata["tables"]["identity_account"], 1)
+
     def test_success_manifest_counts_and_upload_marker_only_after_complete_backup(self):
         backup = module(self, "backup")
         with tempfile.TemporaryDirectory() as directory:
