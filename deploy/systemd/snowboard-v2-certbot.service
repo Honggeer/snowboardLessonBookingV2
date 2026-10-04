@@ -9,4 +9,3 @@ User=root
 UMask=0077
 ExecStart=/opt/snowboard-v2/certbot/bin/certbot renew --quiet --deploy-hook /opt/snowboard-v2/bin/renew-certificate.sh
 TimeoutStartSec=600
-
