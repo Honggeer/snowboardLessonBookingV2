@@ -1,7 +1,7 @@
 ---
 id: TODO-0025
 title: "当前 Git remote 的 SSH 身份认证失败"
-status: IN_PROGRESS
+status: DONE
 created: 2026-10-04
 updated: 2026-10-04
 ---
@@ -40,3 +40,5 @@ updated: 2026-10-04
 - 2026-10-04：用户明确允许 commit/push，已安装 GitHub CLI 并发起 HTTPS/browser device 登录；第一次登录过期，用户要求重新验证，已重启登录。尚未得到实际认证/推送/Actions 配置结果；IN_PROGRESS。
 
 - 2026-10-04：第二次 browser device 登录成功为 Honggeer；目标仓库 API 确认 admin/push 权限，origin 改为同一仓库的 HTTPS，实际 git ls-remote 成功返回当前 main SHA。OIDC 配置 API 可读；实际推送/发布配置结果仍待完成，IN_PROGRESS。
+
+- 2026-10-04：DONE。按用户明确授权，通过 HTTPS 成功 push `26e51ae`、`62fddc9`，远端 SHA `62fddc915cdcbe6799bdaf3c7155710c4ceae5e9` 的 [CI](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37241265913) 与 [生产交付](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37241885733) 均 success；production environment 限 main、仓库变量及精确 OIDC trust 实际生效，SSM 首发 Success / 0。未 amend/force push，未新增 SSH 密钥或输出认证 token。原 SSH 通道未修复，但同一仓库的已授权 HTTPS 通道满足交付判定。

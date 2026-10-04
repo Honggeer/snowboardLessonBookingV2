@@ -1,7 +1,7 @@
 ---
 id: "0010"
 title: "首次生产上线与 CI/CD"
-status: IMPLEMENTING
+status: RELEASED
 revision: 3
 approved_revision: 3
 created: 2026-10-04
@@ -13,7 +13,7 @@ feature: "../features/0010-production-delivery.md"
 
 ## 1. Review 摘要
 
-让目前仅在本地验证的网站以 HTTPS 正式运行，并用 GitHub Actions 构建版本化镜像、发布到单台 EC2、验证健康状态和恢复兼容的上一版本。关联[功能 0010](../features/0010-production-delivery.md)与 [ADR 0001](../decisions/0001-v2-baseline.md)。revision 2 的本地实现已完成；本次 revision 3 具体化 P-08 首发，等待该范围 review，不撤销已有实现证据。
+让网站以 HTTPS 正式运行，并用 GitHub Actions 构建版本化镜像、发布到单台 EC2、验证健康状态和恢复兼容的上一版本。关联[功能 0010](../features/0010-production-delivery.md)与 [ADR 0001](../decisions/0001-v2-baseline.md)。revision 2 本地实现和 revision 3 首发均已获用户明确批准；首个受测版本已部署到既有 EC2。最终公网交付与验证结果见第 8/9 节，用户最新自行测试的交付条件见第 2 节。
 
 用户本次确认：AWS 总预算仍希望约 30 CAD/月，区域 `ca-central-1`，尚无域名，已能正常对外发邮件，v2 不需要数据迁移。业务时间继续是 `America/Toronto`，AWS 区域为 Canada (Central)。
 
@@ -76,7 +76,7 @@ feature: "../features/0010-production-delivery.md"
 7. 按用户上述自行测试的交付要求，首发核对实际容器健康、内存/OOM 和磁盘余量；原定 10 个并发用户、15 分钟业务/媒体负载场景未执行，留作上线后验证，不能宣称容量压测通过。不自动加大实例或新增付费服务。
 8. 用户明确接受上线后自行业务测试；完成远端 CI/CD、可信 HTTPS/续期、运行状态和异机备份恢复后开放 443，记录实际 SHA/digest/证书/备份/资源 IDs，技术发布进入 RELEASED，业务/媒体/并发验收保留为用户待验证项。首次无上一版，失败停止应用并保留库；已有兼容上一版时执行已实现的回退。不逆向迁移，不覆盖/删除生产库。
 
-用户已明确批准 revision 3 并允许 commit/push。P-08 正在执行；实际云资源/主机准备已完成的部分见第 8 节，应用首发尚未执行；GitHub 登录已成功，正在提交与核对远端 CI。
+用户已明确批准 revision 3 并允许 commit/push。实际云资源、主机、受测提交及首个自动发布已完成；剩余交付按用户最后指定的账号/业务自测条件执行，实际证据见第 8/9 节。
 
 ## 2. 批准记录
 
@@ -89,27 +89,27 @@ feature: "../features/0010-production-delivery.md"
 | 2026-10-04 | “按 revision 3 上线，并允许你 commit/push。我有个问题，不需要我提供任何key认证吗？如果需要我亲手做的跟我说，我本地varification key是以传参给到idea的” | 3 | 明确批准第 1 节 P-08 现有实例/EIP/IP TLS、加密换盘与限定临时资源清理、云资源、空库初始化、首发验收与公网开放；明确允许 Codex commit/push，禁止 amend/force push。生产密钥独立生成；需要用户亲手认证或非密钥账号信息时说明，不索取本地 verification key |
 | 2026-10-04 | “初始教练账号用honggeer1208@gmail.com,你上线了就可以了，账号还有什么的我可以自己搞，我自己测试” | 3（用户直接调整交付条件） | 指定初始邮箱并要求完成公网发布；账号、业务和媒体由用户上线后自测，原定业务/媒体/并发场景不再阻塞本次技术发布。保留 HTTPS、自动发布、运行状态与备份恢复验证；未测项目不得记为通过。不新增资源、架构、费用或业务实现 |
 
-revision 2 的 P-02 至 P-07 已完成测试先行、本地实现及隔离验证，证据保留。用户已明确批准 revision 3 并允许 commit/push；当前 `approved_revision: 3` / IMPLEMENTING，按 P-08 具体范围执行，整体真实环境验收未完成，不进入 VERIFIED/RELEASED。
+revision 2 的 P-02 至 P-07 已完成测试先行、本地实现及隔离验证，证据保留。当前 `approved_revision: 3`，按用户最新指定的交付条件记录技术发布与用户自测的实际边界；未完成的业务/媒体/并发场景不得写为通过。
 
 ## 3. 实现步骤与预计文件
 
 | 步骤 | 预计文件/模块 | 具体改动与边界 | 完成条件 | 状态 |
 |---|---|---|---|---|
-| P-01 | 本计划、功能、必要 ADR | 确认 CD/备份目标；分阶段明确本地实现范围与首次云端上线前置条件 | 本地实现 revision review 获批；P-08 前另定域名/存储/完整费用与容量/RTO | 本地范围已批准；P-08 前置事项待定 |
+| P-01 | 本计划、功能、必要 ADR | 确认 CD/备份目标；分阶段明确本地实现范围与首次云端上线前置条件 | 本地实现 revision review 获批；P-08 前另定域名/存储/完整费用与容量/RTO | revision 2/3 已明确批准，用户随后直接指定公网交付及自行测试 |
 | P-02 | 预计 `deploy/test_ci_config.py`、`deploy/test_production_config.py`、`deploy/test_release.py`、`deploy/test_backup_restore.py`、`.github/workflows/ci.yml` | 先写行为检查，复现干净环境缺 key、生产配置缺失、发布失败/并发及损坏备份未正确拒绝；CI 注入明确无效的测试专用 key | 有效 RED 记录，修复后同用例 GREEN | 完成，RED/GREEN 见第 8 节 |
 | P-03 | 预计 `deploy/compose.production.yaml`、`deploy/.env.production.example`、`frontend/nginx.production.conf`、`deploy/README.md` | 独立生产 Compose：版本镜像、TLS/证书只读挂载、无 local/沙箱、MySQL 仅内网、密钥只读注入、日志轮转、健康检查、资源限制与重启策略 | 与本地配置隔离；校验及隔离启动通过 | 本地完成 / 隔离通过 |
-| P-04 | 预计 `.github/workflows/release.yml`、CI 工作流、必要 Dockerfile 修改 | 可信 main 的 CI 全成功后构建 linux/arm64 镜像；记录准确受测 SHA/digest；OIDC 推 ECR，再通过受控 SSM 自动部署；首次启用前云端 job 禁用 | 失败/PR/其他分支/旧提交不发布；平台镜像实际启动及 ffprobe 通过 | 本地完成；云端待 P-08 |
+| P-04 | 预计 `.github/workflows/release.yml`、CI 工作流、必要 Dockerfile 修改 | 可信 main 的 CI 全成功后构建 linux/arm64 镜像；记录准确受测 SHA/digest；OIDC 推 ECR，再通过受控 SSM 自动部署；首次启用前云端 job 禁用 | 失败/PR/其他分支/旧提交不发布；平台镜像实际启动及 ffprobe 通过 | 已启用；真实 CI/OIDC/ECR/ARM64/SSM 首发 success |
 | P-05 | 预计 `deploy/release.sh`、SSM 部署文档及 IAM 策略模板 | 部署入口只接收受控仓库与校验过的 commit SHA/digest；主机锁与 workflow concurrency 串行；拉取、启动、等待、检查、记版本；兼容时失败回退 | 成功、重复调用、故障、并发和回退演练通过；保留 DB 卷 | 本地完成 / 实际失败回退通过 |
-| P-06 | 预计 `deploy/backup.sh`、`deploy/restore-check.sh`、`deploy/systemd/`、定时任务说明 | 每日 06:00 UTC 导出 MySQL 一致备份、校验和、加密上传独立私有 S3、保留 7 天与失败记录；独立目标库恢复并核对 | 本地独立恢复通过；P-08 真实异机恢复证据及达成的 RPO/RTO | 本地完成 / 独立恢复通过 |
-| P-07 | 预计 `deploy/PRODUCTION_RUNBOOK.md`、资源/IAM 配置模板 | 整理 EC2/EBS/IP/ECR、私有 S3/staging versioning、CloudFront OAC/key group、CORS、SSM、TLS 续期、密钥注入、容量/费用及清理步骤 | 用户可照清单配置；权限边界和准确费用可 review | 本地完成；revision 3 补齐首发资源/报价，实际 IDs 待 P-08 |
-| P-08 | 同上及本计划证据 | revision 3 明确现有实例、EIP/IP TLS、加密换盘、云资源及费用；获批后先限制入口验收，测容量与恢复，初始化正式教练，重新上传媒体，验证后开放入口 | 发布后验收及账单观察有实际证据 | 已批准 / 云资源及主机准备完成；首发待 GitHub 认证 |
-| P-09 | 功能、计划、索引、相关说明 | 更新实际文件、RED/GREEN、限制、资源账单、发布 SHA、回退点与日期 | IMPLEMENTED/VERIFIED/RELEASED 依据分别完整 | 本地记录已同步；正式发布后补齐 |
+| P-06 | 预计 `deploy/backup.sh`、`deploy/restore-check.sh`、`deploy/systemd/`、定时任务说明 | 每日 06:00 UTC 导出 MySQL 一致备份、校验和、加密上传独立私有 S3、保留 7 天与失败记录；独立目标库恢复并核对 | 本地独立恢复通过；P-08 真实异机恢复证据及达成的 RPO/RTO | 真实 EC2/S3 异机恢复 24 表/22 行/schema 10 通过；每日 timer enabled/active |
+| P-07 | 预计 `deploy/PRODUCTION_RUNBOOK.md`、资源/IAM 配置模板 | 整理 EC2/EBS/IP/ECR、私有 S3/staging versioning、CloudFront OAC/key group、CORS、SSM、TLS 续期、密钥注入、容量/费用及清理步骤 | 用户可照清单配置；权限边界和准确费用可 review | 实际资源和配置已完成，IDs 见第 8 节；账单随实际使用观察 |
+| P-08 | 同上及本计划证据 | revision 3 明确现有实例、EIP/IP TLS、加密换盘、云资源及费用；限制入口技术验收、备份恢复和初始化正式教练后开放公网；账号/业务/媒体及并发按用户最后要求自行测试 | 发布后验收及账单观察有实际证据 | 已批准 / 云资源、主机与首个自动部署已完成，公网已开放 / 技术发布验证通过；用户自行进行账号/业务/媒体/并发验收，证据见第 8 节 |
+| P-09 | 功能、计划、索引、相关说明 | 更新实际文件、RED/GREEN、限制、资源账单、发布 SHA、回退点与日期 | IMPLEMENTED/VERIFIED/RELEASED 依据分别完整 | 技术发布、用户自测边界、实际资源/版本/备份/限制已同步 |
 
 - [x] P-01 调查部分：恢复会话、复核 EC2/最新 CI，确认自动发布与每日备份目标，形成 revision 2 本地实施范围。
-- [x] P-01 review：用户批准 revision 2 的 P-02 至 P-07；revision 3 的具体 P-08 方案已形成，等待该范围批准。
+- [x] P-01 review：用户明确批准 revision 2 的 P-02 至 P-07 和 revision 3 P-08，并允许 commit/push；最新自行测试条件已记录。
 - [x] P-02 至 P-07：批准后目标测试 RED → 实现 GREEN → 适用回归与交付文档。
-- [ ] P-08：在具体云资源/生产操作授权覆盖后执行首次上线。
-- [x] P-09 本地范围：同步实现文件、RED/GREEN、隔离验收、限制及 ticket；正式发布证据在 P-08 后补齐。
+- [x] P-08：按 revision 3 及用户最新自测交付条件完成首次公网技术发布；账号/业务/媒体/并发由用户自行验证。
+- [x] P-09：同步实现文件、RED/GREEN、隔离及正式技术验收、实际资源/版本、限制和 ticket。
 
 预计文件不是已经存在的实现；实际文件名可以在不改变范围时局部调整并记录。
 
@@ -134,7 +134,7 @@ revision 2 的 P-02 至 P-07 已完成测试先行、本地实现及隔离验证
 - ECR、SSM 与 S3 是交付/外部适配器边界，业务内层不新增 SDK。实例角色、CI 角色分别最小授权；IMDSv2 与容器访问实例角色需实际验证，不能仅附上角色就宣称容器有权限。
 - CD 不允许不可信 PR 获得 OIDC 发布权限；AWS trust policy 限制仓库和受控 ref/environment。SSM 只能操作指定目标与受控部署文档，不能把任意远程 shell 权限当成默认配置。
 - SMTP/DB/验证 key 建议由实例权限受控的配置文件注入；CloudFront 私钥单独只读挂载，非 root Java 账号须有准确读权限。不向前端或镜像泄露秘密。
-- 当前目标 EC2 已核实为 ARM64，拟发布 linux/arm64 镜像。六个基础镜像的 manifest 均包含 ARM64；完整构建、ffprobe、MySQL 及业务在 EC2 的实际行为尚未验证。
+- 目标 EC2 为 ARM64；六个基础镜像支持 ARM64，实际原生镜像构建、ffprobe、ECR 拉取、MySQL 与三容器健康已通过。完整业务/媒体操作按用户要求上线后自行测试。
 - 新工具版本、Action 引用、AMI、TLS 客户端和 IAM 权限须依据官方资料定稿并验证；不为上线顺便升级业务依赖。改变已确认架构时补 ADR 并重新 review。
 
 ## 5. 验收与验证计划
@@ -268,15 +268,26 @@ Shell 检查使用受控替身验证参数/状态，并在隔离实际 Compose �
 - 续期检查 SSM `aee268dc-e052-4fab-8654-55c9c135bc4d` Success / 0：Certbot reconfigure webroot 成功，`renew --dry-run --run-deploy-hooks` 成功，新证书 hook 校验并 reload NGINX，twice daily timer enabled/running。
 - 首次真实备份 `77fcfd26-34f5-42f8-9c10-7c0805543fba` 上传 S3 并通过 24 小时状态检查；异机恢复发现 `identity_account` SQL 实际 1 行而 manifest 为 0，**不算恢复通过**，记录 [TODO-0026](../todo/0026-backup-generated-column-row-count.md)。含生成列的 mysqldump INSERT 带列名列表，原统计漏计。目标测试先执行 `python3 -m unittest discover -s deploy -p 'test_backup_restore.py'`，6 tests / 1 failure，0 != 1；修正统计后 `python3 -m unittest discover -s deploy -p 'test_*.py'` 25 tests / OK。生产修正版部署及新备份恢复仍待验证。
 - 用户原话及日期见第 2 节，已批准真实资源、生产首发和 commit/push。GitHub CLI 2.102.0 已安装；第一次 device login 未完成并过期，用户要求重新验证；第二次浏览器登录成功为 Honggeer，仓库 permissions.admin/push 均 true，HTTPS git ls-remote 成功。origin 改为同一仓库的 HTTPS 通道，不保存或输出 token。
-- 固定 IPv4 `52.60.174.156` / allocation `eipalloc-083305819fd58e611` 已关联既有实例；安全组只开放公网 80、443 暂限本机验收地址 `/32`。没有开放 22/8080/3306；网站尚未启动。
+- 固定 IPv4 `52.60.174.156` / allocation `eipalloc-083305819fd58e611` 已关联既有实例；首发阶段安全组开放公网 80、443 先限验收地址 `/32`。最终公网规则以发布验收记录为准；22/8080/3306 不公开。
 - 停机一致快照 `snap-09c0367d328529bec`，新根盘 `vol-00a6aa379a31df78d` 为同 AZ、20 GiB gp3、Encrypted true / AWS 托管 EBS key；实例恢复 running，根盘 DeleteOnTermination true。旧根盘 `vol-01afc752b9b52dd07` 与快照保留用于回退，按批准范围在复核成功 48 小时后清理，暂时额外计费；尚未删除。
 - 换盘后实际 SSM Command `8ce008a8-4055-4542-8244-62f29a77cb37`：Success / ResponseCode 0，Docker active / Compose v5.6.0 / ARM64，业务容器为空，available 内存 1500 MiB / 根盘约 18 GiB 可用。AWS CLI 2.36.47、Python 3.9.25、OpenSSL 3.5.8 原有工具可用；不代表应用容量验收。
 - 两个 private immutable ECR 已创建；三个 `snowboard-v2-481604401994-ca-central-1-{staging,frozen,operations}` 私有桶已配置 SSE-S3、公网阻断、HTTPS-only，staging/operations versioning、生命周期及精确 IP CORS。CloudFront distribution `ERC4HF3K0S0JC` / `d2f6jctwfa8hpe.cloudfront.net`，OAC `EY6E4PGYYPFH7`、viewer public key `KZSNRI2U2IYH6` / key group `6fad640e-f4c2-451b-b7da-e30783e1306d` 已创建；真实媒体上传/播放验收未执行。
-- 现有 EC2 role 已加限定权限；GitHub OIDC provider、`snowboard-v2-github-release` role 和 `snowboard-v2-release` 专用 SSM document 已创建。GitHub OIDC 设置 API 实际返回 use_default/use_immutable_subject 均 true 和精确 sub_claim_prefix，已与 trust 核对；实际 GitHub OIDC/STS 成功证据仍待工作流，不放宽 trust。
+- 现有 EC2 role 已加限定权限；GitHub OIDC provider、`snowboard-v2-github-release` role 和 `snowboard-v2-release` 专用 SSM document 已创建。GitHub OIDC 设置 API 返回 use_default/use_immutable_subject 均 true；精确 subject 为 `repo:Honggeer@60202820/snowboardLessonBookingV2@1391576226:environment:production`。上述真实 workflow 的 OIDC/STS success，未放宽 trust。
 - SSM bootstrap Command `27326bb7-4e7c-4067-9740-a959decbf1f4` Success / 0：受保护配置/新数据库密码/独立 verification key/CloudFront 私钥和现有 SMTP 密码已注入；Python 3.11 venv / Certbot 5.8.0、发布入口、systemd 单元安装成功，Python 编译检查通过。传输使用私有 S3 的临时加密对象与校验和；下载后主机临时目录清理，对象实际 VersionId 已删除，秘密不在 SSM 参数或 Git。恢复副本保存在仓库外受控 `.local` 目录，权限 0700/0600。
-- 用户确认生产教练沿用本地测试邮箱，已只读取邮箱/姓名；不复制本地账号记录、密码、用户/预约数据。生产新账号尚未初始化。
-- IP 证书 Command `742af121-5aea-4ea0-b76b-904808b0792e` Success / 0：staging HTTP-01 和正式申请均成功，可信证书已装入保护 TLS 目录，IP SAN `52.60.174.156`，notAfter `2026-10-11 13:01:16 UTC`。证书实际剩余有效期和续期转换在首发前再次核对；NGINX/webroot/dry-run/hook/timer 验收尚未执行。
-- 提交前交付回归 `python3 -m unittest discover -s deploy -p 'test_*.py'`：24 tests / OK；未改业务实现，不重复既有 130 后端/51 前端回归，远端 CI 将再次跑适用门禁。GitHub 认证、commit/push、真实 CI、ECR 构建/拉取、应用/空库迁移、教练验证、SMTP 送达、媒体、真实 S3 恢复及容量/公网验收均待继续，不能记为 RELEASED。
+- 初次用户要求沿用本地测试邮箱，按既有私下 CLI 创建全新待验证教练；用户随后明确指定新邮箱，已按上文修正同一初始账号。没有复制本地账号记录、密码、用户/预约数据。
+- IP 证书 Command `742af121-5aea-4ea0-b76b-904808b0792e` Success / 0：staging HTTP-01 和正式申请均成功，可信证书已装入保护 TLS 目录，IP SAN `52.60.174.156`，初次 notAfter `2026-10-11 13:01:16 UTC`。NGINX/webroot/dry-run/hook/timer 验收 success，见上述续期命令。
+- 初次提交前交付回归 24 tests / OK；生产恢复发现生成列行数遗漏后增加目标 RED/GREEN，现为 25 tests / OK。业务实现未变，适用后端/前端检查由每个 main 的 CI 实际运行。SMTP 接受不等于用户实收；账号、业务、媒体与并发测试由用户自行验证。
+
+### 首次公网技术发布验收（按用户最新自测条件）
+
+- `2026-10-04T23:41:36.753114Z`（多伦多 19:41）开放 `sg-0ba72a795f00b8e34` 公网 443；实际 API 复核公共 TCP 端口只有 80/443，22/8080/3306 不公开。首发地址 **https://52.60.174.156**。
+- 含生成列的备份修复 `0abc87bbd1f31a53eb258108bca10094eff5ce8d`：[CI 37244118260](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37244118260) 全部 success，[Production delivery 37244412174](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37244412174) success；专用 SSM `aa1b881d-b9f7-463b-ab3a-d1aa6a0f55ad` Success。后端 digest `sha256:5c91abe07ab6610265f5a1424f84256a943c4ac7615649b2c266c75f9463c8ab`，前端 digest `sha256:f7bb80c90015759c2846b18cf59311c7b1c2198b97585dfae75d1afd24d2f3bf`，bundle checksum `2486169a66f11de39939f253edc17cb0cd8fe8c16a04b13d24959e1c9bd85fca`。schema 10 / 指纹 `4bb389fcedce14b8467fcb7eb068851a4bc9d97776a5a7bbebb5107e96e31b64`；上一兼容成功版本 `62fddc915cdcbe6799bdaf3c7155710c4ceae5e9`，生产卷保留。
+- 实际公网客户端验证：HTTP 根路径 308 → 同一 IP HTTPS；TLS 信任/IP 校验通过；首页及两个静态资源 200、health `UP`、csrf 200、匿名 me 401；SESSION Cookie Secure/HttpOnly/SameSite=Lax。未输出 Cookie/CSRF 值。
+- 本机 Chrome/Playwright 实际访问公网：首页登录表单可见、JS/CSS/品牌图片及 CSRF 响应 200，无 uncaught page error。初次使用 networkidle 和正文超过 80 字符的等待条件超时，改为等待实际可见 React 根节点后通过；这属于冒烟条件修正，不是产品缺陷 RED，也不当成账号业务验收。
+- 新实际备份 SSM `b9fcb33a-f359-46ed-898a-cbc4320016e4` Success / 0：`db-backups/20261004T234038Z-305863bf02c1/` 的压缩 SQL、manifest 和 SUCCESS 均上传 operations 桶；快照 `2026-10-04T23:40:38.419138+00:00`、备份状态 success / 在 24 小时内。下载到本机受控目录，再用 `python3 deploy/restore_check.py --backup <该目录> --schema-version 10` 对等入口恢复独立 MySQL 8.4：24 表、22 行、schema 10 全部一致，恢复 7.97 秒，下载加恢复 9.91 秒；network none、未发布端口、临时库/卷清理，未覆盖生产库。此前错误 manifest 的备份不算恢复通过，新快照已取代其成功状态。
+- timer SSM `8c562391-e810-426f-86f5-03bf45e18e30` Success / 0：backup 与 certbot 均 enabled/active；下次备份 `2026-10-05 06:00 UTC`，数据库备份保留 7 天（非当前版本额外 1 天及异步删除），每天 00/12 UTC 检查证书。备份/发布共用锁。
+- 公网后 SSM `29ee5bf2-a981-4a8b-8fad-b678049e5086` Success / 0：三个生产容器 healthy，OOM false / RestartCount 0，内存 available 607 MiB、无 swap、根盘约 17 GiB 可用。验证邮件 SENT / attempts 1。原 10 并发/15 分钟负载未执行，实际负载/邮件实收/业务及媒体由用户自行验证；这些状态不作为容量、完整功能或整机灾难 RTO 证明。
+- IMPLEMENTED / VERIFIED / RELEASED 区分：交付代码与配置实现完成；上述用户指定的技术发布门禁已实际 VERIFIED；获 revision 3 及最新公网交付授权后开放并验证，故本功能技术交付 RELEASED。其他业务功能的原本地 VERIFIED 状态不自动升级为完整生产验收。
 
 ### revision 2 批准后的 RED/GREEN 与回归
 
@@ -300,12 +311,13 @@ Shell 检查使用受控替身验证参数/状态，并在隔离实际 Compose �
 env JAVA_HOME=/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock /private/tmp/geer-delivery-toolchain/apache-maven-3.9.16/bin/mvn -Dmaven.repo.local=/private/tmp/snowboard-v2-toolchain/m2 test
 ```
 
-隔离演练的 Colima 不共享 `/private/tmp`，移至仓库 `.local/`；内部网络加单独 frontend 入口网络才能进行回环 HTTPS。一天测试证书不满足续期 hook 的至少 24 小时剩余有效期，改为两天。以上均是测试环境/夹具修正，不当作业务 RED。真实 AWS/ECR/OIDC/SSM 自动运行、正式 SMTP/CloudFront、实际 RPO/RTO 和目标 EC2 容量未验证；本地上传替身不宣称异机备份已成立。
+隔离演练的 Colima 不共享 `/private/tmp`，移至仓库 `.local/`；内部网络加单独 frontend 入口网络才能进行回环 HTTPS。一天测试证书不满足续期 hook 的至少 24 小时剩余有效期，改为两天。以上均是测试环境/夹具修正，不当作业务 RED。本段为 revision 2 的隔离证据；真实 AWS/ECR/OIDC/SSM、SMTP 接受、异机备份及运行状态以 revision 3 实际证据为准。CloudFront 完整播放、账号业务和容量压测仍由用户自行验证；本地上传替身不作为异机备份证据。
 
 ## 9. 完成状态与后续
 
-- IMPLEMENTED revision 2：P-02 至 P-07 已按明确批准完成本地实现与隔离验证，交付 [生产运维手册](../../deploy/PRODUCTION_RUNBOOK.md)；整体 VERIFIED/RELEASED 等待 P-08 的实际验收。
-- revision 2 本地实现证据保留；当前 revision 3 已获批准，P-08 正在执行，状态 IMPLEMENTING。用户已跳过买域名，不再用买域名作为前置要求；费用场景已形成，真实容量和恢复仍待执行。
-- [TODO-0023](../todo/0023-ci-compose-verification-key.md) 已按干净配置检查验证修复，DONE；最新 GitHub 运行仍是旧提交失败，用户 commit/push 后再核对远端 CI，不宣称已更新。 [TODO-0022](../todo/0022-local-highlight-video-stalls.md) 仍是独立本地缺陷。
-- [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md) 记录现有根盘未加密，未执行存储处理。
-- 未 commit/push；本次只读核对/报价/文档工作，未创建付费资源、修改已有 EC2、迁移生产数据或发布。已有 EC2 running / SSM Online，入站为空、根盘未加密，无 EIP，预定 backend ECR 仓库不存在；远端 main/CI 仍为旧失败版本。当前 Git SSH 身份失败，见 [TODO-0025](../todo/0025-github-ssh-auth-unavailable.md)。本次提交具体 P-08 review；批准后执行，Git commit/push 仍需明确例外授权。
+- IMPLEMENTED：revision 2 P-02 至 P-07 本地交付及 revision 3 实际配置/CI/CD 已实现；后续备份生成列统计修复先 RED 再 GREEN，当前交付回归 25 项通过。
+- VERIFIED：按用户最后指定的自测条件，远端 CI/CD、真实 EC2 启动/迁移、公网 HTTPS/Cookie/匿名边界、续期 hook/timer、运行余量、异机 S3 备份与独立恢复已通过，实际证据见第 8 节。
+- RELEASED：2026-10-04 多伦多 19:41 公网开放并验证，地址 https://52.60.174.156；初始教练邮箱为用户最后指定地址。用户自行验证邮箱后通过找回密码设置密码，账号、预约/通知、媒体上传/完整播放、重启会话和并发压测未由 Codex 验收，不记为通过。
+- [生产运维手册](../../deploy/PRODUCTION_RUNBOOK.md)、功能与两个索引同步；[TODO-0023](../todo/0023-ci-compose-verification-key.md)、[TODO-0025](../todo/0025-github-ssh-auth-unavailable.md)、[TODO-0026](../todo/0026-backup-generated-column-row-count.md) DONE。没有架构例外或新业务规则。
+- [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md) 新根盘加密和系统/SSM/Docker复核通过；旧卷/快照 48 小时保留期未满，最早 `2026-10-06T21:08:12.498Z` 按既有授权清理，仍 IN_PROGRESS。临时费用与 IDs 见 ticket；本次没有提前删除或声称自动清理已经运行。
+- [TODO-0022](../todo/0022-local-highlight-video-stalls.md) 为独立本地缺陷，仍 OPEN。实际账单、长期容量、完整主机灾难恢复 RTO 待运行期证据；数据库恢复耗时不能视作全机重建 RTO 承诺。单机发布接受短暂中断。

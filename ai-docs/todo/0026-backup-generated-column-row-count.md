@@ -1,7 +1,7 @@
 ---
 id: TODO-0026
 title: "含生成列的账号表备份行数记录为零"
-status: IN_PROGRESS
+status: DONE
 created: 2026-10-04
 updated: 2026-10-04
 ---
@@ -35,3 +35,5 @@ updated: 2026-10-04
 
 - N/A；此问题属于已批准的备份恢复交付范围，不改变业务数据或架构。
 - 2026-10-04：OPEN → IN_PROGRESS。目标测试先执行 RED，6 项备份测试中 1 failure：账号行数 0 != 1；真实恢复也因行数不符失败，生产库未被恢复操作修改。
+
+- 2026-10-04：DONE。含生成列目标测试 GREEN，交付回归 25 tests / OK；修复 SHA `0abc87b` 真实 CI/CD success。EC2 新快照 `20261004T234038Z-305863bf02c1` 上传私有 S3，再异机独立 MySQL 恢复 24 表/22 行/schema 10 全部一致（7.97 秒），每日备份 timer enabled/active。初次错误 manifest 的备份不算恢复通过，新快照取代其成功状态。

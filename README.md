@@ -4,7 +4,9 @@
 
 ## 当前状态
 
-已完成并本地验证工程底座、注册/邮箱验证与登录、密码找回、学员约课、教练排班/课程管理和预约邮件；当前状态以[功能索引](ai-docs/features/README.md)为准。“关于 GEER”与媒体管理见 [0008](ai-docs/implement-plan/0008-about-geer.md)，提供公开主页及教练编辑、草稿预览和发布。选课页的品牌、课程封面与拖动构图见 [0009](ai-docs/implement-plan/0009-course-selection-visuals.md)。生产部署尚未执行。
+已完成并本地验证工程底座、注册/邮箱验证与登录、密码找回、学员约课、教练排班/课程管理和预约邮件；当前状态以[功能索引](ai-docs/features/README.md)为准。“关于 GEER”与媒体管理见 [0008](ai-docs/implement-plan/0008-about-geer.md)，提供公开主页及教练编辑、草稿预览和发布。选课页的品牌、课程封面与拖动构图见 [0009](ai-docs/implement-plan/0009-course-selection-visuals.md)。
+
+2026-10-04 按 [0010 revision 3](ai-docs/implement-plan/0010-production-delivery.md) 已完成生产技术发布：[https://52.60.174.156](https://52.60.174.156)。main 的 CI 成功后自动部署，HTTPS 自动续期，每日数据库备份到私有 S3、保留 7 天，真实异机恢复已通过。用户明确自行处理账号与业务/媒体测试，这些完整流程未宣称生产验收通过；运行证据及后续限制见计划和[运维手册](deploy/PRODUCTION_RUNBOOK.md)。
 
 本地启动和验证命令见 [部署说明](deploy/README.md)、[后端说明](backend/README.md) 和 [前端说明](frontend/README.md)。
 

@@ -1,6 +1,6 @@
 # v2 生产交付运维手册
 
-对应 [0010 revision 3 首发 review](../ai-docs/implement-plan/0010-production-delivery.md)。revision 2 的 P-02 至 P-07 已获批并完成本地交付/隔离验证；本手册的 AWS 配置、正式存储处理、生产初始化及首次发布属于 P-08，用户已批准执行和 commit/push；云资源/主机准备已完成，应用首发尚未执行，详见计划实际证据。用户已明确跳过买域名，本次提议现有 EC2 + 一个 EIP + 可信 IP HTTPS、同容量加密根盘；具体资源、换盘/回退/清理、费用和步骤见计划第 1/6 节。Git commit/push 默认由用户负责，仅明确要求时 Codex 执行。自动发布变量默认不启用。
+对应 [0010 revision 3](../ai-docs/implement-plan/0010-production-delivery.md)。用户已批准真实上线与 commit/push，云资源、独立生产库、可信 IP HTTPS 和首个 CI/CD 发布已完成。用户最后指定初始教练邮箱并明确账号、业务/邮件与媒体测试自行进行；这些场景不作为已通过的技术验收。最终公网状态、发布 SHA/digest、实际备份恢复及后续限制见计划第 8/9 节。
 
 ## 1. 已交付与本地检查
 
@@ -30,21 +30,21 @@ python3 deploy/verify_delivery.py
 
 演练使用 `.local/` 下新临时目录、`geer-delivery-check-<随机值>` 项目、新数据库卷、测试专用密钥/证书及回环端口。数据库和应用网络禁止外网访问，只有 NGINX 加入入口网络；不会发外部邮件或调用 AWS。结束仅清理该隔离项目、卷和独立恢复容器。镜像由本机构建，正式 ECR/OIDC/SSM 仍需 P-08 验收。
 
-## 2. P-08 前须定稿的资源与成本
+## 2. 实际资源与成本
 
 | 项目 | 当前事实 / 需要确认 | 费用与清理 |
 |---|---|---|
 | EC2 | 已有 Canada Central t4g.small / ARM64 / Standard / AL2023；Docker/Compose 已准备 | 已有实例 + 一个公网 IPv4 的参考基础成本约 24.33 CAD/月，来源与口径见 0010；不含下列费用及税 |
-| EBS | 当前 20 GiB gp3 **未加密**，TODO-0024 OPEN；revision 3 提议停机快照、同 AZ 同容量加密新根盘、保留旧盘回退 | 常态约 2.51 CAD/月；旧盘/快照最多保留 48 小时临时约 0.27 CAD，失败保留并报告；实际换盘/清理待 review |
-| 地址 / 域名 | 用户跳过域名；revision 3 提议一个 EIP 替代自动公网 IPv4，用 IP HTTPS | 同时仅一个 IPv4；不买域名、不建 Route 53/ALB/NAT；EIP/证书仍未创建 |
+| EBS | 现用 20 GiB gp3 已加密，根盘 `vol-00a6aa379a31df78d`；旧卷/快照仍在 48 小时回退保留期，TODO-0024 IN_PROGRESS | 常态约 2.51 CAD/月；旧盘/快照最多保留 48 小时临时约 0.27 CAD，失败保留并报告；换盘复核成功；限定旧资源清理最早 2026-10-06 21:08 UTC，已授权但未到时间 |
+| 地址 / 域名 | 用户跳过域名；固定 EIP `52.60.174.156`，可信 IP HTTPS | 同时仅一个 IPv4；不买域名、不建 Route 53/ALB/NAT；EIP/证书已创建，实际续期 dry-run/hook 成功 |
 | 媒体 | staging/frozen 两个独立私有 S3 桶，staging 开启 versioning；CloudFront OAC + viewer key group | 统计媒体大小、版本、播放/请求量和区域价格，不能只算逻辑配额或免费字样 |
 | 运维 | 第三个私有桶，可共用 `releases/` 与 `db-backups/`；不连接 CloudFront | 备份当前对象保留 7 天，非当前版本另保留 1 天，删除可能异步；发布包保留当前/上一版及重建所需版本 |
 | ECR | 两个限定仓库，SHA tag IMMUTABLE，部署使用 digest | 清理超过 7 天的 untagged 镜像；tagged 镜像先核对当前/上一版，不能用最近 N 个规则误删回退点 |
-| SMTP / 日志 | 沿用用户发信服务；容器日志每服务 10 MiB × 3 | SMTP 实际送达及限额待正式验证；新付费监控/日志服务不在默认范围 |
+| SMTP / 日志 | 沿用用户发信服务；容器日志每服务 10 MiB × 3 | 教练验证邮件任务 SENT / attempts 1；实收及限额由用户核验；新付费监控/日志服务不在默认范围 |
 
-AWS 总预算目标仍是 30 CAD/月。revision 3 的明确低用量场景合计约 **27.66 CAD/月未计税**，包含现有 EC2、一个 IPv4、20 GiB gp3、ECR 2 GiB、S3 全部版本 11 GiB 及请求；CloudFront 在账户共享免费额度内。详见计划第 6 节，实际使用量/旧资源/税/SMTP 账单另核对；提醒不是硬费用上限。t4g.small 的应用容量尚未验收。初始内存限额为 backend 768 MiB（heap 384 MiB）、MySQL 640 MiB、NGINX 64 MiB；发布要求至少 4 GiB 磁盘可用，备份要求至少 5 GiB，单次导出硬限制 2 GiB。独立恢复另占 640 MiB，本次在本机受控独立 Docker 主机恢复真实 S3 备份；不把本地 4 GiB Colima 结果当作 EC2 容量证据。
+AWS 总预算目标仍是 30 CAD/月。revision 3 的明确低用量场景合计约 **27.66 CAD/月未计税**，包含现有 EC2、一个 IPv4、20 GiB gp3、ECR 2 GiB、S3 全部版本 11 GiB 及请求；CloudFront 在账户共享免费额度内。详见计划第 6 节，实际使用量/旧资源/税/SMTP 账单另核对；提醒不是硬费用上限。运行余量已测；未执行 10 并发/15 分钟压测，业务负载由用户后续验证。初始内存限额为 backend 768 MiB（heap 384 MiB）、MySQL 640 MiB、NGINX 64 MiB；发布要求至少 4 GiB 磁盘可用，备份要求至少 5 GiB，单次导出硬限制 2 GiB。独立恢复另占 640 MiB，本次在本机受控独立 Docker 主机恢复真实 S3 备份；不把本地 4 GiB Colima 结果当作 EC2 容量证据。
 
-## 3. AWS 模板的使用顺序（待具体操作授权）
+## 3. AWS 模板的使用顺序（现有资源已配置）
 
 复制 `aws/parameters.example.json` 到仓库外，用真实账户、桶、origin、实例和身份参数重新 render。示例账户、桶和 immutable owner/repo ID 都是虚构值。
 
@@ -60,7 +60,7 @@ JSON 文件是 API 输入片段：IAM 用 `--policy-document`，SSM 用 `--conte
 
 参考：[GitHub AWS OIDC](https://docs.github.com/en/actions/how-tos/secure-your-work/security-harden-deployments/oidc-in-aws)、[workflow_run](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run)、[SSM 参数环境插值](https://docs.aws.amazon.com/systems-manager/latest/userguide/documents-command-ssm-plugin-reference.html)、[CloudFront OAC](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/private-content-restricting-access-to-s3.html)、[S3 生命周期](https://docs.aws.amazon.com/AmazonS3/latest/userguide/lifecycle-configuration-examples.html)。
 
-## 4. 实例文件与密钥（待配置）
+## 4. 实例文件与密钥（已配置）
 
 安装 Python 3、AWS CLI v2、OpenSSL，核验现有 Docker/Compose；避免重复安装已准备环境。入口程序仅 root 可写，工作目录与配置仅 root 可管理。
 
@@ -81,13 +81,13 @@ NGINX 信任入口自身观察到的客户端 IP；覆盖 X-Real-IP/X-Forwarded-
 
 ## 5. IP HTTPS 与续期（本次跳过域名）
 
-本次首发采用一个实际分配的 EIP；`APP_PUBLIC_URL`、host.json public_url、staging CORS origin 都为 `https://<实际EIP>`。当前自动公网 IP 不是已保留的 EIP，不能提前把它写为最终地址。生产不使用测试证书。
+本次首发采用一个实际分配的 EIP；`APP_PUBLIC_URL`、host.json public_url、staging CORS origin 都为 `https://<实际EIP>`。实际固定地址为 `52.60.174.156`，公开根地址为 `https://52.60.174.156`。生产不使用测试证书。
 
 [Let's Encrypt 官方 IP 证书指南](https://letsencrypt.org/2026/03/11/shorter-certs-certbot)确认 Certbot ≥5.4 的 `--ip-address <实际EIP>`、`--preferred-profile shortlived` 与 webroot 支持。沿用 Certbot 5.8.0；初次先 staging standalone HTTP-01，再正式申请，证书约六日有效。NGINX 启动后使用 `certbot reconfigure` 转为 webroot 和既有 deploy hook，核对保存的 renewal 配置与 lineage `/etc/letsencrypt/live/<实际EIP>`；daily twice timer 必须实际启用并 dry-run/reload 通过。不要用 `-d <IP>` 冒充域名或使用暂不支持 IP 的 nginx installer。
 
 AL2023 采用 Python 3.11 venv 固定安装 Certbot 5.8.0（2026-10-04 已核对 PyPI，要求 Python ≥3.10）；在 P-08 再核对系统包与版本后安装。路径 `/opt/snowboard-v2/certbot`，不升级业务依赖。首次 standalone 要求 80 空闲；随后把证书复制到配置的 TLS 目录并填写 `certificate_lineage`。webroot authenticator 指向 `/var/lib/snowboard-v2/acme`，由 NGINX 80 的 `/.well-known/acme-challenge/` 提供文件，其余 HTTP 请求跳转 HTTPS。
 
-安装 `systemd/snowboard-v2-certbot.service` 和 `.timer`，首次配置完通过 Certbot staging/dry-run 验证 webroot，启用 timer。每天 00/12 UTC 检查，deploy hook 验证新 key pair、有效期、重载 NGINX；不会重启数据库。记录首次续期/dry-run 结果和证书 expiry，`systemctl status` / journal 可查看失败。Certbot 包及 ACME 正式网络验证尚未执行。
+安装 `systemd/snowboard-v2-certbot.service` 和 `.timer`，首次配置完通过 Certbot staging/dry-run 验证 webroot，启用 timer。每天 00/12 UTC 检查，deploy hook 验证新 key pair、有效期、重载 NGINX；不会重启数据库。记录首次续期/dry-run 结果和证书 expiry，`systemctl status` / journal 可查看失败。Certbot 5.8.0、staging/正式 HTTP-01、webroot reconfigure、renew dry-run 和 deploy hook 均已实际通过，timer 已启用。首次证书到期 2026-10-11 13:01:16 UTC；后续以实际 lineage 为准。
 
 ## 6. 首发及自动部署启用
 
@@ -97,7 +97,7 @@ AL2023 采用 Python 3.11 venv 固定安装 Certbot 5.8.0（2026-10-04 已核对
 
 用户 commit/push 后，CI 全部成功触发 release；从该 run 的 head_sha 构建/复用镜像，检查 ARM64 ffprobe，再上传同 SHA 的配置包，SSM 调用固定入口并等待真实完成。云端结果不因 `send-command` 返回而提前算成功。服务器也拒绝已被新 main 替代的 SHA。GitHub concurrency + 文件锁串行；workflow 取消不代表远程命令已停止，超时后先查 CommandId/主机状态再重试。
 
-首次 P-08 验收涵盖注册/验证/登录/找回、CSRF/越权、申请/确认/取消、SMTP 实收和正确 HTTPS 链接、匿名 S3/无签名 CDN 拒绝、媒体上传/发布、同一约 65 秒视频播至 ended 与 Range、容器重启/session 恢复。执行事先定稿的并发和媒体负载，检查 CPU credits、内存/OOM、磁盘及备份期间余量；不满足容量/预算时交用户取舍。业务验证通过后按公网授权开放入口，再更新 RELEASED。
+用户最新交付条件为先完成公网发布，账号与业务自行测试。Codex 核对真实 CI/OIDC/ECR/SSM、HTTPS/CSRF/匿名访问、安全 Cookie、续期、运行余量和异机备份恢复；注册/验证/找回、预约/通知实收、媒体上传/完整视频/Range、重启会话和并发负载保留为用户未验证项，不写成通过。初始教练收到验证邮件后先验证邮箱，再通过找回密码设置自己的密码；无需提供 IDEA 的 verification key。
 
 ## 7. 回退、每日备份与恢复
 
@@ -117,4 +117,4 @@ AL2023 采用 Python 3.11 venv 固定安装 Certbot 5.8.0（2026-10-04 已核对
 
 取消上线/替换资源前列清单及数据保留；EC2 停机仍有 EBS/存储费用，地址/卷/快照/S3/ECR/CloudFront/DNS 都需核对并按授权处理，不自动删除。
 
-P-08 应记录真实资源 ID、精确费用/使用量、IAM 正反例、OIDC subject、首次 SHA/digest/CommandId、TLS/邮件/完整视频、备份异机恢复及容量结果。当前本地交付通过不满足整体 VERIFIED/RELEASED；TODO-0024 与本地视频 TODO-0022 仍待各自完成判定。
+P-08 应记录真实资源 ID、精确费用/使用量、IAM 正反例、OIDC subject、首次 SHA/digest/CommandId、TLS/邮件/完整视频、备份异机恢复及容量结果。按用户最新条件完成技术发布验收后进入 RELEASED；账号、业务/邮件、媒体与并发验收仍由用户自行完成。TODO-0024 的旧资源清理、本地视频 TODO-0022 与实际账单/长期容量仍需后续证据。

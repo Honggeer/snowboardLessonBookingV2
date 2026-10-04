@@ -1,6 +1,6 @@
 # 本地环境
 
-AWS 服务器的规格、控制台创建、Session Manager 登录及既有 EC2 的实际准备结果见 [EC2 准备指南](EC2_SETUP.md)。生产配置、main 自动发布、每日备份及恢复程序已按 [0010 revision 2](../ai-docs/implement-plan/0010-production-delivery.md) P-02 至 P-07 完成本地实现与隔离验证；使用方式和待执行的首次上线步骤见 [生产运维手册](PRODUCTION_RUNBOOK.md)。服务器应用尚未部署，真实资源/费用、域名、存储处理及首次发布在 P-08 定稿和验收。下文仍是本地环境。
+AWS 服务器的规格、控制台创建、Session Manager 登录及既有 EC2 的实际准备结果见 [EC2 准备指南](EC2_SETUP.md)。2026-10-04 已按 [0010 revision 3](../ai-docs/implement-plan/0010-production-delivery.md) 完成生产技术发布：[https://52.60.174.156](https://52.60.174.156)；main 自动发布、HTTPS 续期、每日私有 S3 备份已启用，真实异机独立恢复通过。账号与完整业务/媒体测试按用户要求自行进行；使用方式、实际证据、旧根盘/快照保留和费用见 [生产运维手册](PRODUCTION_RUNBOOK.md) 及配对计划。下文为独立本地环境。
 
 `compose.yaml` 在本机启动 MySQL 8.4、Java 后端、NGINX 前端、S3Mock 本地对象存储和 [Mailpit 邮件沙箱](https://mailpit.axllent.org/docs/install/docker/)。未设置 `MAIL_*` 参数时默认发送到 Mailpit；在被 Git 忽略的 `deploy/.env` 配置真实 SMTP 后，注册验证、密码找回和预约通知共用该发信账号。本配置未部署到 AWS。
 

@@ -26,3 +26,5 @@
 | TODO-0020 | [教练课程列表先展示发布中的课程](0020-coach-course-display-order.md) | DONE | [0006 revision 4](../implement-plan/0006-post-login-booking-home.md) | 2026-10-03 |
 | TODO-0021 | [教练列表移除已下架课程并保留数据库记录](0021-remove-archived-courses.md) | DONE | [0006 revision 4](../implement-plan/0006-post-login-booking-home.md) | 2026-10-03 |
 | TODO-0023 | [CI 的 Compose 配置检查缺少验证密钥](0023-ci-compose-verification-key.md) | DONE | [0010 revision 2](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
+| TODO-0025 | [当前 Git remote 的 SSH 身份认证失败](0025-github-ssh-auth-unavailable.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
+| TODO-0026 | [含生成列的账号表备份行数记录为零](0026-backup-generated-column-row-count.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |

@@ -1,5 +1,7 @@
 # EC2 服务器创建与登录指南
 
+2026-10-04 当前结果：[https://52.60.174.156](https://52.60.174.156) 已按 [0010 revision 3](../ai-docs/implement-plan/0010-production-delivery.md) 完成公网技术发布。现有根盘已加密，EIP/ECR/S3/CloudFront/IAM/SSM、独立生产库、自动发布/续期/每日备份已配置并验证；账号/业务/媒体与并发由用户自行测试。第 10 节保留的是最初服务器准备阶段的历史记录，实际后续状态见配对计划与[运维手册](PRODUCTION_RUNBOOK.md)。
+
 本阶段准备服务器管理通道及 Docker/Compose 运行环境。依据 2026-10-04 用户要求：“域名先放一下，我想先搞一个AWS ec2服务器……使用量应该没那么大……你教我一步一步怎么搞”，以及随后要求 Codex 远程操作并提供实例 ID。域名、网站部署、正式数据初始化、媒体资源和 CI/CD 留在[计划 0010](../ai-docs/implement-plan/0010-production-delivery.md)后续阶段。
 
 第 1–9 节保留手动操作方法；第 10 节记录 Codex 对用户已创建实例的实际远程检查、安装和验证结果。服务器准备通过不代表应用容量或生产上线已验证。
@@ -181,7 +183,7 @@ sudo docker ps
 
 SSM 检查命令 `33125046-dc19-4f7c-a633-7b49a7bb9876`、安装命令 `ac22b0f0-3432-4f1e-90d0-8e91305ce051`、Compose 验证命令 `ed0bb276-c6c4-4d19-9d33-d59eaf9692d7` 均为 Success / ResponseCode 0。可通过 `aws ssm get-command-invocation --command-id <上述 ID> --instance-id i-0c7978984740cbd58 --profile snowboard-v2 --region ca-central-1` 查看保留期内的执行记录。
 
-当前未创建 ECR/S3/CloudFront、未部署项目、未初始化正式数据库或开放网站入口。现有未加密卷不能直接原地改成加密卷，涉及新卷/快照的处理需先形成具体存储方案和费用再按授权执行；本次未改动存储。[AWS EBS 加密说明](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-encryption.html)
+最初服务器准备阶段尚未创建 ECR/S3/CloudFront、部署项目、初始化正式数据库或开放网站入口；后续 revision 3 已执行，见本页开头及配对计划。现有未加密卷不能直接原地改成加密卷，涉及新卷/快照的处理需先形成具体存储方案和费用再按授权执行；本次未改动存储。[AWS EBS 加密说明](https://docs.aws.amazon.com/ebs/latest/userguide/ebs-encryption.html)
 
 2026-10-04 找回会话后再次只读复核：实例仍 running，SSM Online，安全组入站为空，根盘仍是 20 GiB gp3 / Encrypted false；实例角色仅有 AmazonSSMManagedInstanceCore，无 inline policy，尚未配置 ECR/S3 业务权限。SSM 检查命令 `887d94a7-0e17-4dab-8fac-2c34fd2e1a39` 为 Success / ResponseCode 0，确认 Docker Engine 25.0.16、Compose v5.6.0、Docker active/enabled、无运行容器、可用内存 1403 MiB、根盘可用约 18G。没有重装、重启服务或修改资源，也没有进行业务容量验收。
 

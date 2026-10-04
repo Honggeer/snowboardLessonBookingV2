@@ -1,7 +1,7 @@
 ---
 id: "0010"
 title: "首次生产上线与 CI/CD"
-status: IMPLEMENTING
+status: RELEASED
 plan: "../implement-plan/0010-production-delivery.md"
 created: 2026-10-04
 updated: 2026-10-04
@@ -13,13 +13,14 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 
 ## 1. 目标、触发与范围
 
-- 用户请求：“我想上线，然后做CICD，需要我做什么呢？我准备开AWS ec2了”。这是调查及计划编写依据，尚未批准实现或创建付费资源。
-- 配对[实施计划](../implement-plan/0010-production-delivery.md) revision 3，当前 IMPLEMENTING；revision 2 的 P-02 至 P-07 已按批准完成本地交付实现和隔离验证，证据保留；revision 3 的 P-08 实际资源/生产发布已获用户批准，并明确允许 commit/push，正在执行。
-- 用户已确认 AWS 总预算仍希望约 30 CAD/月、区域 `ca-central-1`、无现有域名、已能正常对外发邮件；v2 是全新网站，不导入 v1 用户或预约数据。区域为 Canada (Central)，不能把业务时区 `America/Toronto` 当成服务器区域名称。
+- 用户请求：“我想上线，然后做CICD，需要我做什么呢？我准备开AWS ec2了”。首次需求调查后，用户已明确批准 revision 2 本地实现和 revision 3 生产上线及 commit/push；批准原话见配对计划。
+- 配对[实施计划](../implement-plan/0010-production-delivery.md) revision 3，当前 RELEASED；revision 2 的 P-02 至 P-07 已按批准完成本地交付实现和隔离验证，证据保留；revision 3 的 P-08 实际资源/生产发布已获用户批准，并明确允许 commit/push；首个远端受测版本及备份修复已部署，公网开放并验证，最终交付证据见下文。
+- 用户已确认 AWS 总预算目标约 30 CAD/月、区域 `ca-central-1`、无现有域名、已有对外发信配置；v2 是全新网站，不导入 v1 用户或预约数据。区域为 Canada (Central)，不能把业务时区 `America/Toronto` 当成服务器区域名称。
 - 用户随后要求先准备 EC2、域名后置，并说明单教练自用接学员、访问量较低；先交付[创建与登录指南](../../deploy/EC2_SETUP.md)。建议 t4g.small/ARM64、Amazon Linux 2023 与 20 GiB gp3；不构成整体计划批准。
 - 用户回传服务器基础检查后，要求 Codex 远程操作、提供目标实例并完成 AWS 浏览器认证。已通过 SSM 独立核对 t4g.small/ARM64、AL2023.12、Standard、入站为空、IMDSv2，安装并验证 Docker Engine 25.0.16 和 Compose v5.6.0。服务器准备有实际证据，整体生产配置/CI/CD 实现仍未获批准；应用容量尚未验证。
 - 恢复会话后用户要求“接着做”，并明确选择 main 测试通过后自动部署、数据库每日备份保留 7 天（RPO 目标 24 小时）。已复核 EC2、运行环境和最新远端 CI。域名仍后置；本地交付文件可用隔离测试参数实现，真实资源/存储/域名/首次发布在 P-08 定稿。
 - 2026-10-04 用户再次要求上线，并明确“还没买域名，先跳过”。沿用已有 EC2 与约 30 CAD/月目标；revision 3 提议一个 EIP + 可信 IP HTTPS、正式数据前加密根盘、具体三桶/ECR/CloudFront/IAM/SSM 和首发验收；本次不买域名。完整低用量估算约 27.66 CAD/月未计税，见计划费用场景。
+- 用户最后明确“初始教练账号用honggeer1208@gmail.com,你上线了就可以了，账号还有什么的我可以自己搞，我自己测试”：账号、完整业务/邮件/媒体与并发验收交给用户上线后自测。本次技术交付保留 CI/CD、HTTPS/续期、运行状态及异机备份恢复门禁；未测试场景不记为通过。
 - 目标：用户以 HTTPS 根地址（本次固定 IP，后续可改域名）使用现有注册、约课、邮件及媒体功能；通过 GitHub Actions 构建版本化镜像并部署到单台 EC2，可检查发布结果并恢复兼容的上一版本。
 - 包含生产配置、HTTPS、正式 S3/CloudFront 接入、CI 修复、镜像发布、部署流程、数据库备份与恢复演练、首次上线验收。
 - 不包含 v1 数据迁移、在线支付、多机高可用、视频转码或业务功能重做。域名费用及资源创建均需用户决定。
@@ -28,27 +29,27 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 
 | ID | 场景/输入 | 预期行为 | 验证方式 | 证据/结果 |
 |---|---|---|---|---|
-| AC-01 | 干净检出执行 CI | 后端、前端、文档和 Compose 校验通过，不依赖未提交的本地密钥 | GitHub Actions 与同等本地命令 | 本地干净 Compose/24 项交付测试、后端 130、前端 51 通过；TODO-0023 DONE。尚未 commit/push，远端仍是旧提交的 Compose failure，更新后需再核对 |
-| AC-02 | 生产配置与启动 | 拉取明确 SHA/digest 镜像；不启用 local、Mailpit、S3Mock；只有入口发布 HTTP/HTTPS 端口 | 配置检查、启动、端口检查 | 配置/ARM64 构建及真实隔离 HTTPS/MySQL 启动通过；ECR 拉取及目标 EC2 启动仍待 P-08 |
-| AC-03 | HTTPS 身份与约课 | Cookie 为 Secure/HttpOnly/SameSite；注册、验证、登录、找回、申请、确认和通知链接正常；越权仍被拒绝 | 使用受控账号的实际浏览器验收及相关回归 | 隔离 HTTPS Cookie/CSRF/匿名 401 与后端/前端回归通过；正式 IP HTTPS 全流程/发信/浏览器验收待 P-08 |
-| AC-04 | 正式媒体 | 私有 S3 禁止匿名读；CloudFront OAC 与 viewer 签名生效；教练直传、预览、发布、封面和完整视频播放正常 | 真实 AWS 正反例与 Range/播放验证 | 未验证 |
-| AC-05 | 自动发布成功/失败/并发 | 启用后可信 main 的 CI 成功 push 自动发布同一受测 SHA/digest；PR/fork/失败/过时版本或未启用不发布；串行；故障可恢复上一兼容版本与配置；保留数据库卷 | 工作流门禁用例、隔离部署演练及实际发布后检查 | 门禁/锁/重复调用/部分迁移拒绝回退通过；实际失败容器恢复上一版配置且数据保留。OIDC/ECR/SSM 工作流真实运行待 P-08，默认禁用 |
-| AC-06 | 每日备份与恢复 | 每日产生一致性异机备份，保留 7 天，RPO 目标 24 小时；独立数据库实际恢复及核对；失败/超期不算成功 | 实际恢复演练、频率/保留和损坏备份拒绝检查 | 程序/timer/7 天模板完成；真实独立 MySQL 恢复 24 表/15 行/schema 10、约 8 秒；损坏/超限/错误目标被拒绝。实际 S3/每日运行与 RPO/RTO 待 P-08 |
-| AC-07 | 成本与容量 | 汇总实例、IPv4、磁盘、媒体、备份、镜像和其他费用；在目标容量下验证内存/CPU/磁盘余量；预算不可行时先由用户决定 | 官方报价、容量测量、账单检查 | 未验证 |
+| AC-01 | 干净检出执行 CI | 后端、前端、文档和 Compose 校验通过，不依赖未提交的本地密钥 | GitHub Actions 与同等本地命令 | 本地交付回归当前 25 项、后端 130、前端 51 通过；SHA `62fddc9` 的真实 GitHub CI 全部 success。备份修复 SHA `0abc87b` 的 CI 三个 job 与自动发布也全部 success |
+| AC-02 | 生产配置与启动 | 拉取明确 SHA/digest 镜像；不启用 local、Mailpit、S3Mock；只有入口发布 HTTP/HTTPS 端口 | 配置检查、启动、端口检查 | 真实 ARM64 ECR 镜像拉取/启动 success；目标 EC2 三容器健康，V1–V10 / schema 10；仅 NGINX 发布 80/443，无 local/Mailpit/S3Mock |
+| AC-03 | HTTPS 身份与约课 | Cookie 为 Secure/HttpOnly/SameSite；注册、验证、登录、找回、申请、确认和通知链接正常；越权仍被拒绝 | 使用受控账号的实际浏览器验收及相关回归 | 正式可信 IP HTTPS、Secure/HttpOnly/SameSite=Lax Cookie、CSRF 200 / 匿名 me 401 已验证；新教练验证邮件 SMTP 接受。完整账号、约课、通知实收及重启会话按用户明确要求自行测试，未宣称通过 |
+| AC-04 | 正式媒体 | 私有 S3 禁止匿名读；CloudFront OAC 与 viewer 签名生效；教练直传、预览、发布、封面和完整视频播放正常 | 真实 AWS 正反例与 Range/播放验证 | 正式私有桶、OAC、可信 key group/签名配置及 CloudFront Deployed 已核对；用户自行上传/发布及验证完整播放/Range，未导入本地媒体，未宣称业务媒体验收通过 |
+| AC-05 | 自动发布成功/失败/并发 | 启用后可信 main 的 CI 成功 push 自动发布同一受测 SHA/digest；PR/fork/失败/过时版本或未启用不发布；串行；故障可恢复上一兼容版本与配置；保留数据库卷 | 工作流门禁用例、隔离部署演练及实际发布后检查 | 真实可信 main CI → OIDC/ECR/SSM 自动发布 success；禁用时实际 skip，启用变量现为 true。门禁/锁/部分迁移拒绝回退和保留数据的失败恢复隔离验证通过 |
+| AC-06 | 每日备份与恢复 | 每日产生一致性异机备份，保留 7 天，RPO 目标 24 小时；独立数据库实际恢复及核对；失败/超期不算成功 | 实际恢复演练、频率/保留和损坏备份拒绝检查 | 真实 EC2 → 私有 S3 备份上传成功；首次异机恢复发现含生成列的账号行数漏计，修复 RED/GREEN 已完成，新实际备份异机独立 MySQL 恢复 24 表/22 行/schema 10 一致，7.97 秒；每日 timer enabled/active；不把初次失败记为通过 |
+| AC-07 | 成本与容量 | 汇总实例、IPv4、磁盘、媒体、备份、镜像和其他费用；在目标容量下验证内存/CPU/磁盘余量；预算不可行时先由用户决定 | 官方报价、容量测量、账单检查 | 官方低用量场景约 27.66 CAD/月未计税；EC2 公网后运行 available 607 MiB、根盘 17 GiB 空闲，三容器 healthy / OOM false；未执行原 10 并发/15 分钟压测，实际用量和账单待观察 |
 
 ## 3. 业务规则与未决事项
 
 - 现有业务规则、角色权限、CAD 金额和多伦多排课时区保持原定义。
-- 网站使用独立新数据库；本地测试账号、邮件任务和媒体记录不自动复制到生产。教练在正式环境私下初始化，按既有编辑流程重新发布真实资料和媒体。
+- 网站使用独立新数据库；本地测试账号、邮件任务和媒体记录不自动复制到生产。教练初始邮箱使用用户最后指定的地址；用户自行验证邮箱、找回密码并按既有编辑流程发布真实资料和媒体。
 - 生产数据写入、Flyway 迁移及首次发布以明确操作授权为前提。
 
 | 未决问题 | 建议/选项 | 影响范围 | 是否阻塞 | 用户决定/已授权依据 |
 |---|---|---|---|---|
-| 实例、存储及完整成本 | 沿用 t4g.small/ARM64；revision 3 提议同容量 20 GiB gp3 加密根盘，完整低用量场景约 27.66 CAD/月未计税 | 镜像架构、数据保护、容量、月账单 | 具体换盘/首发待 review；实际容量和账单待验收 | 实例已运行；根盘仍未加密，见 [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md)；本次只有方案/报价 |
-| 首发 HTTPS 地址 | 用户明确跳过买域名；提议单个固定 EIP + 可信 IP 证书及自动续期 | TLS、邮件链接、S3 CORS 使用同一 IP HTTPS origin | 无需购买域名；实际 EIP/证书验收仍待执行 | revision 3 具体操作待 review |
-| CD 触发方式 | 已确认 main 测试通过后自动更新 EC2；首次配置完成后启用仓库发布变量 | 自动发布触发/来源/受测版本与初次启用 | 本地实现完成；真实启用在 P-08 | 用户选择“自动发布：main 分支测试通过后，自动更新 EC2”，随后批准 revision 2 本地实现 |
-| 数据恢复目标 | 每日备份、保留 7 日，RPO 目标 24 小时；RTO 4 小时仍是待评估提案 | 数据损失容忍、恢复与费用 | 频率/保留可实现；真实演练与 RTO 在 P-08 定稿 | 用户选择“每日备份、保留 7 天：最多可能丢失 24 小时数据” |
-| 预算口径及使用量 | 确认是否含税及域名；列出预期学员、媒体大小/播放量 | 总预算和资源清理策略 | 阻塞完整预算结论 | 30 CAD 已指 AWS 总计，税及域名口径未确认 |
+| 实例、存储及完整成本 | 既有 t4g.small/ARM64，20 GiB gp3 新根盘已加密；低用量场景约 27.66 CAD/月未计税 | 数据保护、容量、月账单 | 实际账单/长期容量待观察，不阻塞本次用户指定的技术发布 | revision 3 已批准并执行；旧卷/快照 48 小时后清理见 [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md) |
+| 首发 HTTPS 地址 | 固定 EIP `52.60.174.156` + 可信 IP 证书及自动续期 | TLS、邮件、S3 CORS 同一 origin | 无域名前置要求 | 用户明确跳过域名；正式证书、webroot/dry-run/hook 已通过 |
+| CD 触发方式 | main 的 CI 成功后自动更新既有 EC2 | 可信受测 SHA、发布门禁 | 已启用并实际首发成功 | 用户选择自动发布；revision 2/3 已批准，无逐次人工审批 |
+| 数据恢复目标 | 每日备份、保留 7 日，RPO 目标 24 小时；RTO 4 小时为评估目标 | 数据损失容忍、恢复与费用 | 异机恢复/每日 timer 以最终发布证据为准；完整主机灾难恢复未演练 | 用户选择每日/7 日/最多 24 小时数据；数据库恢复耗时不等于整机 RTO 承诺 |
+| 预算口径及使用量 | 按明确低用量场景计算；实际税、媒体播放/版本量及 SMTP 账单持续观察 | 月费用及清理 | 不声称预算绝不超出 | 用户批准 revision 3 具体费用/资源；本次不购买域名 |
 
 ## 4. 模块、端口与依赖
 
@@ -78,21 +79,21 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 - 沿用现有 MySQL 持久邮件/预约/媒体任务，失败不能当成成功；不导入本地测试任务。
 - 正式媒体需要独立 staging/frozen 私有桶，staging versioning、CloudFront OAC、可信 key group、签名私钥，以及精确 IAM/CORS。
 - IAM Role 提供实例 S3/ECR/SSM 权限；CI 用 OIDC 临时权限。签名私钥与 SMTP/数据库密钥另行安全注入，不放 Git 或镜像。
-- SMTP 已由用户确认可以发信；正式网络出站、发信限额、送达和最终 HTTPS IP 链接仍需上线验收。
+- 生产验证邮件已由 SMTP 接受，账号操作及实收由用户自行核验；health UP 不作为邮件送达证据。
 - 有界 worker、日志轮转、存储保留与镜像清理均需纳入容量/费用评估；媒体实际版本存储量不等于应用逻辑配额。
 - CI/CD 通过 GitHub OIDC 与受控 SSM 发布入口运行；云端 job 的 `PRODUCTION_DELIVERY_ENABLED` 默认不启用。首次云端配置与发布授权覆盖后启用，之后按已确认规则自动部署，无逐次手动发布门槛。具体可信事件/SHA 校验、ARM64 构建、主机锁和配置回退约束见计划 revision 2。
-- 当前 EC2 role 仅有 AmazonSSMManagedInstanceCore，无 inline policy；业务所需 ECR/S3 权限尚未配置。本次只准备对应 IAM/资源模板。
+- 现有 EC2 role 已增加限定 ECR/S3 权限；CI 独立 OIDC role 与专用 SSM 入口已配置，实际受测发布成功。
 
 ## 8. 实施计划关联与实际变更
 
 - [x] 完成只读调查并创建配对草稿；阻塞决策见第 3 节。
 - [x] 确认自动发布与每日 7 天备份目标，形成 revision 2 本地实施范围。
 - [x] 用户批准 revision 2 的 P-02 至 P-07；本地交付已完成。
-- [x] 按用户要求跳过域名，形成 revision 3 的具体 P-08 资源/费用/存储/首发 review；尚未批准该修订。
+- [x] 按用户要求跳过域名，形成并获得 revision 3 的具体 P-08 资源/费用/存储/首发批准。
 - [x] 批准后先执行目标测试 RED，再实现至 GREEN 及适用回归。
 - [x] 完成生产配置、CI/CD、备份恢复的本地交付与隔离验证。
-- [ ] 目标 EC2 容量、真实权限/资源、完整业务与异机恢复验收。
-- [ ] 获授权完成资源配置与首次发布验收，再同步状态。
+- [x] 真实权限/资源、运行余量与异机恢复技术验收；完整业务/媒体/并发按用户最后要求自行测试，不记为已通过。
+- [x] 按 revision 3 授权及最新自测条件完成首次公网技术发布验收，同步 RELEASED。
 
 | 日期 | 实际变更/文件 | 理由及与计划的差异 |
 |---|---|---|
@@ -129,10 +130,13 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 - t4g.small 加一个 IPv4 约 24.33 CAD/月，尚未包含 EBS、媒体/请求、备份、镜像、DNS、税；30 CAD 总预算的长期可行性尚未验证。不能把优惠期、免费额度或 AWS Budgets 提醒当成永久费用上限。
 - 计划提议实例只拉镜像，NGINX 终止 TLS，证书自动续期，数据库不公开；具体版本、配置和权限须在 review 时定稿。
 - 备份异机存储、独立恢复演练与 schema 兼容的版本回退是验收内容。
-- 用户手动创建 EC2；Codex 已按其独立要求完成远程 Docker/Compose 准备，本次获批完成本地交付实现和验证。未创建新 AWS 资源或修改已有 EC2；根盘加密现状见 TODO-0024。整体应用生产部署、其他云资源和生产数据初始化尚待 P-08 具体方案/费用授权，未生产发布。
+- 用户创建现有 EC2；Codex 按 revision 3 明确授权完成 EIP、加密换盘、限定云资源、独立空库迁移、教练初始化与首次自动部署。旧卷/快照保留期及费用见 TODO-0024；最终公网、备份和验证状态见配对计划。
 
 ## 11. 交付状态与后续
 
-- revision 2 IMPLEMENTED 证据保留：P-02 至 P-07 已获批并完成本地交付/隔离验证；当前 revision 3 / IMPLEMENTING：EIP、加密根盘、限定云资源、保护配置及正式 IP 证书已准备；首发和真实验收待 GitHub 认证。整体 VERIFIED/RELEASED 的真实容量、恢复和业务验收仍待 P-08。
-- [TODO-0022](../todo/0022-local-highlight-video-stalls.md) 保持 OPEN；正式 AWS 必须验证同一完整视频，但真实 AWS 播放通过不自动证明本地 S3Mock 缺陷已修复。
-- 交付 [生产运维手册](../../deploy/PRODUCTION_RUNBOOK.md)；本次更新具体首发 review。用户明确允许 commit/push 后核对新远端 CI，按批准范围配置现有 EC2/云资源并首次发布。Git SSH 身份当前失败，见 [TODO-0025](../todo/0025-github-ssh-auth-unavailable.md)；整体未上线。用户已明确允许 Codex commit/push；实际主机/资源证据见计划第 8 节。
+- revision 2 IMPLEMENTED 证据保留，revision 3 技术交付已 VERIFIED / RELEASED，地址 https://52.60.174.156，2026-10-04 多伦多 19:41 公网开放；实际版本、每日备份/恢复、续期及限制见计划第 8/9 节。
+- 用户指定初始教练邮箱并明确自行处理账号、业务/邮件及真实媒体测试；这些场景未验收通过，不以 health UP 或本地回归数量代替。
+- [TODO-0022](../todo/0022-local-highlight-video-stalls.md) 保持 OPEN；本地 S3Mock 播放缺陷和正式 CloudFront 播放结果分别记录。
+- 新根盘已加密；旧根盘/快照保留 48 小时，后续限定清理见 [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md)。GitHub HTTPS 认证、真实 push/权限/流水线成功，[TODO-0025](../todo/0025-github-ssh-auth-unavailable.md) DONE。首次恢复发现的行数问题已 RED/GREEN 修复并通过新真实备份异机恢复，[TODO-0026](../todo/0026-backup-generated-column-row-count.md)。
+
+- 公网发布证据：HTTP 308 → HTTPS、首页/静态资源/health/CSRF 200、匿名 me 401、安全 Cookie；CI 37244118260 / production 37244412174 success。真实备份 `20261004T234038Z-305863bf02c1` 独立恢复 24 表/22 行/schema 10 / 7.97 秒；backup/certbot timer enabled/active。完整账号业务、媒体与并发未测，用户自行验收。
