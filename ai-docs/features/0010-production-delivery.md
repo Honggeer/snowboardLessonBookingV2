@@ -146,3 +146,5 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 按用户直接要求整理 `deploy/`，且“不用生成实现计划”。现有文件按 `ci/`、`runtime/`、`aws/`、`systemd/`、`tests/`、`docs/` 分组，入口说明、workflow 和当前操作命令已同步。发布包内路径与已安装服务器入口保持兼容。
 
 目标打包兼容测试先 2 failures RED，整理后完整交付回归 27 tests GREEN；实际 CLI 对比压缩包逐字节一致，真实隔离发布/故障回退/证书重载/独立恢复及文档/workflow 检查通过。实际命令和限制见 [目录维护记录](../implement-plan/0010-production-delivery.md#2026-10-04-deploy-目录整理维护记录)。本次维护已实现并本地验证，改动尚未 commit/push；首次上线的 RELEASED 状态保留。
+
+2026-10-04 用户自行提交推送目录整理（`54d3a27`）后询问服务器配置的安全性。实际 SSM 复核确认生产 env 为 root:root / 0600、密码另存受限文件；发现并恢复 MySQL root 密码文件的 root:root 所有者约定，目标元数据断言 RED/GREEN，生产 HTTPS health UP，无密码读取/输出或容器重启。[TODO-0027](../todo/0027-production-root-secret-owner.md) DONE，完整执行证据见配对记录末尾。

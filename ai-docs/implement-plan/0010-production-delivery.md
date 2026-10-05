@@ -334,3 +334,12 @@ env JAVA_HOME=/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home D
 - `python3 deploy/tests/verify_delivery.py`：真实隔离 Docker 发布、HTTPS、Cookie/CSRF/匿名 401、证书重载、故障容器回退并保留数据库记录、重复发布、备份及独立恢复全部 PASS；恢复 24 表 / 15 行 / schema 10，8.35 秒。仅使用原有本地测试镜像、新临时项目/卷和虚构密钥；演练项目及独立恢复容器已清理。
 - `python3 ai-docs/check_docs.py`：11 paired records / 26 tickets、内部链接及状态/索引检查通过；actionlint 校验两个 workflow、Python AST、shell 语法及 `git diff --check` 通过。
 - 状态：本次目录整理 IMPLEMENTED / 本地 VERIFIED；尚未 commit/push 或触发新生产发布。原 revision 3 的 RELEASED 记录保留，目录整理的本地证据不作为新版本生产验收。
+
+### 2026-10-04 生产环境参数与密钥权限复核
+
+用户已自行提交推送目录整理，仓库 HEAD 为 `54d3a276861bd1b7f3fe6176212e414723990fb6`。随后用户明确关注服务器配置的传输和安全性。本次只复核配置链路、实际权限，并恢复既有 revision 3 的文件权限约定；没有修改部署程序、密码或生产数据，不创建新计划或资源。
+
+- 首发配置传输的实际记录仍见第 8 节：私有 S3 临时加密对象、校验和、受 IAM 约束的下载及安装后临时文件/对象 VersionId 清理；后续 CI 不携带本地 `.env` 或生产秘密。
+- 只读 SSM `c3bf2d4c-d2a4-45c1-b46f-00eb72970025` Success / 0：实际 env_file 是 `/etc/snowboard-v2/production.env`，root:root / 0600；host.json 同样。生产 env 不含已核对的数据库密码、verification key、SMTP 密码或长期 AWS key 字段。应用秘密和 CloudFront 私钥为 root:101 / 0640；MySQL root 密码文件发现 UID/GID 501/20、0600，与 root:root 约定不符，记录 [TODO-0027](../todo/0027-production-root-secret-owner.md)。
+- 修正 SSM `c6c256eb-6110-4d91-bb42-db9bf6d6b708` Success / 0：目标元数据断言先 RED，再将该文件所有者/组恢复 root:root 后 GREEN，权限 0600；文件大小及内容修改时间不变，没有读取或输出密码，没有请求容器重启。实际 HTTPS health UP，TODO-0027 DONE。
+- 本次权限维护已在生产执行并验证；用户随后明确要求“提交推送”，授权 Codex 提交并推送本次复核、修正和 ticket 记录。目录整理 SHA `54d3a27` 的 [CI 37247549233](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37247549233) 与 [Production delivery 37247841172](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37247841172) 均已实际 success；本记录的新提交仍须另核对相应 CI/CD 结果。

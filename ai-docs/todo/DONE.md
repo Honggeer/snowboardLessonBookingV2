@@ -28,3 +28,4 @@
 | TODO-0023 | [CI 的 Compose 配置检查缺少验证密钥](0023-ci-compose-verification-key.md) | DONE | [0010 revision 2](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
 | TODO-0025 | [当前 Git remote 的 SSH 身份认证失败](0025-github-ssh-auth-unavailable.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
 | TODO-0026 | [含生成列的账号表备份行数记录为零](0026-backup-generated-column-row-count.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
+| TODO-0027 | [生产 MySQL root 密码文件所有者不符合约定](0027-production-root-secret-owner.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
