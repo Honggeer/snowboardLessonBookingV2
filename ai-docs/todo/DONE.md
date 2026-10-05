@@ -31,3 +31,4 @@
 | TODO-0027 | [生产 MySQL root 密码文件所有者不符合约定](0027-production-root-secret-owner.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
 | TODO-0028 | [生产合法视频校验超时后被当作格式错误拒绝](0028-production-video-probe-timeout.md) | DONE | [0008 revision 2](../implement-plan/0008-about-geer.md) | 2026-10-04 |
 | TODO-0029 | [主页微信改为仅二维码并放开社交账号与链接填写](0029-coach-social-contact-simplification.md) | DONE | [0008 revision 3](../implement-plan/0008-about-geer.md) | 2026-10-05 |
+| TODO-0031 | [个人展示页首屏照片在窗口拉宽后裁掉头部](0031-hero-portrait-head-cropped.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-05 |

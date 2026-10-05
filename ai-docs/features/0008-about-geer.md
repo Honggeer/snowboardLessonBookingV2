@@ -1,7 +1,7 @@
 ---
 id: "0008"
 title: "关于 GEER：教练主页与媒体管理"
-status: RELEASED
+status: VERIFIED
 plan: "../implement-plan/0008-about-geer.md"
 created: 2026-10-02
 updated: 2026-10-05
@@ -10,6 +10,10 @@ modules: [frontend, coachprofile, media]
 ---
 
 # 0008 — 关于 GEER：教练主页与媒体管理
+
+## 2026-10-05 首屏人物照片裁切样式维护
+
+用户反馈窗口拉宽后顶部人物照片的上半部分消失；关联 [TODO-0031](../todo/0031-hero-portrait-head-cropped.md)。本次在已批准人物首屏与响应式布局范围内维护取景位置，优先保留当前人物照片的头部；公开页与草稿预览共享展示组件。没有新增编辑字段、媒体处理或发布规则，沿用 revision 3。本次已完成 Chrome 320–3840 px 十种宽度与三种草稿预览宽度核验，当前照片头部保持在照片区域内；前端 61/61、lint、类型检查及构建通过。当前 VERIFIED（本地，使用线上已发布资料的只读测试替身）；历史 revision 3 的生产发布证据如下保留，本次样式修正尚未提交或部署。
 
 ## 本次 revision 3：微信仅二维码与社交字段自由填写（已发布，验收完成）
 
