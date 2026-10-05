@@ -1,7 +1,7 @@
 ---
 id: "0008"
 title: "关于 GEER：教练主页与媒体管理"
-status: IMPLEMENTED
+status: RELEASED
 revision: 2
 approved_revision: 2
 created: 2026-10-02
@@ -12,9 +12,9 @@ feature: "../features/0008-about-geer.md"
 # 0008 — 关于 GEER 实施计划
 
 
-## 本次 revision 2：生产视频校验超时修复（已实现，待上线验收）
+## 本次 revision 2：生产视频校验超时修复（已发布，验收完成）
 
-本修订针对 [TODO-0028](../todo/0028-production-video-probe-timeout.md)。现有生产版本 `944d1a5` 完整逐帧校验用户上传的 89,123,600 字节视频需 50.024 秒，原 30 秒预算将合法 MP4 错误判为 REJECTED；本地成功不能证明小规格 EC2 也能在同一时限完成。用户于 2026-10-04 明确选择“批准修复并上线（推荐）”，批准本修订及 commit/push/既有自动部署；当前 `approved_revision: 2`。revision 1 的历史批准和执行记录保留，目标 RED/GREEN 与本地回归已完成；当前 IMPLEMENTED，ARM64 同素材、实际部署与用户重传 READY 待验收。
+本修订针对 [TODO-0028](../todo/0028-production-video-probe-timeout.md)。现有生产版本 `944d1a5` 完整逐帧校验用户上传的 89,123,600 字节视频需 50.024 秒，原 30 秒预算将合法 MP4 错误判为 REJECTED；本地成功不能证明小规格 EC2 也能在同一时限完成。用户于 2026-10-04 明确选择“批准修复并上线（推荐）”，批准本修订及 commit/push/既有自动部署；当前 `approved_revision: 2`。revision 1 的历史批准和执行记录保留，目标 RED/GREEN、本地/CI 回归与实际生产部署已完成；ARM64 应用探测同一素材通过，用户自行重传的新任务已达到 READY。实现、验收和已授权发布分别有实际证据，当前 RELEASED。
 
 ### 范围与文件
 
@@ -23,7 +23,7 @@ feature: "../features/0008-about-geer.md"
 | R2-01 | `backend/src/test/java/com/geer/snowboard/v2/media/MediaContentValidatorTest.java`、`MediaLifecycleTest.java`；`frontend/src/CoachProfileEditor.test.tsx` | 批准后先写目标测试：合法慢探测、超时临时失败与有限重试、损坏输入仍拒绝、超时界面提示 | 实际行为缺失 RED；同一用例修复后 GREEN，测试配置/编译错误不算 RED | 完成 |
 | R2-02 | `backend/src/main/java/com/geer/snowboard/v2/media/adapter/out/inspection/MediaContentProbe.java`、`backend/src/main/resources/application.properties` | 探测默认预算 30→90 秒，使用可注入短预算进行超时测试；允许配置的预算范围限定 1–90 秒。保留 `-count_frames` 全片校验、file-only 协议、无 shell、输出上限、公私格式/品牌/编码/尺寸/时长检查。超时 `MediaFailure` 改为临时失败，复用现有 worker 有限重试，仍清理子进程和输出线程 | 慢探测通过、预算超限不转 READY、不误判 REJECTED、重试耗尽 FAILED；原 MP4/JPG/PNG 和不合法输入回归通过 | 完成 |
 | R2-03 | `frontend/src/CoachProfileEditor.tsx`、`backend/README.md` | 根据已有 `errorCode=PROBE_TIMEOUT` 展示“视频校验暂时超时，请稍后重试。”，兼容历史 REJECTED 和新 FAILED；其他真实格式拒绝保留原提示。更新时限说明 | 前端状态测试/typecheck/lint/build 通过；不展示 ffprobe、私有路径或供应商错误 | 完成 |
-| R2-04 | 配对文档、索引、ticket；既有 CI/CD | 后端媒体/真实 MySQL/架构及全量回归、前端全量回归、ARM64 镜像/真实素材验证；只有用户另明确包含 commit/push/上线时才推送既有 main 自动部署。发布后核对同 SHA 的 CI/CD、健康与同素材探测 | 分别记录 IMPLEMENTED、VERIFIED、实际授权后的 RELEASED；业务上传由用户会话再次操作，Codex 读取任务结果，不索取密码 | 本地完成；待部署与实际素材/用户重传验收 |
+| R2-04 | 配对文档、索引、ticket；既有 CI/CD | 后端媒体/真实 MySQL/架构及全量回归、前端全量回归、ARM64 镜像/真实素材验证；只有用户另明确包含 commit/push/上线时才推送既有 main 自动部署。发布后核对同 SHA 的 CI/CD、健康与同素材探测 | 分别记录 IMPLEMENTED、VERIFIED、实际授权后的 RELEASED；业务上传由用户会话再次操作，Codex 读取任务结果，不索取密码 | 完成；CI/CD、同素材完整探测与实际重传 READY 均确认 |
 
 ### 保留条件、风险与回退
 
@@ -50,7 +50,10 @@ feature: "../features/0008-about-geer.md"
 - **本地回归**：后端全量 `mvn test` 135/135，包含真实 MySQL、S3Mock、权限/CSRF/引用/清理/发布和两套架构检查，无新增例外。前端 `npm run typecheck`、`npm test`（54/54）、`npm run lint`、`npm run build` 均通过；部署 `python3 -m unittest discover -s deploy/tests -p 'test_*.py'` 27/27；文档检查及 `git diff --check` 通过。
 - Maven 实际执行器为 `/private/tmp/geer-delivery-toolchain/apache-maven-3.9.16/bin/mvn`，`JAVA_HOME=/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home`，参数 `-Dmaven.repo.local=/private/tmp/snowboard-v2-toolchain/m2`；MySQL 回归同时设置 `DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock` 和 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`。目标 RED、GREEN、全量日志位于被忽略的 `.local/media-prod-diagnosis/`，不含生产凭据。
 - **完整内容回归**：另运行 `mvn -Dtest=MediaContentValidatorTest#rejectsCorruptedFramesEvenWhenTheContainerMetadataIsValid test` 1/1 通过。受控破坏真实 MP4 的末尾帧后，metadata-only 仍 exit 0/stderr 0，而完整帧计数报错；应用判为 INVALID_CONTENT，证明保留完整检查的必要性。该追加回归未改变实现，CI 将全量执行 136 项。
-- **验收边界**：实现已完成，本地回归通过；尚未宣称实际 ARM64 应用校验器验证此视频、生产发布或用户重传任务 READY。历史失败任务、主页与素材引用不自动更改，用户自行操作账号；TODO-0028 保持 IN_PROGRESS。
+- **CI 与发布**：代码提交 `1cb7dba1d48ac2c44ed93fbedea7f23ca90f5700` 已推送 main。[CI 37253710384](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37253710384) success，后端全量 136/136（包含追加的损坏帧回归）、前端/文档/部署配置全部通过。[Production delivery 37254052380](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37254052380) success，原生 ARM64 构建、ECR、匹配 bundle 与实际 SSM 发布成功。
+- **ARM64 同素材应用验证**：SSM `d1dffa22-eeda-4fd8-9048-cc92bed59224` success。服务器 current SHA 确认为同一 `1cb7dba`，运行镜像为 arm64。只读取原失败记录的同一 frozen 对象，在隔离且无网络的临时容器中，以现有 768 MiB 上限、发布镜像内完整应用类和依赖调用默认 `MediaContentProbe`，继续 `-count_frames` 全片检查。结果 exit 0/stderr 0，1920×1080、65.292993 秒，耗时 **51.451 秒**；检查前后 HTTPS health UP。临时容器/素材/JAR 副本均清理，未改生产业务记录、S3 对象、主页或引用。
+- **实际上传 READY**：SSM `c33a1ca9-38b1-4a76-8f92-bac334b0c4d1` 发现用户新上传 `a49f5c5b-6f84-4a2c-95ed-7dd1bf545c6c` READY、attempts 1；后续 `aec0cca9-3e63-4d6d-a0a9-d2dbdcac5f3c` success，确认声明/实际大小均 89,123,600 字节、1920×1080、65.292993 秒、错误码为空、VERIFY job DONE/attempts 1。运行 SHA 同为 `1cb7dba`，HTTPS health UP。旧超时记录仍为原状态，无任务重置或自动改草稿/公开引用。
+- **状态与边界**：完成实现后记录 IMPLEMENTED；目标/回归、生产同素材完整应用探测与实际上传 READY 完成后满足 VERIFIED；明确部署授权、CI/CD success 及发布后健康/业务检查齐全，现更新 RELEASED，TODO-0028 DONE。账号与上传由用户自行操作，Codex 仅只读核对，不索取密码或会话；保存草稿/发布主页仍由用户按需要操作。
 
 ---
 

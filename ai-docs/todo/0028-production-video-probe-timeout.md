@@ -1,7 +1,7 @@
 ---
 id: TODO-0028
 title: "生产合法视频校验超时后被当作格式错误拒绝"
-status: IN_PROGRESS
+status: DONE
 created: 2026-10-04
 updated: 2026-10-04
 ---
@@ -41,3 +41,7 @@ updated: 2026-10-04
 - 2026-10-04：用户选择“批准修复并上线（推荐）”，0008 revision 2 及 commit/push/上线获批，转 IN_PROGRESS；按目标 RED/GREEN 实施。
 
 - 2026-10-04：修复已实现，目标后端 16/16、前端 4/4；后端全量 135/135、前端全量 54/54、部署 27/27 及类型/lint/build 通过。实际 ARM64 同素材应用探测、上线与用户重传 READY 待验收，保持 IN_PROGRESS。
+
+- 2026-10-04：修复 `1cb7dba` 已通过 CI 37253710384（后端 136/136）与 Production delivery 37254052380 实际上线。SSM `d1dffa22-eeda-4fd8-9048-cc92bed59224` 确认同 SHA，ARM64 发布应用完整内容校验器对同一素材 exit 0/stderr 0、耗时 51.451 秒，HTTPS UP；隔离验证副本已清理，生产业务记录/对象/引用未改变。用户重传 READY 尚待确认，因此保持 IN_PROGRESS。
+
+- 2026-10-04：DONE。SSM `c33a1ca9-38b1-4a76-8f92-bac334b0c4d1` 与 `aec0cca9-3e63-4d6d-a0a9-d2dbdcac5f3c` 只读确认用户重传 `a49f5c5b-6f84-4a2c-95ed-7dd1bf545c6c` 已 READY：声明/实际 89,123,600 字节、1920×1080、65.292993 秒、error code 空、VERIFY job DONE/attempts 1；同 SHA HTTPS UP。目标 RED/GREEN、完整校验/坏帧回归、有限重试/提示、ARM64 同素材和实际上传验收、已授权上线证据齐全，0008 revision 2 更新 RELEASED。旧失败记录和用户草稿/公开引用均未由 Codex 更改。

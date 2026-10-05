@@ -85,7 +85,7 @@ scripts/install-media-probe.sh
 
 `MEDIA_WORKER_ENABLED=false` 暂停媒体任务。删除最多 9 次（首次加 8 次重试），最终失败留在 `media_job`。可只读查询 `SELECT id,asset_id,kind,attempts,error_code FROM media_job WHERE status='FAILED'`；排除存储/ffprobe 故障后，对明确的失败任务单独恢复，不批量重置或删除已发布引用。数据库与 S3 操作不能共用事务；发布只原子切换已验证引用。
 
-生产须显式 `MEDIA_STORAGE_MODE=aws`，提供 `MEDIA_REGION`、两个独立私有桶 `MEDIA_STAGING_BUCKET`/`MEDIA_FROZEN_BUCKET`、`MEDIA_CDN_BASE_URL`、`MEDIA_KEY_PAIR_ID`、秘密文件路径 `MEDIA_SIGNING_KEY_PATH`，并开启 worker。staging 必须开启 versioning；生产权限用 IAM Role，签名私钥另外注入。CloudFront OAC 保护私有源站，frozen 分发还必须要求可信 key group 的 viewer 签名。公开 API 只签已发布引用，签名 15 分钟；预览仅限教练。尚未创建或验证这些 AWS 资源，实际 CORS、IAM、OAC、费用与备份随生产部署方案 review。
+生产须显式 `MEDIA_STORAGE_MODE=aws`，提供 `MEDIA_REGION`、两个独立私有桶 `MEDIA_STAGING_BUCKET`/`MEDIA_FROZEN_BUCKET`、`MEDIA_CDN_BASE_URL`、`MEDIA_KEY_PAIR_ID`、秘密文件路径 `MEDIA_SIGNING_KEY_PATH`，并开启 worker。staging 必须开启 versioning；生产权限用 IAM Role，签名私钥另外注入。CloudFront OAC 保护私有源站，frozen 分发还必须要求可信 key group 的 viewer 签名。公开 API 只签已发布引用，签名 15 分钟；预览仅限教练。现有 AWS 资源、生产部署、权限与备份证据见 [0010 生产交付记录](../ai-docs/implement-plan/0010-production-delivery.md)；S3Mock 本地结果仍不能替代实际云验证。
 
 S3Mock 忽略真实签名/过期校验，且 CORS 宽松，只用于本地测试；不能作为生产授权证明。新增目标测试位于 `coachprofile/` 和 `media/`，实际 MP4 样本是蓝色测试片段，不是真实教练视频。CI 同样先运行固定版本探测工具的安装脚本。
 

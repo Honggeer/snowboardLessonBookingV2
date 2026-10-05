@@ -29,3 +29,4 @@
 | TODO-0025 | [当前 Git remote 的 SSH 身份认证失败](0025-github-ssh-auth-unavailable.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
 | TODO-0026 | [含生成列的账号表备份行数记录为零](0026-backup-generated-column-row-count.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
 | TODO-0027 | [生产 MySQL root 密码文件所有者不符合约定](0027-production-root-secret-owner.md) | DONE | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
+| TODO-0028 | [生产合法视频校验超时后被当作格式错误拒绝](0028-production-video-probe-timeout.md) | DONE | [0008 revision 2](../implement-plan/0008-about-geer.md) | 2026-10-04 |
