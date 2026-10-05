@@ -291,6 +291,8 @@ Shell 检查使用受控替身验证参数/状态，并在隔离实际 Compose �
 - 参数切换 SSM `c0eefd91-42d2-4843-a539-f194ba8c6397` Success / 0：host public_url 与运行 backend 的 APP_PUBLIC_URL 均为 `https://ridewithgeer.com`，只重新创建 backend，db/frontend 容器 ID 和启动时间不变，三容器 healthy，schema 10。配置/密钥未输出，0600/root:root 保持；注册验证链接由既有属性映射和已回归的发送逻辑取新地址，不宣称新邮件实收。
 - 切换后 SSM `b73f07fc-b646-4059-8726-ad4e077edbf6` Success / 0：新 SAN 为两个域名及旧 IP，证书到期 **2026-10-12 10:44:25 UTC**，webroot/shortlived/renew_hook 已保存，backup/certbot timer active、续期 timer enabled。同一 TLS 3 tests / OK，真实 Chrome 390/1440 px 与 www 检查再次通过。
 - 实际文件为配对文档/索引、根 README、deploy README、EC2_SETUP 与 PRODUCTION_RUNBOOK；忽略目录内的操作/验证脚本不加入 Git。既有业务代码、部署程序、镜像构建及 AWS 资源类型无需改变。新提交 CI/CD 的证据待实际完成后补充，不提前记为通过。
+- 域名相关的 8 个文档文件已按授权 commit/push：`463b8c108cbc6fb918d7316cbefe2480f463ef15` / `chore: connect production website domain`。对应 [CI 37366329182](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37366329182) 于 19:53:43 UTC 创建；19:56 UTC 三个 job 均 queued、尚未分配执行机器。GitHub 官方自 19:11 UTC 调查 [Actions 执行机器分配延迟](https://www.githubstatus.com/incidents/3q1yb5m7ltvb)，与本次排队现象一致；不能记为 CI 或新提交部署通过。现有生产域名已生效并通过检查，正式运行版本暂仍为 b83af40；未取消排队、绕过发布门禁或新增 runner/资源。
+- 20:05:53 UTC 再次核对：该 CI 三个 job 仍 queued，仓库 Actions enabled / allowed_actions all，主域名 health UP。GitHub 官方 incident API 最新 19:50:50 UTC 更新仍为 investigating、执行机器分配延迟；没有完成时间承诺。本次后续记录按已批准范围提交推送，后续可信 main 仍需真实 CI success 才自动部署；更新 main 会按现有门禁跳过已过时版本。本修订保留 IMPLEMENTED，未完成的新提交 CI/CD 验收不能升级为 VERIFIED / RELEASED。此前垃圾邮件调查的 3 个未提交文档维持原工作区内容，不混入本次域名提交。
 
 ### 首次交付历史证据
 
