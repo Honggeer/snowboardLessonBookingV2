@@ -1,19 +1,19 @@
 ---
 id: "0008"
 title: "关于 GEER：教练主页与媒体管理"
-status: IMPLEMENTING
+status: RELEASED
 revision: 3
 approved_revision: 3
 created: 2026-10-02
-updated: 2026-10-04
+updated: 2026-10-05
 feature: "../features/0008-about-geer.md"
 ---
 
 # 0008 — 关于 GEER 实施计划
 
-## 本次 revision 3：微信仅二维码与社交字段自由填写（已批准，实施中）
+## 本次 revision 3：微信仅二维码与社交字段自由填写（已发布，验收完成）
 
-关联 [功能 revision 3](../features/0008-about-geer.md)、[TODO-0029](../todo/0029-coach-social-contact-simplification.md)。用户当前指令确定微信只提供二维码，取消小红书/抖音链接和账号业务校验。该变更替代 revision 1 的社交格式/成对/微信号规则，属于 WORK-06/08/09 要求先 review 的行为修订。用户于 2026-10-04 回复“开始实现 批准”，明确批准本 revision 3 及 review 问题所列的 commit/push/既有自动部署。当前 `approved_revision: 3`，按目标 RED/GREEN 实施；revision 2 历史批准和已上线事实保留。
+关联 [功能 revision 3](../features/0008-about-geer.md)、[TODO-0029](../todo/0029-coach-social-contact-simplification.md)。用户当前指令确定微信只提供二维码，取消小红书/抖音链接和账号业务校验。该变更替代 revision 1 的社交格式/成对/微信号规则，属于 WORK-06/08/09 要求先 review 的行为修订。用户于 2026-10-04 回复“开始实现 批准”，明确批准本 revision 3 及 review 问题所列的 commit/push/既有自动部署。当前 `approved_revision: 3`，目标 RED/GREEN、回归和生产发布已完成；revision 2 历史批准和已上线事实保留。
 
 ### 行为与未决范围
 
@@ -28,10 +28,10 @@ feature: "../features/0008-about-geer.md"
 | 步骤 | 实际文件/模块 | 内容 | 完成判定 | 状态 |
 |---|---|---|---|---|
 | R3-00 | 本配对文档、索引、TODO-0029 | 记录已确认长度选择、review revision 3 具体实施范围；单独明确本次 commit/push/部署授权 | 用户明确答复，记录日期、原话、revision 与条件 | 完成 |
-| R3-01 | 新 `backend/src/test/java/com/geer/snowboard/v2/coachprofile/CoachProfileRulesTest.java`；既有 `CoachProfileApiTest.java`、`media/MediaLifecycleTest.java`；前端 `AboutGeerPage.test.tsx`、`CoachProfileEditor.test.tsx` | 获批后先加测试：仅二维码发布、任一社交字段独立保存/发布、HTTP/非平台域名/文本、旧微信号兼容、账号单独展示、编辑页无微信号、二维码放大、账号 80/链接 2048 字边界 | 因目标行为缺失实际 RED，编译/环境故障不计；原权限/引用控制用例仍有效 | 待批准 |
-| R3-02 | `backend/src/main/java/com/geer/snowboard/v2/coachprofile/domain/ProfileRules.java` | 调整字段规范化/可选规则，去掉两平台链接校验和账号/链接配对、微信二维码依赖微信号；兼容并忽略旧 `wechatId`；保留账号 80/链接 2048 字上限，并兼容旧字段 | 同一领域/API 测试 GREEN；二维码仍须正确归属、用途和 READY，必填资料/视频封面/证书规则保留 | 待批准 |
-| R3-03 | `frontend/src/CoachProfileEditor.tsx`、`AboutGeerPage.tsx`、`coachProfileApi.ts`、`about-geer.css` | 移除微信号/复制；微信 QR 缩略图及弹层；社交字段文本输入、独立展示与点击处理；调整卡片和长文本换行 | 同一前端测试 GREEN；390/768/1440 px 无溢出，弹层关闭/键盘、编辑保存预览通过 | 待批准 |
-| R3-04 | 功能/计划/索引/ticket、`backend/README.md`；已存在 CI/CD | 回归与证据归档，状态分开；仅本次获明确授权时 commit/push 到 main 并跟踪既有流水线 | 实际测试、生产 SHA/健康/公开页展示按授权记录；不擅自改用户草稿或发布内容 | 待批准 |
+| R3-01 | 新 `backend/src/test/java/com/geer/snowboard/v2/coachprofile/CoachProfileRulesTest.java`；既有 `CoachProfileApiTest.java`、`media/MediaLifecycleTest.java`；前端 `AboutGeerPage.test.tsx`、`CoachProfileEditor.test.tsx` | 获批后先加测试：仅二维码发布、任一社交字段独立保存/发布、HTTP/非平台域名/文本、旧微信号兼容、账号单独展示、编辑页无微信号、二维码放大、账号 80/链接 2048 字边界 | 因目标行为缺失实际 RED，编译/环境故障不计；原权限/引用控制用例仍有效 | 完成 |
+| R3-02 | `backend/src/main/java/com/geer/snowboard/v2/coachprofile/domain/ProfileRules.java` | 调整字段规范化/可选规则，去掉两平台链接校验和账号/链接配对、微信二维码依赖微信号；兼容并忽略旧 `wechatId`；保留账号 80/链接 2048 字上限，并兼容旧字段 | 同一领域/API 测试 GREEN；二维码仍须正确归属、用途和 READY，必填资料/视频封面/证书规则保留 | 完成 |
+| R3-03 | `frontend/src/CoachProfileEditor.tsx`、`AboutGeerPage.tsx`、`coachProfileApi.ts`、`about-geer.css` | 移除微信号/复制；微信 QR 缩略图及弹层；社交字段文本输入、独立展示与点击处理；调整卡片和长文本换行 | 同一前端测试 GREEN；390/768/1440 px 无溢出，弹层关闭/键盘、编辑保存预览通过 | 完成 |
+| R3-04 | 功能/计划/索引/ticket、`backend/README.md`；已存在 CI/CD | 回归与证据归档，状态分开；仅本次获明确授权时 commit/push 到 main 并跟踪既有流水线 | 实际测试、生产 SHA/健康/公开页展示按授权记录；不擅自改用户草稿或发布内容 | 完成 |
 
 ### 目标验证与回归
 
@@ -47,9 +47,19 @@ feature: "../features/0008-about-geer.md"
 - 不批量删除历史 JSON 中微信号；新保存忽略旧值，二维码引用仍通过已有媒体规则。回退旧应用时，只有二维码/账号或放开链接的新草稿可能再次触发旧发布规则；采用现有应用回退并由教练补齐旧条件，保留数据库和媒体对象。
 - 原视频 revision 2 的 90 秒完整校验与有限重试不改动。revision 2 的已完成验收与生产发布证据如下保留。
 
+### revision 3 实际执行证据（2026-10-04–05）
+
+- **RED**：批准后先新增目标测试。`mvn -Dtest=CoachProfileRulesTest,CoachProfileApiTest,MediaLifecycleTest test` 共 20 项，5 failures / 2 errors，原因是旧二维码依赖微信号、社交字段配对/URL 规则及旧字段未忽略；编译与真实 MySQL 正常。`npm test -- AboutGeerPage.test.tsx CoachProfileEditor.test.tsx` 共 14 项，7 failed / 7 passed，失败覆盖二维码、账号单独展示、放开链接和微信编辑字段。第一次后端日志重定向目录不存在属于工具错误，不计 RED。
+- **实现/GREEN**：同一后端目标命令 20/20、同一前端目标命令 14/14 通过。修改仅在既有 coachprofile 规则与前端展示/编辑；忽略旧 wechatId，保留长度边界和原有媒体/权限/版本条件，无迁移、新依赖或架构例外。
+- **适用回归**：后端 `mvn test` 144/144；前端 `npm run typecheck`、`npm test`（61/61）、`npm run lint`、`npm run build` 全部通过。Maven 使用 `/private/tmp/geer-delivery-toolchain/apache-maven-3.9.16/bin/mvn`、Java `/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home` 和 `-Dmaven.repo.local=/private/tmp/snowboard-v2-toolchain/m2`；Colima 设置与 revision 2 相同。日志位于忽略的 `.local/social-profile-r3/`。
+- **真实浏览器**：Chrome 390/768/1440 px，通过 QR-only、账号-only、HTTP/非平台域名链接、2048 字文本换行、非 HTTP 协议仅文本、弹层 Tab/Escape/背景关闭与焦点恢复、编辑保存→预览→发布。使用本地 API 与 SVG 布局替身，未写生产资料；不把此替身宣称为二维码可扫描验证。首次浏览器脚本误用“预览”按钮名称，修正为实际“预览页面”后通过，该脚本错误不计产品失败。
+- **用户提交与发布**：用户自行提交 `c0bbc09813e554830ca14dd8faee2f9e63816672` 并反馈“我已经提交了，验证过了，没问题”。[CI 37259159119](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37259159119) success（后端日志确认 144/144）；[Production delivery 37259508465](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/37259508465) success。只读 SSM `e9ae330c-5961-423f-acba-3a25dbd5d678` / `caea3cef-a5eb-4096-8afd-bf606470aa48` 确认 current SHA 为 c0bbc09、HTTPS health UP。
+- **公开页实查**：匿名 Chrome 读取生产 `/about-geer`，现有主页已发布且配置二维码；390 px 无横向溢出，无微信号/复制按钮，二维码缩略图与放大/Escape 关闭通过。未改生产草稿、快照、账号或媒体。
+- **状态**：实现完成后满足 IMPLEMENTED，目标/全量/浏览器通过满足 VERIFIED；已授权发布、实际 CI/CD 和生产核对完成，记录 RELEASED，TODO-0029 DONE。文档/索引检查与最终提交记录随本轮维护同步。
+
 ## revision 2 历史：生产视频校验超时修复（已发布，验收完成）
 
-本修订针对 [TODO-0028](../todo/0028-production-video-probe-timeout.md)。现有生产版本 `944d1a5` 完整逐帧校验用户上传的 89,123,600 字节视频需 50.024 秒，原 30 秒预算将合法 MP4 错误判为 REJECTED；本地成功不能证明小规格 EC2 也能在同一时限完成。用户于 2026-10-04 明确选择“批准修复并上线（推荐）”，批准本修订及 commit/push/既有自动部署；当前 `approved_revision: 2`。revision 1 的历史批准和执行记录保留，目标 RED/GREEN、本地/CI 回归与实际生产部署已完成；ARM64 应用探测同一素材通过，用户自行重传的新任务已达到 READY。实现、验收和已授权发布分别有实际证据，当前 RELEASED。
+本修订针对 [TODO-0028](../todo/0028-production-video-probe-timeout.md)。现有生产版本 `944d1a5` 完整逐帧校验用户上传的 89,123,600 字节视频需 50.024 秒，原 30 秒预算将合法 MP4 错误判为 REJECTED；本地成功不能证明小规格 EC2 也能在同一时限完成。用户于 2026-10-04 明确选择“批准修复并上线（推荐）”，批准本修订及 commit/push/既有自动部署；当时 `approved_revision: 2`。revision 1 的历史批准和执行记录保留，目标 RED/GREEN、本地/CI 回归与实际生产部署已完成；ARM64 应用探测同一素材通过，用户自行重传的新任务已达到 READY。实现、验收和已授权发布分别有实际证据，当前 RELEASED。
 
 ### 范围与文件
 
@@ -92,7 +102,7 @@ feature: "../features/0008-about-geer.md"
 
 ---
 
-以下第 1–9 节保留 revision 1 历史设计、批准与执行证据；本次 revision 2 的具体范围以本节为准。
+以下第 1–9 节保留 revision 1 历史设计、批准与执行证据；当前规则以开头 revision 3 为准，视频修复以 revision 2 历史节为准。
 
 ## 1. Review 摘要
 

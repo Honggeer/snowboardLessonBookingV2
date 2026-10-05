@@ -5,11 +5,19 @@ status: VERIFIED
 revision: 2
 approved_revision: 2
 created: 2026-09-28
-updated: 2026-09-30
+updated: 2026-10-05
 feature: "../features/0002-student-identity.md"
 ---
 
 # 0002 — 学员注册、邮箱验证与账号登录实施计划
+
+## 生产邮件调查（2026-10-04–05，未变更业务规则）
+
+用户反馈注册邮箱未收到验证邮件，并授权“发现问题了直接修复，然后验证，提交推送”。关联 [TODO-0030](../todo/0030-production-registration-mail-not-received.md)。此次先只读定位，不将未确认的收件原因写成代码缺陷，不新增费用或跳过邮箱验证。
+
+- SSM `e9ae330c-5961-423f-acba-3a25dbd5d678` / `caea3cef-a5eb-4096-8afd-bf606470aa48` success：运行 SHA c0bbc09、HTTPS health UP；目标学生未验证，首次任务 3 与最新重发任务 4 都是 SENT / attempts 1 / error 空，最新凭据有效、旧凭据已失效。目标收件地址精确匹配，SMTP 用户/From 一致，生产 Gmail 587 和正式链接 origin 正常；没有认证或连接故障证据。
+- SSM `a85bc35e-16f3-406c-8e01-54e6b85865a0` success：以现有配置在服务器内只读查询本次收件地址的发件记录和近期相关退信，Gmail Sent 中确认主题为“验证 GEER 账号邮箱”的两封生产邮件（UTC 03:24:43 / 03:35:12），收件人匹配；INBOX 未找到近期相关退信。只读选取与 BODY.PEEK，不发送、标已读或修改邮件，不输出密码、正文或 token。
+- 以上证明发送与 Gmail 发件记录，不能证明用户收件箱可见；仍待核对所有邮件/垃圾邮件。尚无需修复的项目代码或配置，未变更 revision 2 批准范围，不编造 RED/GREEN 或实收验证。生产身份/权限/队列实现不变。
 
 ## 1. Review 摘要
 

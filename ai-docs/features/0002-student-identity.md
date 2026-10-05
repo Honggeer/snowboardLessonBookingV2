@@ -4,12 +4,14 @@ title: "学员注册、邮箱验证与账号登录"
 status: VERIFIED
 plan: "../implement-plan/0002-student-identity.md"
 created: 2026-09-28
-updated: 2026-09-30
+updated: 2026-10-05
 contract_version: "1.3"
 modules: [identity, frontend]
 ---
 
 # 0002 — 学员注册、邮箱验证与账号登录
+
+2026-10-04–05 生产注册邮件调查见 [TODO-0030](../todo/0030-production-registration-mail-not-received.md)：目标账号已注册未验证，首次与重发任务均为 SENT / attempts 1，SMTP 接受、收件地址及配置核对正常；用户实收尚待核对。此记录不是邮件实收验收，也不据此修改身份业务规则。
 
 关联[实施计划 0002](../implement-plan/0002-student-identity.md)。revision 1 曾按 RED/GREEN 实现并通过本地验证；用户随后要求页面按已选视觉稿呈现，并把密码下限改为 8 位。revision 2 已获用户批准且完成本地实现与技术检查；用户已确认关闭视觉 ticket，当前本地验收状态为 VERIFIED，未生产发布。
 

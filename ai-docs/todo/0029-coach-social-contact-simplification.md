@@ -1,9 +1,9 @@
 ---
 id: TODO-0029
 title: "主页微信改为仅二维码并放开社交账号与链接填写"
-status: IN_PROGRESS
+status: DONE
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 ---
 
 # TODO-0029 — 主页微信改为仅二维码并放开社交账号与链接填写
@@ -39,3 +39,5 @@ updated: 2026-10-04
 - 2026-10-04：OPEN。完成现有规则调查并编写 0008 revision 3；本次尚未获计划批准，没有写测试或实现代码。
 
 - 2026-10-04：用户回复“开始实现 批准”，0008 revision 3 及 review 所列的 commit/push/现有自动部署获批；转 IN_PROGRESS，开始目标测试 RED/GREEN。
+
+- 2026-10-05：DONE。目标后端 20/20、前端 14/14 从有效 RED 转 GREEN；全量后端 144/144、前端 61/61、类型/lint/build 通过，Chrome 三种宽度和保存/预览/发布交互通过。用户已提交并自测确认，c0bbc09 的 CI 与 Production delivery success，SSM current SHA/HTTPS health 和生产匿名 QR 展示核对通过；证据见 0008 revision 3。未改生产资料。
