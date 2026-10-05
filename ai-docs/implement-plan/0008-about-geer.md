@@ -1,9 +1,9 @@
 ---
 id: "0008"
 title: "关于 GEER：教练主页与媒体管理"
-status: RELEASED
-revision: 2
-approved_revision: 2
+status: IMPLEMENTING
+revision: 3
+approved_revision: 3
 created: 2026-10-02
 updated: 2026-10-04
 feature: "../features/0008-about-geer.md"
@@ -11,8 +11,43 @@ feature: "../features/0008-about-geer.md"
 
 # 0008 — 关于 GEER 实施计划
 
+## 本次 revision 3：微信仅二维码与社交字段自由填写（已批准，实施中）
 
-## 本次 revision 2：生产视频校验超时修复（已发布，验收完成）
+关联 [功能 revision 3](../features/0008-about-geer.md)、[TODO-0029](../todo/0029-coach-social-contact-simplification.md)。用户当前指令确定微信只提供二维码，取消小红书/抖音链接和账号业务校验。该变更替代 revision 1 的社交格式/成对/微信号规则，属于 WORK-06/08/09 要求先 review 的行为修订。用户于 2026-10-04 回复“开始实现 批准”，明确批准本 revision 3 及 review 问题所列的 commit/push/既有自动部署。当前 `approved_revision: 3`，按目标 RED/GREEN 实施；revision 2 历史批准和已上线事实保留。
+
+### 行为与未决范围
+
+1. 微信卡片依二维码显示，直接展示二维码缩略图、可放大查看；移除微信号输入、公开文字和复制功能。仅二维码即可发布；未配置时公开隐藏，草稿预览可显示二维码待配置提示。
+2. 小红书/抖音账号、链接均为可选文本，取消格式、指定平台域名、必须 HTTPS 与成对填写校验。保留账号名和链接字段，可只填任一项；仅账号有值也显示对应卡片。链接输入使用普通文本输入，不添加原生 URL 校验或规则提示。
+3. 保存/发布接受普通文本；浏览器只对可打开的 HTTP/HTTPS 地址提供跳转（包含 HTTP、其他平台/短链域名），非地址文本/其他协议仅显示文本，不影响提交。保留文本渲染及外链 `noopener noreferrer`，不添加外部请求、抓取或自动确认账号真实性。
+4. **长度选择已确认**：2026-10-04 用户选择“保留长度上限，取消其余校验（推荐）”。账号保留 80 字、链接保留 2048 字的前后端上限，其余社交校验取消；其他主页字段限额继续生效。该答复确认业务条件；后续“开始实现 批准”已批准本次具体计划。
+5. 已保存 JSON 与旧客户端携带的 `wechatId` 兼容；旧值不参与展示/发布，新保存忽略该字段。现有字段/版本/API 路径、草稿/公开快照及媒体引用协议保留；不加数据库迁移，不批量改生产数据或自动发布主页。
+
+### 具体文件与步骤
+
+| 步骤 | 实际文件/模块 | 内容 | 完成判定 | 状态 |
+|---|---|---|---|---|
+| R3-00 | 本配对文档、索引、TODO-0029 | 记录已确认长度选择、review revision 3 具体实施范围；单独明确本次 commit/push/部署授权 | 用户明确答复，记录日期、原话、revision 与条件 | 完成 |
+| R3-01 | 新 `backend/src/test/java/com/geer/snowboard/v2/coachprofile/CoachProfileRulesTest.java`；既有 `CoachProfileApiTest.java`、`media/MediaLifecycleTest.java`；前端 `AboutGeerPage.test.tsx`、`CoachProfileEditor.test.tsx` | 获批后先加测试：仅二维码发布、任一社交字段独立保存/发布、HTTP/非平台域名/文本、旧微信号兼容、账号单独展示、编辑页无微信号、二维码放大、账号 80/链接 2048 字边界 | 因目标行为缺失实际 RED，编译/环境故障不计；原权限/引用控制用例仍有效 | 待批准 |
+| R3-02 | `backend/src/main/java/com/geer/snowboard/v2/coachprofile/domain/ProfileRules.java` | 调整字段规范化/可选规则，去掉两平台链接校验和账号/链接配对、微信二维码依赖微信号；兼容并忽略旧 `wechatId`；保留账号 80/链接 2048 字上限，并兼容旧字段 | 同一领域/API 测试 GREEN；二维码仍须正确归属、用途和 READY，必填资料/视频封面/证书规则保留 | 待批准 |
+| R3-03 | `frontend/src/CoachProfileEditor.tsx`、`AboutGeerPage.tsx`、`coachProfileApi.ts`、`about-geer.css` | 移除微信号/复制；微信 QR 缩略图及弹层；社交字段文本输入、独立展示与点击处理；调整卡片和长文本换行 | 同一前端测试 GREEN；390/768/1440 px 无溢出，弹层关闭/键盘、编辑保存预览通过 | 待批准 |
+| R3-04 | 功能/计划/索引/ticket、`backend/README.md`；已存在 CI/CD | 回归与证据归档，状态分开；仅本次获明确授权时 commit/push 到 main 并跟踪既有流水线 | 实际测试、生产 SHA/健康/公开页展示按授权记录；不擅自改用户草稿或发布内容 | 待批准 |
+
+### 目标验证与回归
+
+- 获批后目标后端：`mvn -Dtest=CoachProfileRulesTest,CoachProfileApiTest,MediaLifecycleTest test`；前端：`npm test -- AboutGeerPage.test.tsx CoachProfileEditor.test.tsx`。先记录旧行为 RED，再实现到同一命令 GREEN；真实 MySQL 只在隔离测试库准备 READY 图片/二维码和发布数据，不对生产造数据。
+- API 验证不仅单独调用规则：正确教练/CSRF 下保存并发布仅二维码、账号-only、链接-only、跨域/HTTP/普通文本，确认匿名公开结果；旧微信号内容可编辑，错误角色、他人/非 READY 媒体及版本冲突仍拒绝。社交长度边界验证 80/2048 字仍拒绝超限。
+- 适用全量：后端 `mvn test`（架构/真实 MySQL/媒体含 90 秒视频修复）；前端 `npm run typecheck`、`npm test`、`npm run lint`、`npm run build`；`python3 ai-docs/check_docs.py`、`git diff --check`。部署配置未变，不重复无关恢复演练。
+- 实际浏览器 390/768/1440 px 核对 QR-only、账号-only、非平台链接和长文本、弹层键盘/关闭；可用本地匿名 API 替身或隔离测试资料，不改生产主页。生产上线仅在本次明确授权后用受测 SHA，检查 CI/CD、服务器当前 SHA、HTTPS 健康和现有公开展示；用户自行保存/发布新资料。
+
+### 兼容、成本与回退
+
+- 保留 `coachprofile`/`media` 现有模块与端口，架构例外增加 0；无新依赖、ADR、云资源或月费配置变化。
+- 账号名和链接不做真实性核验；错误/普通文本由教练维护，保存发布不再由旧规则阻止。保留 80/2048 字上限；允许范围内的长文本通过 CSS 换行并验证移动端。
+- 不批量删除历史 JSON 中微信号；新保存忽略旧值，二维码引用仍通过已有媒体规则。回退旧应用时，只有二维码/账号或放开链接的新草稿可能再次触发旧发布规则；采用现有应用回退并由教练补齐旧条件，保留数据库和媒体对象。
+- 原视频 revision 2 的 90 秒完整校验与有限重试不改动。revision 2 的已完成验收与生产发布证据如下保留。
+
+## revision 2 历史：生产视频校验超时修复（已发布，验收完成）
 
 本修订针对 [TODO-0028](../todo/0028-production-video-probe-timeout.md)。现有生产版本 `944d1a5` 完整逐帧校验用户上传的 89,123,600 字节视频需 50.024 秒，原 30 秒预算将合法 MP4 错误判为 REJECTED；本地成功不能证明小规格 EC2 也能在同一时限完成。用户于 2026-10-04 明确选择“批准修复并上线（推荐）”，批准本修订及 commit/push/既有自动部署；当前 `approved_revision: 2`。revision 1 的历史批准和执行记录保留，目标 RED/GREEN、本地/CI 回归与实际生产部署已完成；ARM64 应用探测同一素材通过，用户自行重传的新任务已达到 READY。实现、验收和已授权发布分别有实际证据，当前 RELEASED。
 
@@ -86,8 +121,10 @@ feature: "../features/0008-about-geer.md"
 | 2026-10-02 | “开始实现” | 1 | 批准上一轮提交的完整 revision 1：按两稿实现、草稿发布、媒体上限、版本/任务/清理及本地依赖；本地开发验证，8080 留给 IDEA，无云创建或生产部署 |
 | 2026-10-03 | “可以的，提交推送吧” | 1（提交授权） | 授权提交并推送当前 0008 实现、登录入口视觉调整、关联修复与验证文档；不改变本地 VERIFIED 状态或生产部署范围 |
 | 2026-10-04 | “批准修复并上线（推荐）”（revision 2 完整方案确认） | 2 | 批准 90 秒有界完整校验、临时超时/有限重试和界面提示、目标 RED/GREEN/回归、commit/push 与现有 CI/CD 上线；无扩容、新资源、转码或生产历史任务重置 |
+| 2026-10-04 | “保留长度上限，取消其余校验（推荐）” | N/A（revision 3 业务条件） | 确认社交账号 80 字、链接 2048 字上限继续保留，取消其他社交校验；具体实施计划及本次提交/上线仍待 review |
+| 2026-10-04 | “开始实现 批准”（对 revision 3 review 与实施/提交推送/上线问题的回复） | 3 | 批准微信仅二维码、社交字段独立可选及取消业务校验；保留 80/2048 字上限，兼容旧数据；目标 RED/GREEN/必要回归、commit/push 与既有流水线上线，不自动改用户草稿或发布内容 |
 
-revision 1 的批准与第 7、8 节历史执行证据保留；当前 revision 2 的 `approved_revision: 2`，本次超时修复和 commit/push/上线已获明确批准。
+revision 1/2 的批准与历史执行证据保留；revision 2 超时修复的 commit/push/上线已有明确授权并完成。本次 revision 3 已批准，当前 `approved_revision: 3`。
 
 ## 3. 实现步骤与预计文件
 

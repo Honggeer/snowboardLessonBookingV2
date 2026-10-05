@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { profileRequest, safeSocialLink, type CoachProfile } from './coachProfileApi';
+import { profileRequest, socialLinkTarget, type CoachProfile } from './coachProfileApi';
 import './about-geer.css';
 
 function Dialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
@@ -34,17 +34,11 @@ export function CoachPresentation({ profile, preview = false, onBook, onRefresh 
   { profile: CoachProfile; preview?: boolean; onBook: () => void; onRefresh?: () => void }) {
   const c = profile.content ?? {}, m = profile.media ?? {};
   const [dialog, setDialog] = useState<'certificate' | 'wechat' | null>(null);
-  const [copyMessage, setCopyMessage] = useState('');
   const [playing, setPlaying] = useState(false), [videoError, setVideoError] = useState(false);
   const video = useRef<HTMLVideoElement>(null);
-  const xhs = safeSocialLink(c.xhsUrl, 'xhs'), douyin = safeSocialLink(c.douyinUrl, 'douyin');
-  const contacts = !!(xhs || douyin || c.wechatId), certificate = !!(m.CERTIFICATE && c.casiLevel);
-  async function copyWechat() {
-    try {
-      if (!navigator.clipboard?.writeText) throw new Error();
-      await navigator.clipboard.writeText(c.wechatId); setCopyMessage('微信号已复制');
-    } catch { setCopyMessage('复制未完成，请长按或选中微信号手动复制。'); setDialog('wechat'); }
-  }
+  const xhs = socialLinkTarget(c.xhsUrl), douyin = socialLinkTarget(c.douyinUrl);
+  const showXhs = !!(c.xhsAccount?.trim() || c.xhsUrl?.trim()), showDouyin = !!(c.douyinAccount?.trim() || c.douyinUrl?.trim());
+  const contacts = !!(showXhs || showDouyin || m.WECHAT_QR), certificate = !!(m.CERTIFICATE && c.casiLevel);
   return <>
     {preview && <p className="geer-preview-banner" role="status">草稿预览 · 只有发布后，访客才能看到这些修改</p>}
     <section className="geer-hero">
@@ -87,15 +81,15 @@ export function CoachPresentation({ profile, preview = false, onBook, onRefresh 
         </div></section>}
       </div>}
       {(contacts || preview) && <section className="geer-contact" id="geer-contact"><h2>在这里找到我</h2><div className="geer-social-grid">
-        {(xhs || preview) && <div className="geer-social-card"><span className="geer-social-icon xhs" aria-hidden="true">小红书</span><div><strong>小红书</strong><span>{c.xhsAccount || '账号待填写'}</span></div>{xhs && <a href={xhs} target="_blank" rel="noopener noreferrer" aria-label="小红书 · 查看主页">查看主页 ↗</a>}</div>}
-        {(douyin || preview) && <div className="geer-social-card"><span className="geer-social-icon douyin" aria-hidden="true">♪</span><div><strong>抖音</strong><span>{c.douyinAccount || '账号待填写'}</span></div>{douyin && <a href={douyin} target="_blank" rel="noopener noreferrer" aria-label="抖音 · 查看主页">查看主页 ↗</a>}</div>}
-        {(c.wechatId || preview) && <div className="geer-social-card"><span className="geer-social-icon wechat" aria-hidden="true">●●</span><div><strong>微信</strong><span>{c.wechatId || '微信号待填写'}</span></div>{c.wechatId && <div className="geer-social-actions">{m.WECHAT_QR && <button type="button" onClick={() => setDialog('wechat')}>查看二维码</button>}<button type="button" onClick={copyWechat}>复制微信号</button></div>}</div>}
-      </div>{copyMessage && <p className="geer-copy-status" role="status">{copyMessage}</p>}</section>}
+        {(showXhs || preview) && <div className="geer-social-card"><span className="geer-social-icon xhs" aria-hidden="true">小红书</span><div><strong>小红书</strong>{c.xhsAccount && <span>{c.xhsAccount}</span>}{c.xhsUrl && !xhs && <span>{c.xhsUrl}</span>}{!showXhs && preview && <span>联系方式可选</span>}</div>{xhs && <a href={xhs} target="_blank" rel="noopener noreferrer" aria-label="小红书 · 查看主页">查看主页 ↗</a>}</div>}
+        {(showDouyin || preview) && <div className="geer-social-card"><span className="geer-social-icon douyin" aria-hidden="true">♪</span><div><strong>抖音</strong>{c.douyinAccount && <span>{c.douyinAccount}</span>}{c.douyinUrl && !douyin && <span>{c.douyinUrl}</span>}{!showDouyin && preview && <span>联系方式可选</span>}</div>{douyin && <a href={douyin} target="_blank" rel="noopener noreferrer" aria-label="抖音 · 查看主页">查看主页 ↗</a>}</div>}
+        {(m.WECHAT_QR || preview) && <div className="geer-social-card geer-wechat-card"><span className="geer-social-icon wechat" aria-hidden="true">●●</span><div><strong>微信</strong>{!m.WECHAT_QR && preview && <span>二维码待上传</span>}</div>{m.WECHAT_QR && <button type="button" className="geer-qr-thumbnail" aria-label="放大微信二维码" onClick={() => setDialog('wechat')}><Photo key={m.WECHAT_QR.url} src={m.WECHAT_QR.url} alt="GEER 微信二维码" /></button>}</div>}
+      </div></section>}
       <section className="geer-book-banner"><h2>一起开启下一次滑行</h2><button className="geer-button" type="button" onClick={onBook}>预约课程 <span aria-hidden="true">→</span></button></section>
       <footer className="geer-footer"><span className="geer-wordmark">GEER</span><span>MORE THAN A RIDE</span><span className="geer-footer-mountains" aria-hidden="true">／╲／╲／╲</span></footer>
     </div>
     {dialog === 'certificate' && m.CERTIFICATE && <Dialog title="CASI 证书" onClose={() => setDialog(null)}><Photo key={m.CERTIFICATE.url} className="geer-dialog-image" src={m.CERTIFICATE.url} alt="CASI 证书大图" /><p>{c.casiLevel}</p></Dialog>}
-    {dialog === 'wechat' && <Dialog title="联系 GEER" onClose={() => setDialog(null)}>{m.WECHAT_QR && <Photo key={m.WECHAT_QR.url} className="geer-qr-image" src={m.WECHAT_QR.url} alt="GEER 微信二维码" />}<p>微信号：<span className="geer-selectable" tabIndex={0}>{c.wechatId}</span></p><button className="geer-button" type="button" onClick={copyWechat}>复制微信号</button>{copyMessage && <p role="status">{copyMessage}</p>}</Dialog>}
+    {dialog === 'wechat' && m.WECHAT_QR && <Dialog title="联系 GEER" onClose={() => setDialog(null)}><Photo key={m.WECHAT_QR.url} className="geer-qr-image" src={m.WECHAT_QR.url} alt="GEER 微信二维码" /></Dialog>}
   </>;
 }
 export default function AboutGeerPage({ onBook, onHome, loggedIn }:

@@ -168,8 +168,31 @@ class MediaLifecycleTest {
   assertThatThrownBy(()->profiles.save(actor,1,java.util.Map.of("heroId",id))).isInstanceOfSatisfying(BusinessProblem.class,p->assertThat(p.status()).isEqualTo(409));
   assertThat(profiles.draft(actor).version()).isEqualTo(1);
  }
+ @Test void realPublicationAllowsOnlyWechatQrAndIndependentSocialFields()throws Exception{
+  String coach=account();var actor=new Actor(coach,"COACH","Test");
+  String hero=request(coach,UUID.randomUUID().toString()),qr=requestReadyQr(coach,actor,hero);
+  var json=tools.jackson.databind.json.JsonMapper.builder().build();long version=0;
+  for(var extra:java.util.List.of(java.util.Map.of("wechatQrId",qr),java.util.Map.of("xhsAccount","小红书 自由昵称"),
+      java.util.Map.of("douyinAccount","抖音号 @GEER"),java.util.Map.of("xhsUrl","http://short.example.test/profile"),
+      java.util.Map.of("douyinUrl","主页稍后补充"))){
+   var content=new java.util.HashMap<>(java.util.Map.of("displayName","GEER","tagline","教学","heroId",hero));content.putAll(extra);
+   mvc.perform(put("/api/coach/profile/draft").with(user(coach).roles("COACH")).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+    .content(json.writeValueAsString(java.util.Map.of("expectedVersion",version,"content",content)))).andExpect(status().isOk());version++;
+   mvc.perform(post("/api/coach/profile/publish").with(user(coach).roles("COACH")).with(csrf()).header("Idempotency-Key",UUID.randomUUID().toString())
+    .contentType(MediaType.APPLICATION_JSON).content(json.writeValueAsString(java.util.Map.of("draftVersion",version)))).andExpect(status().isOk());
+   var response=mvc.perform(get("/api/coach-profile")).andExpect(status().isOk()).andExpect(jsonPath("$.published").value(true));
+   for(var entry:extra.entrySet())response.andExpect(jsonPath("$.content."+entry.getKey()).value(entry.getValue()));
+  }
+ }
+ private String requestReadyQr(String coach,Actor actor,String hero)throws Exception{
+  operations.complete(actor,hero);assertThat(jobs.runOne()).isTrue();
+  String qr=request(coach,UUID.randomUUID().toString(),"WECHAT_QR");operations.complete(actor,qr);assertThat(jobs.runOne()).isTrue();return qr;
+ }
  private String request(String coach,String key)throws Exception{
-  String b="{\"purpose\":\"HERO\",\"contentType\":\"image/png\",\"size\":4}";
+  return request(coach,key,"HERO");
+ }
+ private String request(String coach,String key,String purpose)throws Exception{
+  String b="{\"purpose\":\""+purpose+"\",\"contentType\":\"image/png\",\"size\":4}";
   String result=mvc.perform(post("/api/coach/media/uploads").with(user(coach).roles("COACH")).with(csrf()).header("Idempotency-Key",key).contentType(MediaType.APPLICATION_JSON).content(b)).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
   mvc.perform(post("/api/coach/media/uploads").with(user(coach).roles("COACH")).with(csrf()).header("Idempotency-Key",key).contentType(MediaType.APPLICATION_JSON).content(b)).andExpect(status().isOk());return JsonPath.read(result,"$.id");
  }

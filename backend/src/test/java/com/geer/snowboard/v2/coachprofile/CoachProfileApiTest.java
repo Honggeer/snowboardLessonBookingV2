@@ -10,6 +10,7 @@ import com.jayway.jsonpath.JsonPath;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -37,6 +38,27 @@ class CoachProfileApiTest {
     }
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
+
+    @BeforeEach void resetProfile() {
+        jdbc.update("DELETE FROM coach_profile_publish_request");
+        jdbc.update("DELETE FROM coach_profile_page");
+        jdbc.update("DELETE FROM media_reference");
+    }
+
+    @Test void savesIndependentSocialTextAndIgnoresLegacyWechatAccount() throws Exception {
+        String coach = account("COACH");
+        var json = tools.jackson.databind.json.JsonMapper.builder().build();
+        long version = 0;
+        for (var entry : java.util.Map.of("xhsAccount", "小红书 自由昵称", "douyinAccount", "抖音号 @geer",
+                "xhsUrl", "http://short.example.test/profile", "douyinUrl", "主页稍后补充").entrySet()) {
+            String body = json.writeValueAsString(java.util.Map.of("expectedVersion", version++, "content",
+                    java.util.Map.of("displayName", "GEER", entry.getKey(), entry.getValue(), "wechatId", "legacy-wechat")));
+            mvc.perform(put("/api/coach/profile/draft").with(user(coach).roles("COACH")).with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON).content(body)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content." + entry.getKey()).value(entry.getValue()))
+                    .andExpect(jsonPath("$.content.wechatId").doesNotExist());
+        }
+    }
 
     @Test void anonymousReadsOnlyPublishedProfileAndCannotReadDraft() throws Exception {
         mvc.perform(get("/api/coach-profile")).andExpect(status().isOk())
@@ -67,6 +89,10 @@ class CoachProfileApiTest {
                 .andExpect(status().isBadRequest()); // A hero image is required for publication.
     }
     private String account(String role) {
+        if (role.equals("COACH")) {
+            var existing = jdbc.queryForList("SELECT id FROM identity_account WHERE role='COACH'", String.class);
+            if (!existing.isEmpty()) return existing.getFirst();
+        }
         String id = UUID.randomUUID().toString();
         jdbc.update("INSERT INTO identity_account (id,email,email_key,name,level,role,password_hash,verified_at,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
                 id, id + "@test.invalid", id + "@test.invalid", "Test", role.equals("STUDENT") ? "BEGINNER" : null,

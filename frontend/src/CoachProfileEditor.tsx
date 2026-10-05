@@ -7,7 +7,7 @@ const fields = [
   ['displayName', '称呼', 40], ['tagline', '一句话介绍', 160], ['bio', '个人简介', 3000], ['philosophy', '教学理念', 1000],
   ['specialties', '擅长方向', 200], ['languages', '授课语言', 80], ['region', '服务区域', 160], ['casiLevel', 'CASI 认证说明', 80],
   ['xhsAccount', '小红书账号', 80], ['xhsUrl', '小红书主页链接', 2048], ['douyinAccount', '抖音账号', 80],
-  ['douyinUrl', '抖音主页链接', 2048], ['wechatId', '微信号', 64],
+  ['douyinUrl', '抖音主页链接', 2048],
 ] as const;
 const slots: Array<{ purpose: MediaPurpose; field: string; label: string }> = [
   { purpose: 'HERO', field: 'heroId', label: '人物照片' }, { purpose: 'CERTIFICATE', field: 'certificateId', label: 'CASI 证书' },
@@ -135,7 +135,7 @@ export default function CoachProfileEditor({ refreshCsrf, onUnauthorized, onBack
       {profile && <>
         <div className="geer-editor-fields"><section className="geer-card"><h2>个人资料与联系方式</h2><div className="geer-field-grid">{fields.map(([field, label, max]) => <label key={field} className={field === 'bio' || field === 'philosophy' ? 'wide' : ''} htmlFor={'profile-' + field}>{label}
           {field === 'bio' || field === 'philosophy' ? <textarea id={'profile-' + field} rows={4} value={profile.content[field] ?? ''} maxLength={max} disabled={busy} onChange={(e) => change(field, e.target.value)} />
-            : <input id={'profile-' + field} type={field.endsWith('Url') ? 'url' : 'text'} value={profile.content[field] ?? ''} maxLength={max} disabled={busy} onChange={(e) => change(field, e.target.value)} />}
+            : <input id={'profile-' + field} type="text" value={profile.content[field] ?? ''} maxLength={max} disabled={busy} onChange={(e) => change(field, e.target.value)} />}
         </label>)}</div><p className="geer-editor-hint">证书、社交账号和教学经历请填写真实内容。未配置的可选内容在公开页隐藏。</p></section>
         <section className="geer-card"><h2>图片与高光视频</h2><p className="geer-editor-hint">图片：JPG/PNG，8 MiB 内，最高 4096 × 4096。视频：MP4/H.264，100 MiB 内，最长 120 秒，最高 1080p；音轨可用 AAC。</p><div className="geer-upload-grid">{slots.map((slot) => <div className="geer-upload-slot" key={slot.purpose}><div className="geer-upload-heading"><strong>{slot.label}</strong>{profile.content[slot.field] && <button type="button" disabled={busy} onClick={() => {
           change(slot.field, ''); setProfile((p) => { if (!p) return p; const media = { ...p.media }; delete media[slot.purpose]; return { ...p, media }; });

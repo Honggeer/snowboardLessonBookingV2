@@ -1,6 +1,9 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import App from './App';
+import { CoachPresentation } from './AboutGeerPage';
+import userEvent from '@testing-library/user-event';
+import type { CoachProfile } from './coachProfileApi';
 
 afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
 const json = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body }) as Response;
@@ -36,4 +39,47 @@ it('initializes the session cookie before requesting the current account', async
   vi.stubGlobal('fetch', fetchMock); render(<App />);
   expect(fetchMock.mock.calls.some(([url]) => url === '/api/auth/me')).toBe(false);
   complete(json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }));
+});
+
+const profile = (content: Record<string, string>, media: CoachProfile['media'] = {}): CoachProfile =>
+  ({ published: true, version: 1, publishedVersion: 1, content: { displayName: 'GEER', ...content }, media });
+
+it.each(['', 'legacy-wechat'])('shows only the WeChat QR and supports enlargement without an account (%s)', async (wechatId) => {
+  render(<CoachPresentation profile={profile({ wechatId }, { WECHAT_QR: { id: 'qr', url: '/qr.png', expiresAt: '2099-01-01T00:00:00Z' } })} onBook={vi.fn()} />);
+  expect(screen.getByRole('img', { name: 'GEER 微信二维码' })).toBeTruthy();
+  expect(screen.queryByText('legacy-wechat')).toBeNull();
+  expect(screen.queryByRole('button', { name: '复制微信号' })).toBeNull();
+  const open = screen.getByRole('button', { name: '放大微信二维码' });
+  await userEvent.click(open);
+  expect(screen.getByRole('dialog', { name: '联系 GEER' })).toBeTruthy();
+  expect(screen.queryByText(/微信号：/)).toBeNull();
+  await userEvent.keyboard('{Escape}');
+  expect(screen.queryByRole('dialog')).toBeNull();
+  expect(document.activeElement).toBe(open);
+});
+
+it('shows social account names when no links are supplied', () => {
+  render(<CoachPresentation profile={profile({ xhsAccount: '小红书 自由昵称', douyinAccount: '抖音号 @GEER' })} onBook={vi.fn()} />);
+  expect(screen.getByText('小红书 自由昵称')).toBeTruthy();
+  expect(screen.getByText('抖音号 @GEER')).toBeTruthy();
+  expect(screen.queryByRole('link', { name: /查看主页/ })).toBeNull();
+});
+
+it('opens HTTP and non-platform links without requiring account names', () => {
+  render(<CoachPresentation profile={profile({ xhsUrl: 'http://short.example.test/one', douyinUrl: 'https://share.example.test/two' })} onBook={vi.fn()} />);
+  expect(screen.getByRole('link', { name: '小红书 · 查看主页' }).getAttribute('href')).toBe('http://short.example.test/one');
+  expect(screen.getByRole('link', { name: '抖音 · 查看主页' }).getAttribute('href')).toBe('https://share.example.test/two');
+  expect(screen.getByRole('link', { name: '抖音 · 查看主页' }).getAttribute('rel')).toBe('noopener noreferrer');
+});
+
+it('displays non-address text and other protocols without turning them into navigation', () => {
+  render(<CoachPresentation profile={profile({ xhsUrl: '主页链接稍后补充', douyinUrl: 'javascript:alert(1)' })} onBook={vi.fn()} />);
+  expect(screen.getByText('主页链接稍后补充')).toBeTruthy();
+  expect(screen.getByText('javascript:alert(1)')).toBeTruthy();
+  expect(screen.queryByRole('link', { name: /查看主页/ })).toBeNull();
+});
+
+it('hides empty contacts and a legacy WeChat account without a QR', () => {
+  render(<CoachPresentation profile={profile({ wechatId: 'legacy-wechat' })} onBook={vi.fn()} />);
+  expect(screen.queryByRole('heading', { name: '在这里找到我' })).toBeNull();
 });

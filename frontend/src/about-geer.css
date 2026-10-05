@@ -47,3 +47,12 @@
   .geer-book-banner .geer-button span{display:none}
   .geer-social-actions{flex-shrink:0}
 }
+
+/* The WeChat contact is a QR image; social names and link text can stand alone. */
+.geer-social-card>div{flex:1;overflow-wrap:anywhere}
+.geer-social-card>a{flex-shrink:0}
+.geer-wechat-card{flex-wrap:wrap}
+.geer-qr-thumbnail{border:0;background:#fff;padding:0;width:112px;height:112px;flex-shrink:0;cursor:pointer;border-radius:5px;margin-left:auto}
+.geer-qr-thumbnail img{display:block;width:100%;height:100%;object-fit:contain}
+.geer-qr-thumbnail .geer-image-fallback{height:100%;font-size:13px}
+.geer-qr-thumbnail:focus-visible{outline:3px solid #7ec8ff;outline-offset:4px}

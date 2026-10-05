@@ -33,6 +33,28 @@ it('keeps the format rejection message for genuinely invalid video content', asy
   expect((await screen.findByRole('alert')).textContent).toContain('文件格式或内容不符合要求，请重新选择文件。');
 });
 
+it('edits social text independently with length limits and no WeChat account field', async () => {
+  const fetchMock = vi.fn((url: string, options?: RequestInit) => Promise.resolve(
+    url === '/api/coach/profile/draft' ? options?.method === 'PUT'
+      ? json({ version: 1, publishedVersion: 0, content: JSON.parse(options.body as string).content, media: {} })
+      : json({ version: 0, publishedVersion: 0, content: { displayName: 'GEER', wechatId: 'legacy-wechat' }, media: {} }) : json({}, 404)));
+  vi.stubGlobal('fetch', fetchMock);
+  render(<CoachProfileEditor refreshCsrf={async () => ({ token: 'csrf', headerName: 'X-CSRF-TOKEN' })} onBack={vi.fn()} onUnauthorized={vi.fn()} />);
+  await screen.findByLabelText('小红书账号');
+  expect(screen.queryByLabelText('微信号')).toBeNull();
+  expect((screen.getByLabelText('小红书账号') as HTMLInputElement).maxLength).toBe(80);
+  const link = screen.getByLabelText('抖音主页链接') as HTMLInputElement;
+  expect(link.type).toBe('text');
+  expect(link.maxLength).toBe(2048);
+  await userEvent.type(screen.getByLabelText('小红书账号'), '自由昵称 @GEER');
+  await userEvent.type(link, '主页稍后补充');
+  await userEvent.click(screen.getByRole('button', { name: '保存草稿' }));
+  expect((await screen.findByRole('status')).textContent).toContain('草稿已保存');
+  const save = fetchMock.mock.calls.find(([, options]) => options?.method === 'PUT');
+  expect(JSON.parse(save?.[1]?.body as string).content).toMatchObject({ xhsAccount: '自由昵称 @GEER', douyinUrl: '主页稍后补充' });
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
 async function uploadResult(status: string, errorCode: string) {
   const ticket = { id: 'video', purpose: 'HIGHLIGHT_VIDEO', status: 'VERIFYING', size: 10, uploadUrl: null,
     headers: {}, expiresAt: '2099-01-01T00:00:00Z', preview: null, errorCode: null };

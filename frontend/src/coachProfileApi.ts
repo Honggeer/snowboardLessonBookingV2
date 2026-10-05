@@ -23,11 +23,10 @@ export function requestKey() {
   const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
-export function safeSocialLink(value: string | undefined, platform: 'xhs' | 'douyin') {
+export function socialLinkTarget(value: string | undefined) {
   if (!value) return undefined;
   try {
-    const url = new URL(value), domains = platform === 'xhs' ? ['xiaohongshu.com', 'xhslink.com'] : ['douyin.com'];
-    return url.protocol === 'https:' && !url.username && !url.password && (!url.port || url.port === '443')
-      && domains.some((domain) => url.hostname === domain || url.hostname.endsWith('.' + domain)) ? url.href : undefined;
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.href : undefined;
   } catch { return undefined; }
 }
