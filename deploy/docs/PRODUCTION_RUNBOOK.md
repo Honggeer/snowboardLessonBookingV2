@@ -1,6 +1,6 @@
 # v2 生产交付运维手册
 
-对应 [0010 revision 3](../../ai-docs/implement-plan/0010-production-delivery.md)。用户已批准真实上线与 commit/push，云资源、独立生产库、可信 IP HTTPS 和首个 CI/CD 发布已完成。用户最后指定初始教练邮箱并明确账号、业务/邮件与媒体测试自行进行；这些场景不作为已通过的技术验收。最终公网状态、发布 SHA/digest、实际备份恢复及后续限制见计划第 8/9 节。
+对应 [0010 revision 4](../../ai-docs/implement-plan/0010-production-delivery.md)。revision 3 首次上线已完成，revision 4 域名接入、生产切换和 commit/push 已获用户批准；本修订进展及实际公网、证书、CORS、发布证据见计划第 8/9 节。账号、完整业务/邮件与媒体测试继续由用户自行进行，不以健康检查代替完整验收。
 
 ## 1. 已交付与本地检查
 
@@ -38,7 +38,7 @@ python3 deploy/tests/verify_delivery.py
 |---|---|---|
 | EC2 | 已有 Canada Central t4g.small / ARM64 / Standard / AL2023；Docker/Compose 已准备 | 已有实例 + 一个公网 IPv4 的参考基础成本约 24.33 CAD/月，来源与口径见 0010；不含下列费用及税 |
 | EBS | 现用 20 GiB gp3 已加密，根盘 `vol-00a6aa379a31df78d`；旧卷/快照仍在 48 小时回退保留期，TODO-0024 IN_PROGRESS | 常态约 2.51 CAD/月；旧盘/快照最多保留 48 小时临时约 0.27 CAD，失败保留并报告；换盘复核成功；限定旧资源清理最早 2026-10-06 21:08 UTC，已授权但未到时间 |
-| 地址 / 域名 | 用户跳过域名；固定 EIP `52.60.174.156`，可信 IP HTTPS | 同时仅一个 IPv4；不买域名、不建 Route 53/ALB/NAT；EIP/证书已创建，实际续期 dry-run/hook 成功 |
+| 地址 / 域名 | 主域名 `ridewithgeer.com`、别名 `www.ridewithgeer.com`，复用固定 EIP `52.60.174.156`，三个地址共用可信 HTTPS 证书 | 域名已由用户购买，续费由用户管理；只有原 IPv4，不建 Route 53/ALB/NAT，实际切换/续期状态见计划 |
 | 媒体 | staging/frozen 两个独立私有 S3 桶，staging 开启 versioning；CloudFront OAC + viewer key group | 统计媒体大小、版本、播放/请求量和区域价格，不能只算逻辑配额或免费字样 |
 | 运维 | 第三个私有桶，可共用 `releases/` 与 `db-backups/`；不连接 CloudFront | 备份当前对象保留 7 天，非当前版本另保留 1 天，删除可能异步；发布包保留当前/上一版及重建所需版本 |
 | ECR | 两个限定仓库，SHA tag IMMUTABLE，部署使用 digest | 清理超过 7 天的 untagged 镜像；tagged 镜像先核对当前/上一版，不能用最近 N 个规则误删回退点 |
@@ -81,9 +81,34 @@ JSON 文件是 API 输入片段：IAM 用 `--policy-document`，SSM 用 `--conte
 
 NGINX 信任入口自身观察到的客户端 IP；覆盖 X-Real-IP/X-Forwarded-For/X-Forwarded-Proto，应用仅信任 frontend 的容器地址。健康检查包含应用及数据库，SMTP health indicator 关闭；邮件必须在正式业务验收中实际送达，并检查持久化任务失败/积压，不能把 UP 当成发信成功。
 
-## 5. IP HTTPS 与续期（本次跳过域名）
+## 5. 域名、HTTPS 与续期
 
-本次首发采用一个实际分配的 EIP；`APP_PUBLIC_URL`、host.json public_url、staging CORS origin 都为 `https://<实际EIP>`。实际固定地址为 `52.60.174.156`，公开根地址为 `https://52.60.174.156`。生产不使用测试证书。
+revision 4 主地址为 `https://ridewithgeer.com`，www 和 `https://52.60.174.156` 继续可访问同一应用。原 IP 是首次上线地址，不是当前推荐的邮件/网站入口。新域名使用独立的 host-only 会话 Cookie，需要重新登录；已经生成的 IP 注册验证链接保持可用，新生成的验证链接取 `APP_PUBLIC_URL`。找回密码仍发送验证码；Gmail 发件人和 CloudFront 媒体地址沿用原配置。
+
+DNS 由当前 Cloudflare 名字服务器管理，使用 DNS only（灰云），符合现有 NGINX 的客户端 IP 与可信代理配置；不启用 Cloudflare 代理。两条实际记录：
+
+| 类型 | 名称 | 内容 | TTL / 代理 |
+|---|---|---|---|
+| A | `@` | `52.60.174.156` | Auto / DNS only |
+| CNAME | `www` | `ridewithgeer.com` | Auto / DNS only |
+
+生产地址维护要同步两处 root:root / 0600 文件：`/etc/snowboard-v2/production.env` 的 APP_PUBLIC_URL 与 `/etc/snowboard-v2/host.json` 的 public_url，均为 `https://ridewithgeer.com`。在发布锁下保存受限回退副本，再以 current.json 的成功版本只重新创建 backend，使参数生效；不读取或打印其他配置/密码。main 发布程序仍从服务器的受限配置读取地址，CI 不上传本机 env。
+
+staging 桶 CORS 的 AllowedOrigins 精确为 `https://ridewithgeer.com`、`https://www.ridewithgeer.com`、`https://52.60.174.156`，AllowedMethods 为 PUT/HEAD，AllowedHeaders 为 content-type/x-amz-*，ExposeHeaders 为 ETag/x-amz-version-id，MaxAgeSeconds 为 600。先备份现有 CORS，再更新；验证三个 origin 的 OPTIONS 预检成功、无关 origin 不获允许。模板生成器用于初始单 origin 配置；维护现有站点时要保留这三个精确来源，不直接用单 origin 产物覆盖当前 CORS。
+
+证书沿用 `/etc/letsencrypt/live/52.60.174.156` lineage，SAN 包含 IP `52.60.174.156`、DNS `ridewithgeer.com` 与 `www.ridewithgeer.com`；这一路径名是原证书名称，不代表仅覆盖 IP。复用 Certbot 5.8.0、shortlived profile、webroot `/var/lib/snowboard-v2/acme`、只读挂载的 TLS 目录及原 deploy hook。shortlived 支持 DNS/IP，有效期 160 小时；两个域名的 DNS 和 HTTP-01 必须持续正确，不能删除 www 解析后继续依赖同一证书。[Let's Encrypt profiles](https://letsencrypt.org/docs/profiles/)、[Certbot 官方指南](https://eff-certbot.readthedocs.io/en/stable/using.html)。
+
+修改证书覆盖范围使用 Certbot 的 cert-name、域名/IP 参数和 webroot，先 dry-run，再正式申请并通过 `/opt/snowboard-v2/bin/renew-certificate.sh` 安装；不手改 renewal 文件，不安装 staging 证书。续期维护检查为：
+
+```sh
+/opt/snowboard-v2/certbot/bin/certbot renew --cert-name 52.60.174.156 --dry-run --run-deploy-hooks
+systemctl is-enabled snowboard-v2-certbot.timer
+systemctl is-active snowboard-v2-certbot.timer
+```
+
+deploy hook 校验密钥匹配、剩余有效期并测试/reload NGINX；与发布/备份共用锁，不在持有发布锁时再调用会取锁的 hook。核对 mounted 证书与 lineage 一致以及三个地址的信任链、SAN、有效期；定时器每天 00/12 UTC 检查。切换回退副本位于 root 0700 的 `/etc/snowboard-v2/domain-rollout-r4-20261005/`，内部文件 0600；原 CORS 副本在执行端的忽略目录。回退仅恢复 public URL/CORS 和 backend 参数，保留数据，已有效且覆盖旧 IP 的新证书可继续使用。
+
+以下保留 revision 3 的首次 IP 证书历史；后续日期/覆盖范围以实际证书和计划证据为准。
 
 [Let's Encrypt 官方 IP 证书指南](https://letsencrypt.org/2026/03/11/shorter-certs-certbot)确认 Certbot ≥5.4 的 `--ip-address <实际EIP>`、`--preferred-profile shortlived` 与 webroot 支持。沿用 Certbot 5.8.0；初次先 staging standalone HTTP-01，再正式申请，证书约六日有效。NGINX 启动后使用 `certbot reconfigure` 转为 webroot 和既有 deploy hook，核对保存的 renewal 配置与 lineage `/etc/letsencrypt/live/<实际EIP>`；daily twice timer 必须实际启用并 dry-run/reload 通过。不要用 `-d <IP>` 冒充域名或使用暂不支持 IP 的 nginx installer。
 

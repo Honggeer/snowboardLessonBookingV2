@@ -19,6 +19,6 @@
 | 0007 | [预约邮件通知与取消规则提示](0007-booking-email-notifications.md) | [0007](../implement-plan/0007-booking-email-notifications.md) | VERIFIED | 2026-10-01 |
 | 0008 | [关于 GEER：教练主页与媒体管理](0008-about-geer.md) | [0008](../implement-plan/0008-about-geer.md) | RELEASED | 2026-10-05 |
 | 0009 | [选课页品牌与课程封面交互](0009-course-selection-visuals.md) | [0009](../implement-plan/0009-course-selection-visuals.md) | VERIFIED | 2026-10-04 |
-| 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../implement-plan/0010-production-delivery.md) | RELEASED | 2026-10-04 |
+| 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../implement-plan/0010-production-delivery.md) | IMPLEMENTED | 2026-10-05 |
 
 0010 的 deploy 目录整理已完成本地验证；当前目录与命令见 [部署入口](../../deploy/README.md)，实际证据保存在配对记录中。目录整理已由用户提交推送；生产密钥文件权限维护已实际执行并验证，代码发布状态另按远端 CI/CD 结果核对。

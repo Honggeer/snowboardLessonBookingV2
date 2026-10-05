@@ -2,7 +2,7 @@
 
 `deploy/` 负责本地开发环境、GitHub 自动发布、EC2 上的发布与回退，以及数据库备份、独立恢复检查和 HTTPS 证书续期。业务代码在 `backend/` 和 `frontend/`。
 
-生产站点：[https://52.60.174.156](https://52.60.174.156)。`main` 的 CI 成功后自动部署；当前运行证据、备份和待验证事项见 [生产运维手册](docs/PRODUCTION_RUNBOOK.md) 与 [0010 交付记录](../ai-docs/implement-plan/0010-production-delivery.md)。
+生产主地址：[https://ridewithgeer.com](https://ridewithgeer.com)，www 和原 IP 保留。`main` 的 CI 成功后自动部署；域名切换的当前进展、运行证据、备份和待验证事项见 [生产运维手册](docs/PRODUCTION_RUNBOOK.md) 与 [0010 revision 4](../ai-docs/implement-plan/0010-production-delivery.md)。
 
 ## 目录职责
 

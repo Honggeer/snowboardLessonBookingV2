@@ -1,17 +1,59 @@
 ---
 id: "0010"
 title: "首次生产上线与 CI/CD"
-status: RELEASED
-revision: 3
-approved_revision: 3
+status: IMPLEMENTED
+revision: 4
+approved_revision: 4
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 feature: "../features/0010-production-delivery.md"
 ---
 
 # 0010 — 首次生产上线与 CI/CD 实施计划
 
 ## 1. Review 摘要
+
+### revision 4：接入 ridewithgeer.com（已批准执行）
+
+2026-10-05 用户告知“ridewithgeer.com 买好了”。主地址提议为 `https://ridewithgeer.com`，`https://www.ridewithgeer.com` 可访问同一网站，旧 IP HTTPS 保留。购买域名的消息确认名称，不作为具体生产切换或新 commit/push 的批准。下文 revision 2/3 的批准与实际 RELEASED 证据作为历史保留。
+
+最初只读核对：NS 为 `odin.ns.cloudflare.com`、`annabel.ns.cloudflare.com`，当时根域名/www 尚无指向服务器的 A 解析，AWS 临时登录已过期。用户批准后完成 AWS 登录和 DNS；已从权威服务器、1.1.1.1/8.8.8.8 核对两条记录直达现有 EIP。NGINX、public_url 校验和 APP_PUBLIC_URL 原本已支持域名，无需新增业务代码。执行结果见第 8 节。
+
+| 对象 | 具体变更 |
+|---|---|
+| DNS，由用户操作 | 管理当前名字服务器的 DNS 控制台添加 `A / @ / 52.60.174.156`、`CNAME / www / ridewithgeer.com`，均为 DNS only（灰云）、TTL Auto；不创建 Route 53、不开启 Cloudflare 代理 |
+| 服务器与 TLS | 仅操作 `ca-central-1` 的 `i-0c7978984740cbd58`；复用 EIP `52.60.174.156`、Certbot 5.8.0、lineage `/etc/letsencrypt/live/52.60.174.156`、TLS 挂载目录与现有校验/reload hook。扩展证书 SAN 为根域名、www 和旧 IP，保留每日 00/12 UTC 续期 timer |
+| 生产参数 | `/etc/snowboard-v2/production.env` 的 APP_PUBLIC_URL、`/etc/snowboard-v2/host.json` 的 public_url 改为 `https://ridewithgeer.com`，仍 root:root / 0600；其他参数、密钥与 certificate_lineage 保留。仅以当前成功版本镜像重新创建 backend，使环境参数生效，不重启或重建数据库 |
+| S3 上传 CORS | 仅 `snowboard-v2-481604401994-ca-central-1-staging` 的 AllowedOrigins 扩为 `https://ridewithgeer.com`、`https://www.ridewithgeer.com`、`https://52.60.174.156`；保留 PUT/HEAD、原允许/暴露 header 和 600 秒 MaxAge，不使用通配 origin |
+| 文件与发布 | 更新配对文档、两个索引、`deploy/docs/PRODUCTION_RUNBOOK.md`、`deploy/docs/EC2_SETUP.md`，记录主机地址/CORS 的维护方法和实际证据。若用户明确批准本修订的 commit/push，以 `chore: connect production website domain` 提交相关文件并推现有 main，等待现有 CI/CD，不 amend/force push |
+
+证书方式依据 [Let's Encrypt profiles](https://letsencrypt.org/docs/profiles/)（shortlived 支持 DNS/IP，160 小时）及 [Certbot 5.8.0 官方指南](https://eff-certbot.readthedocs.io/en/stable/using.html)（cert-name、域名/IP SAN、webroot、dry-run）。使用以下参数先完成 staging dry-run；成功后去掉 dry-run 申请正式证书，通过既有 hook 安装，不停止 NGINX 或安装测试证书：
+
+```sh
+/opt/snowboard-v2/certbot/bin/certbot certonly --non-interactive \
+  --cert-name 52.60.174.156 --renew-with-new-domains \
+  --webroot --webroot-path /var/lib/snowboard-v2/acme \
+  --ip-address 52.60.174.156 \
+  -d ridewithgeer.com -d www.ridewithgeer.com \
+  --preferred-profile shortlived --dry-run
+```
+
+批准后按以下顺序执行：
+
+1. 记录批准 revision 4 的用户原话、范围及 Git 授权。用户添加 DNS 并执行 `aws login --profile snowboard-v2` 后，复核账户、实例、当前 SHA/digest、现有证书/timer 与运行状态；缺 DNS/认证不能记作 RED。
+2. 在忽略目录 `.local/domain-rollout/` 建立真实目标检查：先证明 IP HTTPS 正常，再把根域名/www 的 SNI 请求固定至既有 EIP，断言证书信任与主机名。因现有 IP 证书缺少域名 SAN 而失败才算有效 RED；测试/环境故障不算。批准前不编写此检查或实现。
+3. 保护保存原 public URL、完整 CORS、mounted TLS 和 Certbot 配置回退副本，不输出秘密。先 dry-run，后正式扩展/安装，运行同一 TLS 检查 GREEN，核对三个 SAN、信任链、到期时间、HTTP 308/HTTPS 200。验证 `renew --cert-name 52.60.174.156 --dry-run --run-deploy-hooks`，检查 mounted certificate 与 lineage 一致、timer enabled/active。复用发布锁；不得持锁调用会再次取锁的 hook。
+4. 增加精确 CORS，以无写入的 PUT/HEAD 预检覆盖根域名/www/旧 IP 正例及无关 origin 反例。然后在发布锁内安全更新两个 public URL，仅重新创建当前 backend；核对唯一 worker、三容器和主域名 runtime health。失败按下面回退。
+5. 安全检查运行中的 APP_PUBLIC_URL 已生效、`identity.public-url` 的属性映射正确；执行既有 `MailWorkerTest` 与 `PasswordRecoveryFlowTest` 回归，结合注册链接拼接源码核对新地址，结果不作为真实邮件实收证据。找回密码发送验证码，既有预约通知不依赖此 URL，不新增找回/通知链接。不额外发送外部邮件。实际 HTTPS 验证首页、静态资源、health、CSRF、安全 Cookie、匿名 me 401 和公开媒体展示，不写入生产账号/预约/媒体。
+6. 执行文档/差异检查、既有 deploy 回归及关联邮件链接用例；不重复无关完整恢复演练。同步运维说明、RED/GREEN/续期/CORS 的实际证据，明确 Git 授权后 commit/push；等待同 SHA CI 和 Production delivery 成功，复核域名/www/旧 IP 及 current SHA。域名及此次实际发布验收完成后才记录 VERIFIED / RELEASED。
+
+成本与风险：复用现有资源，不新增 EC2/EIP/ALB/Route 53/付费邮箱；域名已由用户购买，续费由用户管理，请求/流量按既有 AWS 计费。单机 backend 重新创建有短暂不可用；新域名与旧 IP 的 host-only Cookie 独立，需要重新登录。已生成的 IP 邮件链接不重写，旧地址保持可用，之后新生成的链接使用主域名。三个 SAN 共用证书，后续续期要求两个域名 DNS 和 HTTP-01 持续正确，不能随意删除 www 解析。域名邮箱、Gmail 发件人和 SPF/DKIM/DMARC 不在本次范围，不能保证垃圾邮件分类；问题仍见 [TODO-0030](../todo/0030-production-registration-mail-not-received.md)。CloudFront 媒体地址、私有桶、数据与备份沿用现有配置。
+
+回退：恢复原 public URL/CORS，并仅重新创建旧参数 backend；证书安装失败由已有 hook 恢复 mounted 文件，已有效且包含旧 IP 的新证书可保留。必要时用受支持 Certbot 命令重配证书范围并 dry-run，不手改 renewal 文件或删除 DNS。数据库卷、账号、邮件任务与媒体保留，不逆向迁移、不覆盖生产数据。
+
+**待 review 的具体范围**：本节网站域名/TLS/生产参数/S3 CORS 的实现、生产切换与验证，以及相关文件 commit/push 和既有自动发布。用户负责 DNS 控制台与 AWS 浏览器登录，不提供长期 key。原 revision 3 明确跳过域名，不自动批准本修订。
+
+### revision 2/3 首次交付历史
 
 让网站以 HTTPS 正式运行，并用 GitHub Actions 构建版本化镜像、发布到单台 EC2、验证健康状态和恢复兼容的上一版本。关联[功能 0010](../features/0010-production-delivery.md)与 [ADR 0001](../decisions/0001-v2-baseline.md)。revision 2 本地实现和 revision 3 首发均已获用户明确批准；首个受测版本已部署到既有 EC2。最终公网交付与验证结果见第 8/9 节，用户最新自行测试的交付条件见第 2 节。
 
@@ -88,8 +130,9 @@ feature: "../features/0010-production-delivery.md"
 | 2026-10-04 | “开始实现”（紧接 revision 2 P-02 至 P-07 review 提交） | 2 | 批准 P-02 至 P-07 本地交付实现及隔离验证；不包含 P-08 真实资源创建、生产初始化、发布、Git commit/push |
 | 2026-10-04 | “按 revision 3 上线，并允许你 commit/push。我有个问题，不需要我提供任何key认证吗？如果需要我亲手做的跟我说，我本地varification key是以传参给到idea的” | 3 | 明确批准第 1 节 P-08 现有实例/EIP/IP TLS、加密换盘与限定临时资源清理、云资源、空库初始化、首发验收与公网开放；明确允许 Codex commit/push，禁止 amend/force push。生产密钥独立生成；需要用户亲手认证或非密钥账号信息时说明，不索取本地 verification key |
 | 2026-10-04 | “初始教练账号用honggeer1208@gmail.com,你上线了就可以了，账号还有什么的我可以自己搞，我自己测试” | 3（用户直接调整交付条件） | 指定初始邮箱并要求完成公网发布；账号、业务和媒体由用户上线后自测，原定业务/媒体/并发场景不再阻塞本次技术发布。保留 HTTPS、自动发布、运行状态与备份恢复验证；未测项目不得记为通过。不新增资源、架构、费用或业务实现 |
+| 2026-10-05 | “批准，我也登陆了aws”（紧接本修订生产切换与 commit/push 的具体 review 请求） | 4 | 批准第 1 节域名/TLS/生产 public URL/staging CORS 切换、验证、相关文件 commit/push 与既有 main 自动发布。复用现有资源，保留旧 IP 和生产数据；用户负责 DNS 记录和 AWS 浏览器登录，不新增付费资源或域名邮件服务 |
 
-revision 2 的 P-02 至 P-07 已完成测试先行、本地实现及隔离验证，证据保留。当前 `approved_revision: 3`，按用户最新指定的交付条件记录技术发布与用户自测的实际边界；未完成的业务/媒体/并发场景不得写为通过。
+2026-10-05 用户“ridewithgeer.com 买好了”最初仅确认域名购买，随后明确批准本修订。当前 `approved_revision: 4` / IMPLEMENTED；域名配置已生效并通过技术检查，新提交 CI/CD 验收仍待执行。revision 2/3 的历史与未完成业务自测边界保留。
 
 ## 3. 实现步骤与预计文件
 
@@ -104,6 +147,7 @@ revision 2 的 P-02 至 P-07 已完成测试先行、本地实现及隔离验证
 | P-07 | 预计 `deploy/PRODUCTION_RUNBOOK.md`、资源/IAM 配置模板 | 整理 EC2/EBS/IP/ECR、私有 S3/staging versioning、CloudFront OAC/key group、CORS、SSM、TLS 续期、密钥注入、容量/费用及清理步骤 | 用户可照清单配置；权限边界和准确费用可 review | 实际资源和配置已完成，IDs 见第 8 节；账单随实际使用观察 |
 | P-08 | 同上及本计划证据 | revision 3 明确现有实例、EIP/IP TLS、加密换盘、云资源及费用；限制入口技术验收、备份恢复和初始化正式教练后开放公网；账号/业务/媒体及并发按用户最后要求自行测试 | 发布后验收及账单观察有实际证据 | 已批准 / 云资源、主机与首个自动部署已完成，公网已开放 / 技术发布验证通过；用户自行进行账号/业务/媒体/并发验收，证据见第 8 节 |
 | P-09 | 功能、计划、索引、相关说明 | 更新实际文件、RED/GREEN、限制、资源账单、发布 SHA、回退点与日期 | IMPLEMENTED/VERIFIED/RELEASED 依据分别完整 | 技术发布、用户自测边界、实际资源/版本/备份/限制已同步 |
+| P-10 | 配对记录、受限主机参数、Certbot lineage、staging CORS、运维文档 | 第 1 节 revision 4 的域名/TLS/URL/CORS 切换、RED/GREEN、续期与同 SHA 发布验收 | 域名、旧 IP、上传来源与实际 CI/CD 证据齐全 | IMPLEMENTED；DNS/TLS/CORS/续期/参数/浏览器与关联回归通过，新提交 CI/CD 验收待执行 |
 
 - [x] P-01 调查部分：恢复会话、复核 EC2/最新 CI，确认自动发布与每日备份目标，形成 revision 2 本地实施范围。
 - [x] P-01 review：用户明确批准 revision 2 的 P-02 至 P-07 和 revision 3 P-08，并允许 commit/push；最新自行测试条件已记录。
@@ -233,6 +277,23 @@ Shell 检查使用受控替身验证参数/状态，并在隔离实际 Compose �
 
 ## 8. 实际验证证据
 
+### revision 4 域名接入（2026-10-05）
+
+- 用户明确“批准，我也登陆了aws”，后续确认“我这边也搞定了”。STS 账户 `481604401994`；目标实例 running / t4g.small / EIP `52.60.174.156`。DNS 权威服务器及两组公共解析器均核对根域名 A 与 www CNAME → 现有 EIP，无 AAAA/CAA 冲突。
+- 正式操作前 SSM `49ce2c44-a5aa-48ba-8635-f16d2f68bc56` Success / 0：当前 SHA `b83af40438c7240bfd48db593f8b5c3b32a38c83`，三个容器 healthy / OOM false，Certbot 5.8.0、webroot、shortlived 与 backup/certbot timer 正常，配置/私钥 root:root / 0600。初次诊断脚本的 ConfigParser 未处理 Certbot 无 section 的前导元数据，修正后重跑成功；这不是行为 RED。
+- 回退副本 SSM `9907c8f3-2cb4-45bb-ae4c-6c8b1a272e88` Success / 0：原 host/env、mounted TLS、renewal 配置及原容器 IDs/启动时间保存于 root 0700 目录，6 个文件均 0600。原 S3 CORS 在执行端忽略目录保护保存。没有输出密钥、密码或环境文件内容。
+- TLS **RED**：`python3 .local/domain-rollout/test_domain_tls.py`，3 tests / 2 failures。固定 EIP 请求并保留正确 SNI，旧 IP HTTPS/health 通过，根域名和 www 因原证书缺少对应 SAN 而 curl 60 / hostname mismatch；不是 DNS/环境失败。staging SSM `5346651d-26db-4e8e-a3ba-1cab3e0cbb41` Success / 0，三个 identifiers 的 HTTP-01 dry-run 通过，未安装测试证书。
+- 正式证书 SSM `1034b3db-06b9-45bf-8e1c-25c14527e9e1` Success / 0，扩展原 lineage 并执行既有安装 hook。**GREEN**：同一 TLS 目标 3 tests / OK，两个域名和旧 IP 的信任及 health UP 全部通过；实际公共 DNS 下根域名 health UP、HTTP 308 → 同域 HTTPS。
+- CORS **RED**：`python3 .local/domain-rollout/test_staging_cors.py`，2 tests / 4 subtest failures；根域名和 www 的 PUT/HEAD 预检返回 403，旧 IP 与无关 origin 反例原本符合预期。仅扩展精确 AllowedOrigins 后，同一目标 **GREEN**：2 tests / OK，三个 origin 的 PUT/HEAD 200、无关 origin 403，无实际对象上传/删除。
+- 关联回归：`python3 -m unittest discover -s deploy/tests -p 'test_*.py'` 27 tests / OK；backend 的 `env DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock ./mvnw -B -Dtest=MailWorkerTest,PasswordRecoveryFlowTest test` 9 tests / BUILD SUCCESS。首次遗漏本机 Colima 环境变量导致 Docker discovery 错误，按现有 README 修正后通过，不算 RED。
+- 真实 Chrome：`node .local/domain-rollout/browser-check.mjs`，根域名 390/1440 px 的公开主页、无横向溢出、pageErrors 0、CSRF 200、匿名 me 401、Secure/HttpOnly/SameSite=Lax 会话 Cookie 通过；www 页面 200。初次等待 networkidle 被媒体持续请求阻塞，改为 DOMContentLoaded 并等待实际页面标题后通过；属于检查等待条件修正，不是产品缺陷。
+- 续期 SSM `e996fbda-b5f3-4ad2-9365-3859f77e6a74` Success / 0；Certbot 非交互 renewal 的实际随机等待约 397.82 秒后完成 dry-run。SSM `965e7c50-8e42-4f2a-903c-6a6673657db0` Success / 0，确认 deploy hook 确实执行、mounted fullchain 与 active lineage 一致，证书 SHA-256 `7857d9393459a1fe3952c591f4e8a27651fc7552fa21b4092ffaa9cc6a44654b`。
+- 参数切换 SSM `c0eefd91-42d2-4843-a539-f194ba8c6397` Success / 0：host public_url 与运行 backend 的 APP_PUBLIC_URL 均为 `https://ridewithgeer.com`，只重新创建 backend，db/frontend 容器 ID 和启动时间不变，三容器 healthy，schema 10。配置/密钥未输出，0600/root:root 保持；注册验证链接由既有属性映射和已回归的发送逻辑取新地址，不宣称新邮件实收。
+- 切换后 SSM `b73f07fc-b646-4059-8726-ad4e077edbf6` Success / 0：新 SAN 为两个域名及旧 IP，证书到期 **2026-10-12 10:44:25 UTC**，webroot/shortlived/renew_hook 已保存，backup/certbot timer active、续期 timer enabled。同一 TLS 3 tests / OK，真实 Chrome 390/1440 px 与 www 检查再次通过。
+- 实际文件为配对文档/索引、根 README、deploy README、EC2_SETUP 与 PRODUCTION_RUNBOOK；忽略目录内的操作/验证脚本不加入 Git。既有业务代码、部署程序、镜像构建及 AWS 资源类型无需改变。新提交 CI/CD 的证据待实际完成后补充，不提前记为通过。
+
+### 首次交付历史证据
+
 | 日期 | 环境/目录 | 实际命令/步骤 | 实际结果 | 限制/失败与处理 |
 |---|---|---|---|---|
 | 2026-10-04 | 本地仓库 | Git 状态、读取 CI/Compose/应用配置 | 初始工作区干净；CI 已存在但 CD/生产配置未实现 | 无 gh，当前远端 CI 结果未核实 |
@@ -254,6 +315,8 @@ Shell 检查使用受控替身验证参数/状态，并在隔离实际 Compose �
 | 2026-10-04 | 仓库根 / revision 2 文档同步 | `python3 ai-docs/check_docs.py`；`git diff --check` | 均 exit 0；11 paired records、24 tickets，链接/状态/索引/review gates 通过 | 仅文档通过；实现、云端权限、业务部署和生产验收未执行 |
 
 ### revision 3 准备的实际证据
+
+新增 revision 4 准备证据（2026-10-05）：`dig` 经 1.1.1.1/8.8.8.8 核对 NS 与根域名/www 解析；可信 IP HTTPS health UP；AWS STS 检查报告临时登录过期。配对文档和索引更新后 `python3 ai-docs/check_docs.py` 为 OK（11 paired records / 30 tickets），`git diff --check` exit 0。仅文档和只读调查，未编写域名测试/实现、未修改生产配置或 commit/push。
 
 - `describe-instances`：`i-0c7978984740cbd58` running / t4g.small / ARM64，当前自动 IP `15.223.235.98`；`describe-instance-information`：SSM Online、agent 3.3.5226.0。
 - `describe-volumes`：根盘 20 GiB gp3、Encrypted false、AZ ca-central-1d；`describe-security-groups` 入站为空；`describe-addresses` 该实例无 EIP。两次分别查询 backend/frontend ECR 均 RepositoryNotFoundException；`list-open-id-connect-providers` 空。未创建、停止、换盘或修改权限。
@@ -315,6 +378,7 @@ env JAVA_HOME=/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home D
 
 ## 9. 完成状态与后续
 
+- 当前 revision 4 / IMPLEMENTED：域名生产配置已生效，TLS/CORS RED/GREEN、自动续期/安装 hook、主机参数、真实浏览器与关联回归通过。新提交 CI/CD 验收仍待完成，因此尚未把本修订升级为 VERIFIED / RELEASED；下列 revision 2/3 历史证据不作为域名验收。
 - IMPLEMENTED：revision 2 P-02 至 P-07 本地交付及 revision 3 实际配置/CI/CD 已实现；后续备份生成列统计修复先 RED 再 GREEN，当前交付回归 25 项通过。
 - VERIFIED：按用户最后指定的自测条件，远端 CI/CD、真实 EC2 启动/迁移、公网 HTTPS/Cookie/匿名边界、续期 hook/timer、运行余量、异机 S3 备份与独立恢复已通过，实际证据见第 8 节。
 - RELEASED：2026-10-04 多伦多 19:41 公网开放并验证，地址 https://52.60.174.156；初始教练邮箱为用户最后指定地址。用户自行验证邮箱后通过找回密码设置密码，账号、预约/通知、媒体上传/完整播放、重启会话和并发压测未由 Codex 验收，不记为通过。

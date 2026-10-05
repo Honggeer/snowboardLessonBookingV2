@@ -1,10 +1,10 @@
 ---
 id: "0010"
 title: "首次生产上线与 CI/CD"
-status: RELEASED
+status: IMPLEMENTED
 plan: "../implement-plan/0010-production-delivery.md"
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 contract_version: "1.6"
 modules: [bootstrap, identity, media, notifications, frontend, deploy]
 ---
@@ -13,8 +13,11 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 
 ## 1. 目标、触发与范围
 
+- 2026-10-05 用户告知“ridewithgeer.com 买好了”，具体 review 后明确“批准，我也登陆了aws”。新增域名接入对应 revision 4 / IMPLEMENTED，批准涵盖生产切换与 commit/push；域名配置已生效，新提交 CI/CD 验收仍待执行。原 revision 2/3 的历史作为历史保留。
+- 本修订以 `https://ridewithgeer.com` 为主地址，支持 `https://www.ridewithgeer.com`，保留 `https://52.60.174.156`。复用既有 EC2/EIP/NGINX、证书续期和 main 自动发布；同步 production public URL 与 staging S3 精确 CORS。新生成的注册验证链接使用主域名，旧 IP 链接继续可访问；找回密码仍发送验证码，新域名下需要重新登录。
+- 网站域名接入沿用现有 Gmail 发件人；域名邮箱、发信服务与 SPF/DKIM/DMARC 另行决定，不承诺邮件进入收件箱。本次不新增 AWS 资源或修改现有账号、预约与媒体数据。
 - 用户请求：“我想上线，然后做CICD，需要我做什么呢？我准备开AWS ec2了”。首次需求调查后，用户已明确批准 revision 2 本地实现和 revision 3 生产上线及 commit/push；批准原话见配对计划。
-- 配对[实施计划](../implement-plan/0010-production-delivery.md) revision 3，当前 RELEASED；revision 2 的 P-02 至 P-07 已按批准完成本地交付实现和隔离验证，证据保留；revision 3 的 P-08 实际资源/生产发布已获用户批准，并明确允许 commit/push；首个远端受测版本及备份修复已部署，公网开放并验证，最终交付证据见下文。
+- 配对[实施计划](../implement-plan/0010-production-delivery.md) revision 3 已 RELEASED；revision 2 的 P-02 至 P-07 已按批准完成本地交付实现和隔离验证，证据保留；revision 3 的 P-08 实际资源/生产发布已获用户批准，并明确允许 commit/push；首个远端受测版本及备份修复已部署，公网开放并验证，最终交付证据见下文。
 - 用户已确认 AWS 总预算目标约 30 CAD/月、区域 `ca-central-1`、无现有域名、已有对外发信配置；v2 是全新网站，不导入 v1 用户或预约数据。区域为 Canada (Central)，不能把业务时区 `America/Toronto` 当成服务器区域名称。
 - 用户随后要求先准备 EC2、域名后置，并说明单教练自用接学员、访问量较低；先交付[创建与登录指南](../../deploy/docs/EC2_SETUP.md)。建议 t4g.small/ARM64、Amazon Linux 2023 与 20 GiB gp3；不构成整体计划批准。
 - 用户回传服务器基础检查后，要求 Codex 远程操作、提供目标实例并完成 AWS 浏览器认证。已通过 SSM 独立核对 t4g.small/ARM64、AL2023.12、Standard、入站为空、IMDSv2，安装并验证 Docker Engine 25.0.16 和 Compose v5.6.0。服务器准备有实际证据，整体生产配置/CI/CD 实现仍未获批准；应用容量尚未验证。
@@ -39,6 +42,8 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 
 ## 3. 业务规则与未决事项
 
+- revision 4 验收：根域名/www DNS 指向既有 EIP；两个域名及旧 IP 的 HTTPS 信任、HTTP 跳转、首页/health/CSRF/安全 Cookie/匿名权限通过；production public URL 生效，新注册验证链接使用主域名；staging CORS 仅允许根域名/www/旧 IP 的 PUT/HEAD；Certbot renew dry-run/hook 与新提交 main CI/CD 验收通过。当前除新提交 CI/CD 外，上述技术检查已通过，实际命令与证据见配对计划，不将原 IP 验收当作域名证据。
+- 用户已完成 DNS 和 AWS 浏览器认证；另有明确批准 revision 4 的原话涵盖生产切换及 commit/push。全程不索取长期 key、密码或 token。
 - 现有业务规则、角色权限、CAD 金额和多伦多排课时区保持原定义。
 - 网站使用独立新数据库；本地测试账号、邮件任务和媒体记录不自动复制到生产。教练初始邮箱使用用户最后指定的地址；用户自行验证邮箱、找回密码并按既有编辑流程发布真实资料和媒体。
 - 生产数据写入、Flyway 迁移及首次发布以明确操作授权为前提。
@@ -134,6 +139,7 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 
 ## 11. 交付状态与后续
 
+- 当前 revision 4 / IMPLEMENTED：生产域名/TLS/CORS/public URL 已生效，RED/GREEN、续期/安装 hook、真实浏览器与关联回归通过，新提交 CI/CD 验收待执行。证书到期 2026-10-12 10:44:25 UTC，原每日两次续期 timer active/enabled；配置 root:root / 0600，db/frontend 未重建。实际证据见配对计划，原 revision 3 的历史保留。
 - revision 2 IMPLEMENTED 证据保留，revision 3 技术交付已 VERIFIED / RELEASED，地址 https://52.60.174.156，2026-10-04 多伦多 19:41 公网开放；实际版本、每日备份/恢复、续期及限制见计划第 8/9 节。
 - 用户指定初始教练邮箱并明确自行处理账号、业务/邮件及真实媒体测试；这些场景未验收通过，不以 health UP 或本地回归数量代替。
 - [TODO-0022](../todo/0022-local-highlight-video-stalls.md) 保持 OPEN；本地 S3Mock 播放缺陷和正式 CloudFront 播放结果分别记录。

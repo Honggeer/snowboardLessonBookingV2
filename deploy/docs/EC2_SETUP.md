@@ -1,6 +1,6 @@
 # EC2 服务器创建与登录指南
 
-2026-10-04 当前结果：[https://52.60.174.156](https://52.60.174.156) 已按 [0010 revision 3](../../ai-docs/implement-plan/0010-production-delivery.md) 完成公网技术发布。现有根盘已加密，EIP/ECR/S3/CloudFront/IAM/SSM、独立生产库、自动发布/续期/每日备份已配置并验证；账号/业务/媒体与并发由用户自行测试。第 10 节保留的是最初服务器准备阶段的历史记录，实际后续状态见配对计划与[运维手册](PRODUCTION_RUNBOOK.md)。
+2026-10-05 主域名为 [https://ridewithgeer.com](https://ridewithgeer.com)，www 和原 IP [https://52.60.174.156](https://52.60.174.156) 保留。首次上线按 0010 revision 3 完成，域名切换按已批准的 [revision 4](../../ai-docs/implement-plan/0010-production-delivery.md) 执行；本修订的实际进展与验证见配对计划。现有加密根盘、EIP/ECR/S3/CloudFront/IAM/SSM、独立生产库及每日备份沿用原资源。账号/完整业务/媒体由用户自行测试；最初服务器准备阶段的历史记录见第 10 节，当前操作见[运维手册](PRODUCTION_RUNBOOK.md)。
 
 本阶段准备服务器管理通道及 Docker/Compose 运行环境。依据 2026-10-04 用户要求：“域名先放一下，我想先搞一个AWS ec2服务器……使用量应该没那么大……你教我一步一步怎么搞”，以及随后要求 Codex 远程操作并提供实例 ID。域名、网站部署、正式数据初始化、媒体资源和 CI/CD 留在[计划 0010](../../ai-docs/implement-plan/0010-production-delivery.md)后续阶段。
 
@@ -187,10 +187,10 @@ SSM 检查命令 `33125046-dc19-4f7c-a633-7b49a7bb9876`、安装命令 `ac22b0f0
 
 2026-10-04 找回会话后再次只读复核：实例仍 running，SSM Online，安全组入站为空，根盘仍是 20 GiB gp3 / Encrypted false；实例角色仅有 AmazonSSMManagedInstanceCore，无 inline policy，尚未配置 ECR/S3 业务权限。SSM 检查命令 `887d94a7-0e17-4dab-8fac-2c34fd2e1a39` 为 Success / ResponseCode 0，确认 Docker Engine 25.0.16、Compose v5.6.0、Docker active/enabled、无运行容器、可用内存 1403 MiB、根盘可用约 18G。没有重装、重启服务或修改资源，也没有进行业务容量验收。
 
-用户已选择 main 测试通过后自动部署，以及数据库每日备份、保留 7 天。对应 [0010 revision 2](../../ai-docs/implement-plan/0010-production-delivery.md) P-02 至 P-07 已获用户“开始实现”的批准并完成本地交付与隔离验证，处于 IMPLEMENTED；生产配置、自动发布、备份和后续步骤见 [运维手册](PRODUCTION_RUNBOOK.md)。真实域名、正式存储方案、完整成本和首次云端配置仍在 P-08 上线前定稿。域名仍按用户要求后置。
+以上是首次准备阶段的复核：revision 2 已完成本地实现，revision 3 已完成真实生产上线，revision 4 在用户购买域名后获批。main 测试通过后自动部署、数据库每日备份保留 7 天沿用原规则；当前域名与维护步骤见[运维手册](PRODUCTION_RUNBOOK.md)。
 
 ## 费用观察与后续
 
 - 在 Billing and Cost Management → Budgets 设置月度 Cost budget；若以 USD 显示，可用 20 USD 作为接近 30 CAD 的提醒参考，配置邮件通知。提醒不自动停止资源，汇率与税会影响最终 CAD 金额。[创建预算](https://docs.aws.amazon.com/cost-management/latest/userguide/budgets-create.html)
-- 暂时不用时可以 `Stop instance`；EBS 继续收费，保留的 Elastic IP 等资源也可能继续收费。当前使用自动分配公网 IPv4，停机后地址通常会被释放，下一次启动可能改变。
-- Docker/Compose 已按第 10 节完成远程准备；正式存储加密要求见 TODO-0024。生产配置和 CI/CD 的本地实现已完成；创建 ECR/S3、正式存储处理、初始化正式数据与发布仍按计划 0010 P-08 具体方案/费用及操作授权执行。本阶段不分配 Elastic IP，固定地址在域名/正式部署时再决定。
+- 当前正式服务使用已关联的固定 EIP `52.60.174.156`；停机期间网站不可用，EBS/Elastic IP 等资源仍可能计费，不能按最初自动分配 IP 的规则处理。
+- Docker/Compose、加密根盘、ECR/S3/CloudFront、生产库及 CI/CD 已按 revision 3 上线；本次域名接入复用原资源。旧根盘/快照的限定清理仍见 TODO-0024，不属于域名切换操作。
