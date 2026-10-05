@@ -36,7 +36,7 @@ jobs:
           ENABLED: ${{ vars.PRODUCTION_DELIVERY_ENABLED }}
         run: |
           current_sha=$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)
-          if python3 deploy/release_gate.py --event "$GITHUB_EVENT_PATH" --repository "$REPOSITORY" --current-sha "$current_sha" --enabled "$ENABLED"; then
+          if python3 deploy/ci/release_gate.py --event "$GITHUB_EVENT_PATH" --repository "$REPOSITORY" --current-sha "$current_sha" --enabled "$ENABLED"; then
             echo 'allowed=true' >> "$GITHUB_OUTPUT"
           fi
 
@@ -78,7 +78,7 @@ jobs:
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - name: Reuse already built immutable SHA images
         id: existing
-        run: python3 deploy/ecr_existing.py
+        run: python3 deploy/ci/ecr_existing.py
       - id: backend
         if: steps.existing.outputs.backend == ''
         uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
@@ -102,7 +102,7 @@ jobs:
       - name: Upload matching configuration bundle
         id: bundle
         run: |
-          python3 deploy/bundle_delivery.py --sha "$RUN_SHA" --output "$RUNNER_TEMP/delivery.tar.gz"
+          python3 deploy/ci/bundle_delivery.py --sha "$RUN_SHA" --output "$RUNNER_TEMP/delivery.tar.gz"
           checksum=$(sha256sum "$RUNNER_TEMP/delivery.tar.gz" | cut -d ' ' -f 1)
           aws s3 cp "$RUNNER_TEMP/delivery.tar.gz" "s3://$RELEASE_BUCKET/releases/$RUN_SHA.tar.gz" --sse AES256 --only-show-errors
           echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
@@ -114,4 +114,4 @@ jobs:
           FRONTEND_DIGEST: ${{ steps.existing.outputs.frontend || steps.frontend.outputs.digest }}
         run: |
           test "$RUN_SHA" = "$(gh api "repos/$REPOSITORY/commits/main" --jq .sha)"
-          python3 deploy/send_release.py
+          python3 deploy/ci/send_release.py

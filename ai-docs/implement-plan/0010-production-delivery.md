@@ -17,7 +17,7 @@ feature: "../features/0010-production-delivery.md"
 
 用户本次确认：AWS 总预算仍希望约 30 CAD/月，区域 `ca-central-1`，尚无域名，已能正常对外发邮件，v2 不需要数据迁移。业务时间继续是 `America/Toronto`，AWS 区域为 Canada (Central)。
 
-2026-10-04 用户进一步要求：“域名先放一下，我想先搞一个AWS ec2服务器……使用量应该没那么大……你教我一步一步怎么搞”。当前先提供[EC2 创建与登录指南](../../deploy/EC2_SETUP.md)，推荐 t4g.small、ARM64 Amazon Linux 2023、20 GiB gp3 与 Session Manager。这是对用户手动准备服务器的指导，不是本计划整体获批，也不是 Codex 已创建资源或容量验收通过。域名和其余上线工作后置，不取消最终 HTTPS/备份验收。
+2026-10-04 用户进一步要求：“域名先放一下，我想先搞一个AWS ec2服务器……使用量应该没那么大……你教我一步一步怎么搞”。当前先提供[EC2 创建与登录指南](../../deploy/docs/EC2_SETUP.md)，推荐 t4g.small、ARM64 Amazon Linux 2023、20 GiB gp3 与 Session Manager。这是对用户手动准备服务器的指导，不是本计划整体获批，也不是 Codex 已创建资源或容量验收通过。域名和其余上线工作后置，不取消最终 HTTPS/备份验收。
 
 用户回传服务器基础检查后，要求 Codex 远程操作、提供实例 `i-0c7978984740cbd58` 并完成 AWS 浏览器认证。已通过 SSM 独立核对 t4g.small/ARM64、AL2023.12、Standard、入站为空、IMDSv2，安装和验证 Docker Engine 25.0.16 与 Compose v5.6.0。根盘是 20 GiB gp3，但未启用加密，记录 TODO-0024。该独立服务器准备范围不代表批准整体生产配置或 CI/CD 实现。
 
@@ -318,6 +318,19 @@ env JAVA_HOME=/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home D
 - IMPLEMENTED：revision 2 P-02 至 P-07 本地交付及 revision 3 实际配置/CI/CD 已实现；后续备份生成列统计修复先 RED 再 GREEN，当前交付回归 25 项通过。
 - VERIFIED：按用户最后指定的自测条件，远端 CI/CD、真实 EC2 启动/迁移、公网 HTTPS/Cookie/匿名边界、续期 hook/timer、运行余量、异机 S3 备份与独立恢复已通过，实际证据见第 8 节。
 - RELEASED：2026-10-04 多伦多 19:41 公网开放并验证，地址 https://52.60.174.156；初始教练邮箱为用户最后指定地址。用户自行验证邮箱后通过找回密码设置密码，账号、预约/通知、媒体上传/完整播放、重启会话和并发压测未由 Codex 验收，不记为通过。
-- [生产运维手册](../../deploy/PRODUCTION_RUNBOOK.md)、功能与两个索引同步；[TODO-0023](../todo/0023-ci-compose-verification-key.md)、[TODO-0025](../todo/0025-github-ssh-auth-unavailable.md)、[TODO-0026](../todo/0026-backup-generated-column-row-count.md) DONE。没有架构例外或新业务规则。
+- [生产运维手册](../../deploy/docs/PRODUCTION_RUNBOOK.md)、功能与两个索引同步；[TODO-0023](../todo/0023-ci-compose-verification-key.md)、[TODO-0025](../todo/0025-github-ssh-auth-unavailable.md)、[TODO-0026](../todo/0026-backup-generated-column-row-count.md) DONE。没有架构例外或新业务规则。
 - [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md) 新根盘加密和系统/SSM/Docker复核通过；旧卷/快照 48 小时保留期未满，最早 `2026-10-06T21:08:12.498Z` 按既有授权清理，仍 IN_PROGRESS。临时费用与 IDs 见 ticket；本次没有提前删除或声称自动清理已经运行。
 - [TODO-0022](../todo/0022-local-highlight-video-stalls.md) 为独立本地缺陷，仍 OPEN。实际账单、长期容量、完整主机灾难恢复 RTO 待运行期证据；数据库恢复耗时不能视作全机重建 RTO 承诺。单机发布接受短暂中断。
+
+### 2026-10-04 deploy 目录整理维护记录
+
+用户要求：“目前我们这个项目 deploy那个文件夹主要是干什么的？我觉得有点乱，可不可以整理下？不用生成实现计划”。按本次直接授权整理既有交付文件，未新建功能或实施计划，也未增加业务、云资源、数据或成本范围。上文历史验证命令保留执行时的路径；当前可运行入口见 [deploy 导航](../../deploy/README.md)。
+
+- 实际变更：workflow 脚本移入 `deploy/ci/`，服务器程序移入 `deploy/runtime/`，回归和冒烟脚本移入 `deploy/tests/`，手册移入 `deploy/docs/`，模板生成器并入 `deploy/aws/`；Compose、环境参数示例和 systemd 单元位置保留。同步 workflow、测试加载路径、当前手册命令及 Markdown 链接。
+- 兼容：打包器明确映射仓库源码路径与包内路径；已安装 EC2 dispatcher 白名单、备份 launcher、`/opt/snowboard-v2/bin/` 入口及版本包目录约定保持兼容。
+- RED：移动实现前运行 `python3 -m unittest discover -s deploy -p 'test_bundle_compatibility.py'`，2 tests / 2 failures，明确 assertion 为打包器不支持已分组的 runtime 源码布局。夹具提供正确的新目录源码；不是环境或测试语法故障。
+- GREEN：整理后运行 `python3 -m unittest discover -s deploy/tests -p 'test_*.py'`，27 tests / OK，含同两项目标用例；覆盖相同 SHA 可重现打包、dispatcher 解包白名单、测试秘密不打包、脱离仓库调用包内 shell 入口及既有发布/备份/TLS/Compose 回归。
+- 实际 CLI：在仓库外调用 `deploy/ci/bundle_delivery.py`，使用与已发布 HEAD 相同 SHA，产物与旧打包器读取 HEAD 文件生成的压缩包逐字节相同；`deploy/aws/render_aws_templates.py` 示例生成、runtime shell 语法及独立入口 `--help` 均通过，未调用 AWS API。
+- `python3 deploy/tests/verify_delivery.py`：真实隔离 Docker 发布、HTTPS、Cookie/CSRF/匿名 401、证书重载、故障容器回退并保留数据库记录、重复发布、备份及独立恢复全部 PASS；恢复 24 表 / 15 行 / schema 10，8.35 秒。仅使用原有本地测试镜像、新临时项目/卷和虚构密钥；演练项目及独立恢复容器已清理。
+- `python3 ai-docs/check_docs.py`：11 paired records / 26 tickets、内部链接及状态/索引检查通过；actionlint 校验两个 workflow、Python AST、shell 语法及 `git diff --check` 通过。
+- 状态：本次目录整理 IMPLEMENTED / 本地 VERIFIED；尚未 commit/push 或触发新生产发布。原 revision 3 的 RELEASED 记录保留，目录整理的本地证据不作为新版本生产验收。

@@ -4,16 +4,21 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 DEPLOY = ROOT / "deploy"
+RUNTIME = DEPLOY / "runtime"
+sys.path.insert(0, str(RUNTIME))
 COMPOSE = ["docker", "compose"] if shutil.which("docker") and subprocess.run(
     ["docker", "compose", "version"], capture_output=True).returncode == 0 else ["docker-compose"]
 
 
 def module(test, name):
-    path = DEPLOY / (name + ".py")
+    path = next((folder / (name + ".py") for folder in
+                 [RUNTIME, DEPLOY / "ci", DEPLOY / "aws"]
+                 if (folder / (name + ".py")).is_file()), RUNTIME / (name + ".py"))
     test.assertTrue(path.is_file(), name + " delivery behavior is not implemented")
     spec = importlib.util.spec_from_file_location(name, path)
     result = importlib.util.module_from_spec(spec)

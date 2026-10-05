@@ -1,8 +1,8 @@
 # EC2 服务器创建与登录指南
 
-2026-10-04 当前结果：[https://52.60.174.156](https://52.60.174.156) 已按 [0010 revision 3](../ai-docs/implement-plan/0010-production-delivery.md) 完成公网技术发布。现有根盘已加密，EIP/ECR/S3/CloudFront/IAM/SSM、独立生产库、自动发布/续期/每日备份已配置并验证；账号/业务/媒体与并发由用户自行测试。第 10 节保留的是最初服务器准备阶段的历史记录，实际后续状态见配对计划与[运维手册](PRODUCTION_RUNBOOK.md)。
+2026-10-04 当前结果：[https://52.60.174.156](https://52.60.174.156) 已按 [0010 revision 3](../../ai-docs/implement-plan/0010-production-delivery.md) 完成公网技术发布。现有根盘已加密，EIP/ECR/S3/CloudFront/IAM/SSM、独立生产库、自动发布/续期/每日备份已配置并验证；账号/业务/媒体与并发由用户自行测试。第 10 节保留的是最初服务器准备阶段的历史记录，实际后续状态见配对计划与[运维手册](PRODUCTION_RUNBOOK.md)。
 
-本阶段准备服务器管理通道及 Docker/Compose 运行环境。依据 2026-10-04 用户要求：“域名先放一下，我想先搞一个AWS ec2服务器……使用量应该没那么大……你教我一步一步怎么搞”，以及随后要求 Codex 远程操作并提供实例 ID。域名、网站部署、正式数据初始化、媒体资源和 CI/CD 留在[计划 0010](../ai-docs/implement-plan/0010-production-delivery.md)后续阶段。
+本阶段准备服务器管理通道及 Docker/Compose 运行环境。依据 2026-10-04 用户要求：“域名先放一下，我想先搞一个AWS ec2服务器……使用量应该没那么大……你教我一步一步怎么搞”，以及随后要求 Codex 远程操作并提供实例 ID。域名、网站部署、正式数据初始化、媒体资源和 CI/CD 留在[计划 0010](../../ai-docs/implement-plan/0010-production-delivery.md)后续阶段。
 
 第 1–9 节保留手动操作方法；第 10 节记录 Codex 对用户已创建实例的实际远程检查、安装和验证结果。服务器准备通过不代表应用容量或生产上线已验证。
 
@@ -27,7 +27,7 @@
 
 按当前加拿大中部 Linux On-Demand 单价 0.0184 USD/小时、730 小时/月，实例约 13.43 USD/月；一个公网 IPv4 约 3.65 USD/月。合计约 24.33 CAD/月，按计划记录的参考汇率换算。**这还未包含 EBS、税、后续媒体、备份等，30 CAD 总预算仍须核算。** 不把试用或抵扣当成长期费用保障。
 
-来源：[AWS 实例价格数据](https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/Canada%20(Central)/Linux/index.json)、[公网 IPv4 价格](https://aws.amazon.com/vpc/pricing/)、[成本计算与限制](../ai-docs/implement-plan/0010-production-delivery.md)。
+来源：[AWS 实例价格数据](https://b0.p.awsstatic.com/pricing/2.0/meteredUnitMaps/ec2/USD/current/ec2-ondemand-without-sec-sel/Canada%20(Central)/Linux/index.json)、[公网 IPv4 价格](https://aws.amazon.com/vpc/pricing/)、[成本计算与限制](../../ai-docs/implement-plan/0010-production-delivery.md)。
 
 ## 1. 创建登录管理所用的 IAM Role
 
@@ -174,7 +174,7 @@ sudo docker ps
 | 管理通道 | SSM Online，Agent active；已挂载 `snowboard-v2-ec2-role` 实例 profile |
 | 网络与元数据 | 安全组 `snowboard-v2-sg` 入站为空、IPv4 出站允许；IMDSv2 Required，hop limit 2 |
 | CPU credits | Standard |
-| 根盘 | 20 GiB gp3，3000 IOPS / 125 MiB/s，**Encrypted false**；未达到指南的加密建议，见 [TODO-0024](../ai-docs/todo/0024-ec2-root-volume-unencrypted.md) |
+| 根盘 | 20 GiB gp3，3000 IOPS / 125 MiB/s，**Encrypted false**；未达到指南的加密建议，见 [TODO-0024](../../ai-docs/todo/0024-ec2-root-volume-unencrypted.md) |
 | Docker | Amazon Linux 仓库包 `25.0.16-1.amzn2023.0.4`；Engine 25.0.16 / Client 25.0.14，linux/arm64；服务 enabled / active |
 | Compose | v5.6.0，ARM64 插件的 SHA-256 校验通过 |
 | 容器运行 | `docker run --rm hello-world` 成功，输出 `Hello from Docker!`；临时容器自动移除 |
@@ -187,7 +187,7 @@ SSM 检查命令 `33125046-dc19-4f7c-a633-7b49a7bb9876`、安装命令 `ac22b0f0
 
 2026-10-04 找回会话后再次只读复核：实例仍 running，SSM Online，安全组入站为空，根盘仍是 20 GiB gp3 / Encrypted false；实例角色仅有 AmazonSSMManagedInstanceCore，无 inline policy，尚未配置 ECR/S3 业务权限。SSM 检查命令 `887d94a7-0e17-4dab-8fac-2c34fd2e1a39` 为 Success / ResponseCode 0，确认 Docker Engine 25.0.16、Compose v5.6.0、Docker active/enabled、无运行容器、可用内存 1403 MiB、根盘可用约 18G。没有重装、重启服务或修改资源，也没有进行业务容量验收。
 
-用户已选择 main 测试通过后自动部署，以及数据库每日备份、保留 7 天。对应 [0010 revision 2](../ai-docs/implement-plan/0010-production-delivery.md) P-02 至 P-07 已获用户“开始实现”的批准并完成本地交付与隔离验证，处于 IMPLEMENTED；生产配置、自动发布、备份和后续步骤见 [运维手册](PRODUCTION_RUNBOOK.md)。真实域名、正式存储方案、完整成本和首次云端配置仍在 P-08 上线前定稿。域名仍按用户要求后置。
+用户已选择 main 测试通过后自动部署，以及数据库每日备份、保留 7 天。对应 [0010 revision 2](../../ai-docs/implement-plan/0010-production-delivery.md) P-02 至 P-07 已获用户“开始实现”的批准并完成本地交付与隔离验证，处于 IMPLEMENTED；生产配置、自动发布、备份和后续步骤见 [运维手册](PRODUCTION_RUNBOOK.md)。真实域名、正式存储方案、完整成本和首次云端配置仍在 P-08 上线前定稿。域名仍按用户要求后置。
 
 ## 费用观察与后续
 

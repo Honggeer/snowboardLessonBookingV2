@@ -63,4 +63,4 @@ jobs:
       - name: Compose configuration
         run: docker compose --env-file /dev/null -f deploy/compose.yaml config --quiet
       - name: Delivery behavior and configuration checks
-        run: python3 -m unittest discover -s deploy -p 'test_*.py'
+        run: python3 -m unittest discover -s deploy/tests -p 'test_*.py'

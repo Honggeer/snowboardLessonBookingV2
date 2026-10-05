@@ -16,7 +16,7 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 - 用户请求：“我想上线，然后做CICD，需要我做什么呢？我准备开AWS ec2了”。首次需求调查后，用户已明确批准 revision 2 本地实现和 revision 3 生产上线及 commit/push；批准原话见配对计划。
 - 配对[实施计划](../implement-plan/0010-production-delivery.md) revision 3，当前 RELEASED；revision 2 的 P-02 至 P-07 已按批准完成本地交付实现和隔离验证，证据保留；revision 3 的 P-08 实际资源/生产发布已获用户批准，并明确允许 commit/push；首个远端受测版本及备份修复已部署，公网开放并验证，最终交付证据见下文。
 - 用户已确认 AWS 总预算目标约 30 CAD/月、区域 `ca-central-1`、无现有域名、已有对外发信配置；v2 是全新网站，不导入 v1 用户或预约数据。区域为 Canada (Central)，不能把业务时区 `America/Toronto` 当成服务器区域名称。
-- 用户随后要求先准备 EC2、域名后置，并说明单教练自用接学员、访问量较低；先交付[创建与登录指南](../../deploy/EC2_SETUP.md)。建议 t4g.small/ARM64、Amazon Linux 2023 与 20 GiB gp3；不构成整体计划批准。
+- 用户随后要求先准备 EC2、域名后置，并说明单教练自用接学员、访问量较低；先交付[创建与登录指南](../../deploy/docs/EC2_SETUP.md)。建议 t4g.small/ARM64、Amazon Linux 2023 与 20 GiB gp3；不构成整体计划批准。
 - 用户回传服务器基础检查后，要求 Codex 远程操作、提供目标实例并完成 AWS 浏览器认证。已通过 SSM 独立核对 t4g.small/ARM64、AL2023.12、Standard、入站为空、IMDSv2，安装并验证 Docker Engine 25.0.16 和 Compose v5.6.0。服务器准备有实际证据，整体生产配置/CI/CD 实现仍未获批准；应用容量尚未验证。
 - 恢复会话后用户要求“接着做”，并明确选择 main 测试通过后自动部署、数据库每日备份保留 7 天（RPO 目标 24 小时）。已复核 EC2、运行环境和最新远端 CI。域名仍后置；本地交付文件可用隔离测试参数实现，真实资源/存储/域名/首次发布在 P-08 定稿。
 - 2026-10-04 用户再次要求上线，并明确“还没买域名，先跳过”。沿用已有 EC2 与约 30 CAD/月目标；revision 3 提议一个 EIP + 可信 IP HTTPS、正式数据前加密根盘、具体三桶/ECR/CloudFront/IAM/SSM 和首发验收；本次不买域名。完整低用量估算约 27.66 CAD/月未计税，见计划费用场景。
@@ -140,3 +140,9 @@ modules: [bootstrap, identity, media, notifications, frontend, deploy]
 - 新根盘已加密；旧根盘/快照保留 48 小时，后续限定清理见 [TODO-0024](../todo/0024-ec2-root-volume-unencrypted.md)。GitHub HTTPS 认证、真实 push/权限/流水线成功，[TODO-0025](../todo/0025-github-ssh-auth-unavailable.md) DONE。首次恢复发现的行数问题已 RED/GREEN 修复并通过新真实备份异机恢复，[TODO-0026](../todo/0026-backup-generated-column-row-count.md)。
 
 - 公网发布证据：HTTP 308 → HTTPS、首页/静态资源/health/CSRF 200、匿名 me 401、安全 Cookie；CI 37244118260 / production 37244412174 success。真实备份 `20261004T234038Z-305863bf02c1` 独立恢复 24 表/22 行/schema 10 / 7.97 秒；backup/certbot timer enabled/active。完整账号业务、媒体与并发未测，用户自行验收。
+
+### 2026-10-04 交付目录维护
+
+按用户直接要求整理 `deploy/`，且“不用生成实现计划”。现有文件按 `ci/`、`runtime/`、`aws/`、`systemd/`、`tests/`、`docs/` 分组，入口说明、workflow 和当前操作命令已同步。发布包内路径与已安装服务器入口保持兼容。
+
+目标打包兼容测试先 2 failures RED，整理后完整交付回归 27 tests GREEN；实际 CLI 对比压缩包逐字节一致，真实隔离发布/故障回退/证书重载/独立恢复及文档/workflow 检查通过。实际命令和限制见 [目录维护记录](../implement-plan/0010-production-delivery.md#2026-10-04-deploy-目录整理维护记录)。本次维护已实现并本地验证，改动尚未 commit/push；首次上线的 RELEASED 状态保留。

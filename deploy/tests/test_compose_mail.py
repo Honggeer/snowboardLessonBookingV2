@@ -6,10 +6,9 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
-from test_delivery_support import COMPOSE as DOCKER_COMPOSE
+from test_delivery_support import ROOT, COMPOSE as DOCKER_COMPOSE
 
 
-ROOT = Path(__file__).resolve().parents[1]
 COMPOSE = ROOT / "deploy" / "compose.yaml"
 BASE = {
     "DB_PASSWORD": "fake-db-password",

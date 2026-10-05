@@ -11,7 +11,7 @@ updated: 2026-10-04
 ## 1. 来源与关联
 
 - 2026-10-04 用户要求 Codex 远程准备服务器，并提供目标实例 ID；通过 AWS CLI 核对现有卷时发现。
-- 关联[上线功能 0010](../features/0010-production-delivery.md)、[上线计划 0010 revision 1](../implement-plan/0010-production-delivery.md)及 [EC2 准备指南](../../deploy/EC2_SETUP.md)。
+- 关联[上线功能 0010](../features/0010-production-delivery.md)、[上线计划 0010 revision 1](../implement-plan/0010-production-delivery.md)及 [EC2 准备指南](../../deploy/docs/EC2_SETUP.md)。
 - 实际证据：在 `ca-central-1` 对目标实例执行 `aws ec2 describe-volumes --filters Name=attachment.instance-id,Values=i-0c7978984740cbd58 --profile snowboard-v2 --region ca-central-1`，返回根盘 `vol-01afc752b9b52dd07`，Size 20、VolumeType gp3、Encrypted false、IOPS 3000、Throughput 125。
 
 ## 2. 背景

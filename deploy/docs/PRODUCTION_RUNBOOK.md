@@ -1,23 +1,25 @@
 # v2 生产交付运维手册
 
-对应 [0010 revision 3](../ai-docs/implement-plan/0010-production-delivery.md)。用户已批准真实上线与 commit/push，云资源、独立生产库、可信 IP HTTPS 和首个 CI/CD 发布已完成。用户最后指定初始教练邮箱并明确账号、业务/邮件与媒体测试自行进行；这些场景不作为已通过的技术验收。最终公网状态、发布 SHA/digest、实际备份恢复及后续限制见计划第 8/9 节。
+对应 [0010 revision 3](../../ai-docs/implement-plan/0010-production-delivery.md)。用户已批准真实上线与 commit/push，云资源、独立生产库、可信 IP HTTPS 和首个 CI/CD 发布已完成。用户最后指定初始教练邮箱并明确账号、业务/邮件与媒体测试自行进行；这些场景不作为已通过的技术验收。最终公网状态、发布 SHA/digest、实际备份恢复及后续限制见计划第 8/9 节。
 
 ## 1. 已交付与本地检查
 
-- `compose.production.yaml`：三容器、独立数据库卷、只读密钥文件、TLS、内存和日志上限、健康检查及重启策略。
+- `deploy/compose.production.yaml`：三容器、独立数据库卷、只读密钥文件、TLS、内存和日志上限、健康检查及重启策略。
 - `.github/workflows/release.yml`：可信 main/push/CI success、准确受测 SHA、原生 ARM64 构建、ECR digest、版本化配置包、OIDC、SSM 结果检查。并发串行，过时版本在 CI 和服务器各检查一次；无需每次手动发布。
-- `dispatch.py`：预安装入口，只接收 SHA/checksum/digest；固定私有桶、2 MiB 文件白名单、不允许链接或任意 shell；主机非阻塞排他文件锁覆盖发布。执行同一个版本包里的发布程序。
-- `release.py`：预检后启动、HTTPS/数据库检查、保存当前/上一版；健康失败仅在迁移历史及数据库结构指纹都兼容时回退。失败迁移、指纹改变、首次发布没有兼容回退点时停止应用，保留数据库。
-- `backup.py`：每日一致逻辑导出、压缩校验、S3 加密上传、最后上传成功标记；记录失败及超过 24 小时的备份。恢复只创建隔离容器，核对全部表、快照行数和迁移版本，清理自己的临时数据库。
-- `renew_certificate.py`：校验证书/私钥及有效期，原子替换文件、NGINX 测试与重载；重载失败恢复文件。
+- `deploy/runtime/dispatch.py`：预安装入口，只接收 SHA/checksum/digest；固定私有桶、2 MiB 文件白名单、不允许链接或任意 shell；主机非阻塞排他文件锁覆盖发布。执行同一个版本包里的发布程序。
+- `deploy/runtime/release.py`：预检后启动、HTTPS/数据库检查、保存当前/上一版；健康失败仅在迁移历史及数据库结构指纹都兼容时回退。失败迁移、指纹改变、首次发布没有兼容回退点时停止应用，保留数据库。
+- `deploy/runtime/backup.py`：每日一致逻辑导出、压缩校验、S3 加密上传、最后上传成功标记；记录失败及超过 24 小时的备份。恢复只创建隔离容器，核对全部表、快照行数和迁移版本，清理自己的临时数据库。
+- `deploy/runtime/renew_certificate.py`：校验证书/私钥及有效期，原子替换文件、NGINX 测试与重载；重载失败恢复文件。
+
+仓库目录导航见 [部署入口](../README.md)。`ci/` 只供 workflow 调用，`runtime/` 是服务器程序源码；第 4 节的实际 EC2 安装位置，以及发布包中的 `deploy/release.py`、`deploy/backup.py` 等路径沿用既有约定。
 
 在仓库根目录执行，均不读取 `deploy/.env`：
 
 ```sh
-python3 -m unittest discover -s deploy -p 'test_*.py'
+python3 -m unittest discover -s deploy/tests -p 'test_*.py'
 python3 ai-docs/check_docs.py
 git diff --check
-python3 deploy/render_aws_templates.py --parameters deploy/aws/parameters.example.json --output /tmp/geer-aws-review
+python3 deploy/aws/render_aws_templates.py --parameters deploy/aws/parameters.example.json --output /tmp/geer-aws-review
 ```
 
 真实隔离演练需 Docker Compose ≥ 2.24.4、OpenSSL、原生 ARM64 Docker，先构建本地镜像：
@@ -25,7 +27,7 @@ python3 deploy/render_aws_templates.py --parameters deploy/aws/parameters.exampl
 ```sh
 docker build --platform linux/arm64 -t snowboard-v2-delivery-backend:local backend
 docker build --platform linux/arm64 -t snowboard-v2-delivery-frontend:local frontend
-python3 deploy/verify_delivery.py
+python3 deploy/tests/verify_delivery.py
 ```
 
 演练使用 `.local/` 下新临时目录、`geer-delivery-check-<随机值>` 项目、新数据库卷、测试专用密钥/证书及回环端口。数据库和应用网络禁止外网访问，只有 NGINX 加入入口网络；不会发外部邮件或调用 AWS。结束仅清理该隔离项目、卷和独立恢复容器。镜像由本机构建，正式 ECR/OIDC/SSM 仍需 P-08 验收。
@@ -46,7 +48,7 @@ AWS 总预算目标仍是 30 CAD/月。revision 3 的明确低用量场景合计
 
 ## 3. AWS 模板的使用顺序（现有资源已配置）
 
-复制 `aws/parameters.example.json` 到仓库外，用真实账户、桶、origin、实例和身份参数重新 render。示例账户、桶和 immutable owner/repo ID 都是虚构值。
+复制 `deploy/aws/parameters.example.json` 到仓库外，用真实账户、桶、origin、实例和身份参数重新 render。示例账户、桶和 immutable owner/repo ID 都是虚构值。
 
 1. 核对已有网络、SSM、IMDSv2 Required/hop 2 和 Standard。确定存储方案；不直接把未加密卷记为已加密。网站入口按首次受控验收方案开放 80/443，3306/8080/22 保持不公开。
 2. 在 `ca-central-1` 创建两个 ECR 仓库 `snowboard-v2-backend` / `snowboard-v2-frontend`，tag IMMUTABLE；应用 `ecr-lifecycle.json`。CI 的重试会复用已有 SHA 的 digest，权限错误不会被当成镜像不存在。
@@ -68,7 +70,7 @@ JSON 文件是 API 输入片段：IAM 用 `--policy-document`，SSM 用 `--conte
 |---|---|
 | `/opt/snowboard-v2/bin/` | 经 review 的 `dispatch.py`、`release.py`、`run_backup.py`、`renew_certificate.py`、`renew-certificate.sh`；root 拥有，脚本 0755 / Python 0644，目录 0755 |
 | `/opt/snowboard-v2/releases/<SHA>/` | 已验证 checksum 的发布包，包含生产 Compose/NGINX/发布及备份程序；上层目录 root 0700；不得覆盖已有不同 checksum 的同 SHA |
-| `/etc/snowboard-v2/host.json` | 根据 `aws/host.example.json` 填真实参数，root 0600；production.env 同样 0600，使用 `.env.production.example` 的字段 |
+| `/etc/snowboard-v2/host.json` | 根据 `deploy/aws/host.example.json` 填真实参数，root 0600；production.env 同样 0600，使用 `deploy/.env.production.example` 的字段 |
 | `/etc/snowboard-v2/secrets/spring/` | `spring.datasource.password`、`identity.verification-key`（至少 32 UTF-8 字节）、`spring.mail.password`；文件 root:101 / 0640，目录 root:101 / 0750；backend 当前 UID 100/GID 101 已实测，镜像变更时重新核对 |
 | `/etc/snowboard-v2/secrets/media/cloudfront.pem` | CloudFront RSA 私钥，root:101 / 0640，media 目录 root:101 / 0750 |
 | `/etc/snowboard-v2/secrets/mysql.root.password` | 与应用密码不同；root:root / 0600。MySQL 使用专用 `snowboard_v2` 账号连接应用 |
@@ -87,13 +89,13 @@ NGINX 信任入口自身观察到的客户端 IP；覆盖 X-Real-IP/X-Forwarded-
 
 AL2023 采用 Python 3.11 venv 固定安装 Certbot 5.8.0（2026-10-04 已核对 PyPI，要求 Python ≥3.10）；在 P-08 再核对系统包与版本后安装。路径 `/opt/snowboard-v2/certbot`，不升级业务依赖。首次 standalone 要求 80 空闲；随后把证书复制到配置的 TLS 目录并填写 `certificate_lineage`。webroot authenticator 指向 `/var/lib/snowboard-v2/acme`，由 NGINX 80 的 `/.well-known/acme-challenge/` 提供文件，其余 HTTP 请求跳转 HTTPS。
 
-安装 `systemd/snowboard-v2-certbot.service` 和 `.timer`，首次配置完通过 Certbot staging/dry-run 验证 webroot，启用 timer。每天 00/12 UTC 检查，deploy hook 验证新 key pair、有效期、重载 NGINX；不会重启数据库。记录首次续期/dry-run 结果和证书 expiry，`systemctl status` / journal 可查看失败。Certbot 5.8.0、staging/正式 HTTP-01、webroot reconfigure、renew dry-run 和 deploy hook 均已实际通过，timer 已启用。首次证书到期 2026-10-11 13:01:16 UTC；后续以实际 lineage 为准。
+安装 `deploy/systemd/snowboard-v2-certbot.service` 和 `.timer`，首次配置完通过 Certbot staging/dry-run 验证 webroot，启用 timer。每天 00/12 UTC 检查，deploy hook 验证新 key pair、有效期、重载 NGINX；不会重启数据库。记录首次续期/dry-run 结果和证书 expiry，`systemctl status` / journal 可查看失败。Certbot 5.8.0、staging/正式 HTTP-01、webroot reconfigure、renew dry-run 和 deploy hook 均已实际通过，timer 已启用。首次证书到期 2026-10-11 13:01:16 UTC；后续以实际 lineage 为准。
 
 ## 6. 首发及自动部署启用
 
 仓库变量填写 `BACKEND_ECR_REPOSITORY`、`FRONTEND_ECR_REPOSITORY`、`RELEASE_BUCKET`、`PRODUCTION_INSTANCE_ID`、`PRODUCTION_SSM_DOCUMENT`、`PRODUCTION_CI_ROLE_ARN`。只有首次云端配置与生产操作授权覆盖后，才设 `PRODUCTION_DELIVERY_ENABLED=true`。未设置时 gate/publish 都跳过，不请求 AWS 发布凭证、不推镜像、不发 SSM 命令。
 
-首次先在受控入口验收，明确 SHA、镜像 digest、配置包 checksum、迁移 V1–V10。启动空生产库会执行 Flyway，这属于首次上线授权。教练使用既有私下初始化命令；不复制本地测试用户、邮件任务、媒体或 v1 数据。初始化说明见 [backend README](../backend/README.md)。
+首次先在受控入口验收，明确 SHA、镜像 digest、配置包 checksum、迁移 V1–V10。启动空生产库会执行 Flyway，这属于首次上线授权。教练使用既有私下初始化命令；不复制本地测试用户、邮件任务、媒体或 v1 数据。初始化说明见 [backend README](../../backend/README.md)。
 
 用户 commit/push 后，CI 全部成功触发 release；从该 run 的 head_sha 构建/复用镜像，检查 ARM64 ffprobe，再上传同 SHA 的配置包，SSM 调用固定入口并等待真实完成。云端结果不因 `send-command` 返回而提前算成功。服务器也拒绝已被新 main 替代的 SHA。GitHub concurrency + 文件锁串行；workflow 取消不代表远程命令已停止，超时后先查 CommandId/主机状态再重试。
 
@@ -107,7 +109,7 @@ AL2023 采用 Python 3.11 venv 固定安装 Certbot 5.8.0（2026-10-04 已核对
 
 每次检查 `backup.py status --config /etc/snowboard-v2/host.json`（使用当前版本包的脚本）和 systemd/journal。status 要求最近成功快照不超过 24 小时；缺失、失败或超期明确失败。RPO 24 小时是目标，备份故障会超过目标。7 天生命周期覆盖整个 `db-backups/` 前缀及非当前版本；S3 实际删除异步，短暂额外存储计入账单。发布包/媒体不适用此过期规则。
 
-恢复演练先在受控主机下载**同一备份目录的三个文件**，使用 `restore-check.sh --backup <目录> --schema-version 10`。脚本验证 SUCCESS/manifest/checksum、展开大小与 schema；只创建新的 `geer-restore-<随机值>` MySQL 8.4 容器，network none、640 MiB、不发布端口，不接受既有/正式容器。恢复核对全部表集合、行数及成功迁移版本，报告耗时，最后仅删除该临时容器及其匿名卷。生产库恢复另需具体计划与授权，本脚本不支持覆盖正式库。
+恢复演练先在受控主机下载**同一备份目录的三个文件**，使用发布包的 `restore-check.sh --backup <目录> --schema-version 10`；在本地仓库可运行 `deploy/runtime/restore-check.sh --backup <目录> --schema-version 10`。脚本验证 SUCCESS/manifest/checksum、展开大小与 schema；只创建新的 `geer-restore-<随机值>` MySQL 8.4 容器，network none、640 MiB、不发布端口，不接受既有/正式容器。恢复核对全部表集合、行数及成功迁移版本，报告耗时，最后仅删除该临时容器及其匿名卷。生产库恢复另需具体计划与授权，本脚本不支持覆盖正式库。
 
 数据库备份之外，安全保管验证密钥、SMTP/数据库秘密、CloudFront 私钥、TLS/配置恢复方法；这些不放运维桶的公开发布包。灾难重建需要实例角色、网络、加密卷方案、配置、密钥和异机备份；RTO 4 小时仍是待评估目标，不以本地 8 秒恢复当成真实灾难 RTO。
 

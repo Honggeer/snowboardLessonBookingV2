@@ -14,11 +14,11 @@ import urllib.error
 import urllib.request
 import uuid
 from pathlib import Path
+from test_delivery_support import COMPOSE, PRODUCTION, ROOT
 from backup import create_backup, export, validate_backup
 from release import Runtime, apply_release, publication_lock
 from restore_check import restore
 from renew_certificate import deploy_certificate
-from test_delivery_support import COMPOSE, PRODUCTION, ROOT
 
 
 def port():
