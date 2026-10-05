@@ -81,7 +81,9 @@ scripts/install-media-probe.sh
 
 图片要求真实 JPG/PNG、8 MiB 内、宽高不超过 4096；视频要求真实 MP4/H.264/yuv420p、最多一个 AAC 音轨、100 MiB/120 秒/1080p/60 fps 内，不自动转码。选择文件后浏览器直传，后台固定版本并校验；校验失败保留旧素材，可重新选择。最多一个未终结上传、每小时 20 个新申请、逻辑容量 1 GiB。未完成上传 24 小时过期；后台删除过期暂存全部版本，未引用素材保留 7 天，保留 tombstone 回扫迟到对象。逻辑容量不限制实际 S3 写入量或账单。
 
-`MEDIA_WORKER_ENABLED=false` 暂停媒体任务。验证临时故障最多执行 4 次；删除最多 9 次（首次加 8 次重试），最终失败留在 `media_job`。可只读查询 `SELECT id,asset_id,kind,attempts,error_code FROM media_job WHERE status='FAILED'`；排除存储/ffprobe 故障后，对明确的失败任务单独恢复，不批量重置或删除已发布引用。数据库与 S3 操作不能共用事务；发布只原子切换已验证引用。
+视频通过 ffprobe 完整逐帧校验，默认探测上限 90 秒；`FFPROBE_TIMEOUT_SECONDS` 可配置 1–90 秒，超出范围时拒绝启动。超时属于临时故障，不判为格式无效；仍保留后台任务总预算 180 秒和租约 300 秒。验证最多执行 4 次，以 1/5/15 分钟退避；重试期间保留 VERIFYING，耗尽后 FAILED，页面说明校验超时及重试。高负载或更复杂的视频仍可能超过预算，现有规格和完整内容检查不放宽。
+
+`MEDIA_WORKER_ENABLED=false` 暂停媒体任务。删除最多 9 次（首次加 8 次重试），最终失败留在 `media_job`。可只读查询 `SELECT id,asset_id,kind,attempts,error_code FROM media_job WHERE status='FAILED'`；排除存储/ffprobe 故障后，对明确的失败任务单独恢复，不批量重置或删除已发布引用。数据库与 S3 操作不能共用事务；发布只原子切换已验证引用。
 
 生产须显式 `MEDIA_STORAGE_MODE=aws`，提供 `MEDIA_REGION`、两个独立私有桶 `MEDIA_STAGING_BUCKET`/`MEDIA_FROZEN_BUCKET`、`MEDIA_CDN_BASE_URL`、`MEDIA_KEY_PAIR_ID`、秘密文件路径 `MEDIA_SIGNING_KEY_PATH`，并开启 worker。staging 必须开启 versioning；生产权限用 IAM Role，签名私钥另外注入。CloudFront OAC 保护私有源站，frozen 分发还必须要求可信 key group 的 viewer 签名。公开 API 只签已发布引用，签名 15 分钟；预览仅限教练。尚未创建或验证这些 AWS 资源，实际 CORS、IAM、OAC、费用与备份随生产部署方案 review。
 

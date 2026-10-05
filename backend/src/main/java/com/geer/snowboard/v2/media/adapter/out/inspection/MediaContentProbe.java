@@ -19,10 +19,15 @@ import tools.jackson.databind.json.JsonMapper;
 @Component
 public class MediaContentProbe implements ContentProbe {
     private final String executable;
+    private final int timeoutSeconds;
     private final JsonMapper json=JsonMapper.builder().build();
     public MediaContentProbe(){this("");}
-    @Autowired public MediaContentProbe(@Value("${media.ffprobe-path:}") String executable){
+    public MediaContentProbe(String executable){this(executable,90);}
+    @Autowired public MediaContentProbe(@Value("${media.ffprobe-path:}") String executable,
+        @Value("${media.ffprobe-timeout-seconds:90}") int timeoutSeconds){
+        if(timeoutSeconds<1||timeoutSeconds>90)throw new IllegalArgumentException("media.ffprobe-timeout-seconds must be within 1..90");
         this.executable=executable.isBlank()?defaultExecutable():executable;
+        this.timeoutSeconds=timeoutSeconds;
     }
     private static String defaultExecutable(){
         for(String name:new String[]{".local/bin/ffprobe","backend/.local/bin/ffprobe"})
@@ -55,7 +60,7 @@ public class MediaContentProbe implements ContentProbe {
             Process running=process;
             Future<byte[]> stdout=readers.submit(()->bounded(running.getInputStream()));
             Future<byte[]> stderr=readers.submit(()->bounded(running.getErrorStream()));
-            if(!process.waitFor(30,TimeUnit.SECONDS)){process.destroyForcibly();throw new MediaFailure("PROBE_TIMEOUT",true);}
+            if(!process.waitFor(timeoutSeconds,TimeUnit.SECONDS))throw new MediaFailure("PROBE_TIMEOUT",false);
             byte[] output=stdout.get(2,TimeUnit.SECONDS);byte[] errors=stderr.get(2,TimeUnit.SECONDS);
             if(process.exitValue()!=0||errors.length>0)throw invalid();JsonNode data=json.readTree(output);
             JsonNode format=data.path("format"),streams=data.path("streams");
@@ -78,9 +83,16 @@ public class MediaContentProbe implements ContentProbe {
             if(video!=1||audio>1)throw invalid();return new Result(width,height,duration);
         }catch(IOException e){throw new MediaFailure("PROBE_UNAVAILABLE",false);}
         catch(InterruptedException e){Thread.currentThread().interrupt();throw new MediaFailure("PROBE_TIMEOUT",false);}
-        catch(ExecutionException|TimeoutException e){throw invalid();}
+        catch(TimeoutException e){throw new MediaFailure("PROBE_TIMEOUT",false);}
+        catch(ExecutionException e){throw invalid();}
         catch(IllegalArgumentException e){throw invalid();}
-        finally{if(process!=null&&process.isAlive())process.destroyForcibly();readers.shutdownNow();}
+        finally{
+            if(process!=null&&process.isAlive()){
+                process.destroyForcibly();
+                try{process.waitFor(2,TimeUnit.SECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}
+            }
+            readers.shutdownNow();
+        }
     }
     private static byte[] bounded(InputStream in)throws IOException{
         try(in){byte[] data=in.readNBytes(1024*1024+1);if(data.length>1024*1024)throw new IOException("probe output limit");return data;}

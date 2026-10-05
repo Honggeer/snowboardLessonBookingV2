@@ -43,7 +43,7 @@
 | 0005 | [集成测试后台任务与数据库生命周期](0005-test-scheduler-lifecycle.md) | [0005](../features/0005-test-scheduler-lifecycle.md) | VERIFIED | 1 | 2026-09-30 |
 | 0006 | [登录后约课主界面](0006-post-login-booking-home.md) | [0006](../features/0006-post-login-booking-home.md) | VERIFIED | 4 | 2026-10-04 |
 | 0007 | [预约邮件通知与取消规则提示](0007-booking-email-notifications.md) | [0007](../features/0007-booking-email-notifications.md) | VERIFIED | 2 | 2026-10-01 |
-| 0008 | [关于 GEER：教练主页与媒体管理](0008-about-geer.md) | [0008](../features/0008-about-geer.md) | VERIFIED | 1 | 2026-10-04 |
+| 0008 | [关于 GEER：教练主页与媒体管理](0008-about-geer.md) | [0008](../features/0008-about-geer.md) | IMPLEMENTED | 2 | 2026-10-04 |
 | 0009 | [选课页品牌与课程封面交互](0009-course-selection-visuals.md) | [0009](../features/0009-course-selection-visuals.md) | VERIFIED | 3 | 2026-10-04 |
 | 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../features/0010-production-delivery.md) | RELEASED | 3 | 2026-10-04 |
 

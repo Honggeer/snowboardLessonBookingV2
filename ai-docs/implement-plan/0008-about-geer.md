@@ -1,15 +1,60 @@
 ---
 id: "0008"
 title: "关于 GEER：教练主页与媒体管理"
-status: VERIFIED
-revision: 1
-approved_revision: 1
+status: IMPLEMENTED
+revision: 2
+approved_revision: 2
 created: 2026-10-02
 updated: 2026-10-04
 feature: "../features/0008-about-geer.md"
 ---
 
 # 0008 — 关于 GEER 实施计划
+
+
+## 本次 revision 2：生产视频校验超时修复（已实现，待上线验收）
+
+本修订针对 [TODO-0028](../todo/0028-production-video-probe-timeout.md)。现有生产版本 `944d1a5` 完整逐帧校验用户上传的 89,123,600 字节视频需 50.024 秒，原 30 秒预算将合法 MP4 错误判为 REJECTED；本地成功不能证明小规格 EC2 也能在同一时限完成。用户于 2026-10-04 明确选择“批准修复并上线（推荐）”，批准本修订及 commit/push/既有自动部署；当前 `approved_revision: 2`。revision 1 的历史批准和执行记录保留，目标 RED/GREEN 与本地回归已完成；当前 IMPLEMENTED，ARM64 同素材、实际部署与用户重传 READY 待验收。
+
+### 范围与文件
+
+| 步骤 | 实际目标文件/位置 | 具体内容 | 验证与完成判定 | 状态 |
+|---|---|---|---|---|
+| R2-01 | `backend/src/test/java/com/geer/snowboard/v2/media/MediaContentValidatorTest.java`、`MediaLifecycleTest.java`；`frontend/src/CoachProfileEditor.test.tsx` | 批准后先写目标测试：合法慢探测、超时临时失败与有限重试、损坏输入仍拒绝、超时界面提示 | 实际行为缺失 RED；同一用例修复后 GREEN，测试配置/编译错误不算 RED | 完成 |
+| R2-02 | `backend/src/main/java/com/geer/snowboard/v2/media/adapter/out/inspection/MediaContentProbe.java`、`backend/src/main/resources/application.properties` | 探测默认预算 30→90 秒，使用可注入短预算进行超时测试；允许配置的预算范围限定 1–90 秒。保留 `-count_frames` 全片校验、file-only 协议、无 shell、输出上限、公私格式/品牌/编码/尺寸/时长检查。超时 `MediaFailure` 改为临时失败，复用现有 worker 有限重试，仍清理子进程和输出线程 | 慢探测通过、预算超限不转 READY、不误判 REJECTED、重试耗尽 FAILED；原 MP4/JPG/PNG 和不合法输入回归通过 | 完成 |
+| R2-03 | `frontend/src/CoachProfileEditor.tsx`、`backend/README.md` | 根据已有 `errorCode=PROBE_TIMEOUT` 展示“视频校验暂时超时，请稍后重试。”，兼容历史 REJECTED 和新 FAILED；其他真实格式拒绝保留原提示。更新时限说明 | 前端状态测试/typecheck/lint/build 通过；不展示 ffprobe、私有路径或供应商错误 | 完成 |
+| R2-04 | 配对文档、索引、ticket；既有 CI/CD | 后端媒体/真实 MySQL/架构及全量回归、前端全量回归、ARM64 镜像/真实素材验证；只有用户另明确包含 commit/push/上线时才推送既有 main 自动部署。发布后核对同 SHA 的 CI/CD、健康与同素材探测 | 分别记录 IMPLEMENTED、VERIFIED、实际授权后的 RELEASED；业务上传由用户会话再次操作，Codex 读取任务结果，不索取密码 | 本地完成；待部署与实际素材/用户重传验收 |
+
+### 保留条件、风险与回退
+
+- 视频仍为真实 MP4、H.264/yuv420p、最多一条 AAC 音轨、100 MiB/120 秒/1080p/60 fps 内；继续完整逐帧校验，不以快速读取元数据代替损坏检查。不升级 FFmpeg 9.0.2，不添加转码、云资源或更大实例。
+- worker 总预算 180 秒、租约 300 秒、验证最多 4 次及 1/5/15 分钟退避保留；前端原 120 秒轮询窗口可覆盖正常 90 秒探测。高负载或更复杂合法文件仍可能超时，有限重试后明确失败，不承诺每个满足规格的文件都在资源预算内完成。
+- 单项视频任务最多占用 90 秒探测，CPU 占用时间可能增加；继续单 worker 和原容器内存上限、超时终止/临时文件清理。容量和月账单仍按 0010 实际运行观察，不把延长时限当作扩容。
+- 无业务 API 形状、角色/归属/CSRF、schema、引用、素材或密钥改动；不重置已有生产失败任务，不自动修改草稿或公开主页。用户再次选择同一文件即可走新验证链路。
+- 发布回退使用既有兼容上一版本流程，数据库卷和媒体对象保留。默认预算恢复旧版会重新出现本次超时拒绝，应在回退记录中说明。
+- 复用原六边形端口，无架构例外/新 ADR；部署和付费授权不从本地实现批准自动推导；本次用户已同时明确批准 revision 2 实现、commit/push 与既有自动部署。
+
+### 目标命令与验收
+
+- 批准后目标 RED/GREEN：`./mvnw -Dtest=MediaContentValidatorTest,MediaLifecycleTest test`；前端 `npm test -- CoachProfileEditor.test.tsx`。测试将以受控短预算触发真实子进程超时和任务重试，避免单纯断言实现常量；合法慢探测与生产真实素材覆盖默认 90 秒预算。
+- 回归：后端全量 `./mvnw test`（含真实 MySQL/架构）；前端 `npm run typecheck`、`npm test`、`npm run lint`、`npm run build`；`python3 -m unittest discover -s deploy/tests -p 'test_*.py'`、文档检查、`git diff --check`。
+- 实際 ARM64 镜像在原限额下对同一 S3 素材调用完整内容探测器，确认成功和耗时；不只验证 `ffprobe -version`。上线仅用 GitHub 已受测 SHA，经 ECR/OIDC/SSM，健康失败遵循既有回退。
+- 本次只读诊断不是实现 RED/GREEN：SSM `0ea2da67-2cf3-4d30-9b58-df89c91472cd` 发现两条 `PROBE_TIMEOUT`；`b3d2f91e-01c5-444d-9f4a-8fd310d389f8` 元数据 0.132 秒，完整计数超过 31 秒后终止；`9601d72e-b769-4bab-89bb-ec6f3064b0e3` 原程序完整计数 50.024 秒、exit 0、stderr 0、视频/音频帧数 1867/2812。均未改生产数据库记录或 S3 对象，临时诊断副本已清理。
+- 首次元数据诊断因 dotenv 引号解析错误失败，修正诊断脚本后完成；该工具自身错误不作为产品缺陷或 RED。ffprobe 的完整帧计数行为参考 [官方文档](https://ffmpeg.org/ffprobe.html#Main-options)。
+
+
+### revision 2 实际执行证据（2026-10-04）
+
+- **RED**：批准后先加测试，实际运行 `mvn -Dtest=MediaContentValidatorTest,MediaLifecycleTest test`：16 项，2 个断言失败、1 个行为错误。31 秒合法探测在旧 30 秒预算收到 `PROBE_TIMEOUT`；配置短预算及 1–90 秒边界被忽略。真实 MySQL 的重试基础能力已通过。前端修正 alert 同时包含按钮文字的测试断言后，`npm test -- CoachProfileEditor.test.tsx` 4 项中仅两个超时提示失败，真实格式拒绝仍通过；测试自身断言问题不算 RED。
+- **实现/GREEN**：同一后端目标命令 16/16、同一前端命令 4/4 通过。默认 90 秒；配置限定 1–90 秒；超时临时失败并终止/等待子进程退出。保留完整帧计数；现有 worker 在 VERIFYING/PENDING 下以 1/5/15 分钟重试，可恢复 READY，四次耗尽 FAILED。前端按已有错误码兼容历史 REJECTED/新 FAILED。
+- **本地回归**：后端全量 `mvn test` 135/135，包含真实 MySQL、S3Mock、权限/CSRF/引用/清理/发布和两套架构检查，无新增例外。前端 `npm run typecheck`、`npm test`（54/54）、`npm run lint`、`npm run build` 均通过；部署 `python3 -m unittest discover -s deploy/tests -p 'test_*.py'` 27/27；文档检查及 `git diff --check` 通过。
+- Maven 实际执行器为 `/private/tmp/geer-delivery-toolchain/apache-maven-3.9.16/bin/mvn`，`JAVA_HOME=/private/tmp/snowboard-v2-toolchain/jdk-25.0.4.1+1/Contents/Home`，参数 `-Dmaven.repo.local=/private/tmp/snowboard-v2-toolchain/m2`；MySQL 回归同时设置 `DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock` 和 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`。目标 RED、GREEN、全量日志位于被忽略的 `.local/media-prod-diagnosis/`，不含生产凭据。
+- **完整内容回归**：另运行 `mvn -Dtest=MediaContentValidatorTest#rejectsCorruptedFramesEvenWhenTheContainerMetadataIsValid test` 1/1 通过。受控破坏真实 MP4 的末尾帧后，metadata-only 仍 exit 0/stderr 0，而完整帧计数报错；应用判为 INVALID_CONTENT，证明保留完整检查的必要性。该追加回归未改变实现，CI 将全量执行 136 项。
+- **验收边界**：实现已完成，本地回归通过；尚未宣称实际 ARM64 应用校验器验证此视频、生产发布或用户重传任务 READY。历史失败任务、主页与素材引用不自动更改，用户自行操作账号；TODO-0028 保持 IN_PROGRESS。
+
+---
+
+以下第 1–9 节保留 revision 1 历史设计、批准与执行证据；本次 revision 2 的具体范围以本节为准。
 
 ## 1. Review 摘要
 
@@ -37,8 +82,9 @@ feature: "../features/0008-about-geer.md"
 | 2026-10-02 | “继续？”、“继续” | N/A | 继续已告知的方案补齐工作，形成此待 review 的 revision |
 | 2026-10-02 | “开始实现” | 1 | 批准上一轮提交的完整 revision 1：按两稿实现、草稿发布、媒体上限、版本/任务/清理及本地依赖；本地开发验证，8080 留给 IDEA，无云创建或生产部署 |
 | 2026-10-03 | “可以的，提交推送吧” | 1（提交授权） | 授权提交并推送当前 0008 实现、登录入口视觉调整、关联修复与验证文档；不改变本地 VERIFIED 状态或生产部署范围 |
+| 2026-10-04 | “批准修复并上线（推荐）”（revision 2 完整方案确认） | 2 | 批准 90 秒有界完整校验、临时超时/有限重试和界面提示、目标 RED/GREEN/回归、commit/push 与现有 CI/CD 上线；无扩容、新资源、转码或生产历史任务重置 |
 
-`approved_revision: 1`。用户已明确批准；实现阶段按测试先行分批执行，实际执行与验证记录见第 7、8 节。
+revision 1 的批准与第 7、8 节历史执行证据保留；当前 revision 2 的 `approved_revision: 2`，本次超时修复和 commit/push/上线已获明确批准。
 
 ## 3. 实现步骤与预计文件
 

@@ -41,16 +41,16 @@ class MediaLifecycleTest {
  @Autowired CoachProfileOperations profiles;
  @TestConfiguration static class Fakes { @Bean @Primary FakeObjects mediaObjects(){return new FakeObjects();} }
  static class FakeObjects implements MediaObjects {
-  String latest="A",frozenVersion;int sweeps;boolean fail;
+  String latest="A",frozenVersion;int sweeps;boolean fail;MediaFailure failure;
   public String uploadUrl(MediaAsset a){return "https://storage.test/upload";}
   public Uploaded uploaded(MediaAsset a){return new Uploaded(a.expectedSize(),latest);}
-  public Verified freezeAndVerify(MediaAsset a){if(fail)throw new MediaFailure("STORAGE_UNAVAILABLE",false);frozenVersion=a.sourceVersion();return new Verified(a.expectedSize(),100,80,0);}
+  public Verified freezeAndVerify(MediaAsset a){if(failure!=null)throw failure;if(fail)throw new MediaFailure("STORAGE_UNAVAILABLE",false);frozenVersion=a.sourceVersion();return new Verified(a.expectedSize(),100,80,0);}
   public String readUrl(MediaAsset a,Instant expiry){return "https://cdn.test/"+a.id();}
   public Sweep sweep(MediaAsset a,boolean frozen,String cursor,String version){sweeps++;return new Sweep(true,null,null);}
  }
  @BeforeEach void reset(){
   jdbc.update("DELETE FROM media_reference");jdbc.update("DELETE FROM media_job");jdbc.update("DELETE FROM media_asset");jdbc.update("DELETE FROM media_quota");
-  jdbc.update("DELETE FROM coach_profile_publish_request");jdbc.update("DELETE FROM coach_profile_page");objects.fail=false;objects.latest="A";objects.sweeps=0;
+  jdbc.update("DELETE FROM coach_profile_publish_request");jdbc.update("DELETE FROM coach_profile_page");objects.fail=false;objects.failure=null;objects.latest="A";objects.sweeps=0;
  }
  @Test void uploadedVersionIsPinnedAndDraftPublicationIsAtomicAndIdempotent()throws Exception{
   String coach=account(),key=UUID.randomUUID().toString();objects.latest="A";
@@ -83,6 +83,29 @@ class MediaLifecycleTest {
   assertThat(jdbc.queryForObject("SELECT status FROM media_asset WHERE id=?",String.class,id)).isEqualTo("DELETED");
   int previous=objects.sweeps;jdbc.update("UPDATE media_asset SET sweep_at=? WHERE id=?",Instant.now().minusSeconds(7200),id);
   jobs.scheduleCleanup();assertThat(jobs.runOne()).isTrue();assertThat(objects.sweeps).isGreaterThan(previous);
+ }
+ @Test void probeTimeoutRetriesRemainVerifyingAndExhaustAsFailed()throws Exception{
+  String coach=account(),id=request(coach,UUID.randomUUID().toString());
+  operations.complete(new Actor(coach,"COACH","Test"),id);objects.failure=new MediaFailure("PROBE_TIMEOUT",false);
+  for(int attempt=1;attempt<=4;attempt++){
+   jdbc.update("UPDATE media_job SET next_run_at=? WHERE asset_id=?",Instant.now().minusSeconds(1),id);
+   Instant before=Instant.now();assertThat(jobs.runOne()).isTrue();
+   assertThat(store.get(id).status()).isEqualTo(attempt<4?"VERIFYING":"FAILED");
+   assertThat(jdbc.queryForObject("SELECT status FROM media_job WHERE asset_id=?",String.class,id)).isEqualTo(attempt<4?"PENDING":"FAILED");
+   assertThat(jdbc.queryForObject("SELECT error_code FROM media_job WHERE asset_id=?",String.class,id)).isEqualTo("PROBE_TIMEOUT");
+   if(attempt<4){
+    long delay=new long[]{60,300,900}[attempt-1];
+    assertThat(jdbc.queryForObject("SELECT next_run_at FROM media_job WHERE asset_id=?",java.sql.Timestamp.class,id).toInstant()).isAfter(before.plusSeconds(delay-1));
+    assertThat(jobs.runOne()).isFalse();
+   }
+  }
+  assertThat(jobs.runOne()).isFalse();assertThat(store.get(id).errorCode()).isEqualTo("PROBE_TIMEOUT");
+ }
+ @Test void probeTimeoutCanRecoverOnTheNextAttemptWithoutRejectingTheAsset()throws Exception{
+  String coach=account(),id=request(coach,UUID.randomUUID().toString());operations.complete(new Actor(coach,"COACH","Test"),id);
+  objects.failure=new MediaFailure("PROBE_TIMEOUT",false);assertThat(jobs.runOne()).isTrue();assertThat(store.get(id).status()).isEqualTo("VERIFYING");
+  objects.failure=null;jdbc.update("UPDATE media_job SET next_run_at=? WHERE asset_id=?",Instant.now().minusSeconds(1),id);
+  assertThat(jobs.runOne()).isTrue();assertThat(store.get(id).status()).isEqualTo("READY");
  }
  @Test void aStaleWorkerCannotCommitAndPublishedAssetsCannotBeDeleted()throws Exception{
   String coach=account(),id=request(coach,UUID.randomUUID().toString());

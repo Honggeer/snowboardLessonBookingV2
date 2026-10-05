@@ -86,7 +86,8 @@ export default function CoachProfileEditor({ refreshCsrf, onUnauthorized, onBack
     }
     if (['REJECTED', 'FAILED', 'EXPIRED', 'DELETING', 'DELETED'].includes(u.status)) {
       delete pending.current[slot.purpose]; setPendingPurpose(null); setProgress(null);
-      throw new Error(u.status === 'REJECTED' ? '文件格式或内容不符合要求，请重新选择文件。' : '这次上传未完成，请重新选择文件。');
+      throw new Error(u.errorCode === 'PROBE_TIMEOUT' ? '视频校验暂时超时，请稍后重试。'
+        : u.status === 'REJECTED' ? '文件格式或内容不符合要求，请重新选择文件。' : '这次上传未完成，请重新选择文件。');
     }
     return false;
   }
