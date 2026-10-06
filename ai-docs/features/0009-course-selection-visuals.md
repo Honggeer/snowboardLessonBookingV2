@@ -4,12 +4,14 @@ title: "选课页品牌与课程封面交互"
 status: VERIFIED
 plan: "../implement-plan/0009-course-selection-visuals.md"
 created: 2026-10-03
-updated: 2026-10-04
+updated: 2026-10-05
 contract_version: "1.6"
 modules: [frontend, catalog, media]
 ---
 
 # 0009 — 选课页品牌与课程封面交互
+
+2026-10-05 品牌维护：按用户要求统一个人展示与约课 Logo，约课页改用共享 `GeerLogo` 展示同一原图片，属性、尺寸与交互沿用本修订约定；关联 [TODO-0032](../todo/0032-coach-profile-logo-inconsistent.md)。四种宽度的约课/展示/编辑与预览浏览器验证及前端 61/61、lint、类型/构建通过，具体证据见 [0008 维护记录](../implement-plan/0008-about-geer.md)。仅视觉复用，不改变课程封面或预约规则；本次尚未提交或部署。
 
 ## 1. 目标、触发与范围
 

@@ -7,6 +7,82 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); window.history.repl
 
 const json = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body }) as Response;
 
+it('selects and publishes dates beyond 31 days across months and years', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-05T16:00:00Z'));
+  const writes: Array<{ days: Array<{ localDate: string; startTime: string; endTime: string; mountainId: string | null }> }> = [];
+  vi.stubGlobal('fetch', vi.fn((url: string, options?: RequestInit) => {
+    if (url === '/api/coach/availability/replacements' && options?.method === 'POST') {
+      writes.push(JSON.parse(String(options.body)));
+      return Promise.resolve(json({ slots: [], tails: [] }, 201));
+    }
+    return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
+        url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
+          json({ items: url.startsWith('/api/coach/mountains')
+            ? [{ id: 'mountain-1', name: 'Blue Mountain', active: true }] : [], nextCursor: null }));
+  }));
+  render(<App />);
+  await userEvent.click(await screen.findByRole('button', { name: '管理可用时间' }));
+  await userEvent.click(screen.getByRole('button', { name: '查看日期 2026-10-04' }));
+  expect(screen.getByRole('alert').textContent).toContain('已过去，不能添加到排班');
+  await userEvent.click(screen.getByRole('button', { name: '下一个月' }));
+  await userEvent.click(screen.getByRole('button', { name: '选择日期 2026-11-06' }));
+  await userEvent.click(screen.getByRole('button', { name: '下一个月' }));
+  await userEvent.click(screen.getByRole('button', { name: '下一个月' }));
+  await userEvent.click(screen.getByRole('button', { name: '选择日期 2027-01-03' }));
+  await userEvent.click(screen.getByRole('button', { name: '选择日期 2027-01-20' }));
+  await userEvent.click(screen.getByRole('button', { name: '上一个月' }));
+  await userEvent.click(screen.getByRole('button', { name: '上一个月' }));
+  expect(screen.getByRole('button', { name: '取消选择日期 2026-11-06' }).getAttribute('aria-pressed')).toBe('true');
+  expect(screen.queryByText(/所选日期的开始时间已过/)).toBeNull();
+  expect(screen.getByText(/已选 3 天/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('开始时间'), { target: { value: '10:00' } });
+  fireEvent.change(screen.getByLabelText('结束时间'), { target: { value: '12:00' } });
+  await userEvent.click(screen.getByRole('button', { name: '整天覆盖并发布' }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(writes[0].days).toEqual(['2026-11-06', '2027-01-03', '2027-01-20'].map((localDate) =>
+    ({ localDate, startTime: '10:00', endTime: '12:00', mountainId: null })));
+});
+
+it('keeps batch capacities when selecting dates beyond 31 days', async () => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date('2026-10-05T16:00:00Z'));
+  const writes: Array<{ days: unknown[] }> = [];
+  vi.stubGlobal('fetch', vi.fn((url: string, options?: RequestInit) => {
+    if (url === '/api/coach/availability/replacements' && options?.method === 'POST') {
+      writes.push(JSON.parse(String(options.body)));
+      return Promise.resolve(json({ slots: [], tails: [] }, 201));
+    }
+    return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
+        url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
+          json({ items: url.startsWith('/api/coach/mountains')
+            ? [{ id: 'mountain-1', name: 'Blue Mountain', active: true }] : [], nextCursor: null }));
+  }));
+  render(<App />);
+  await userEvent.click(await screen.findByRole('button', { name: '管理可用时间' }));
+  await userEvent.click(screen.getByRole('button', { name: '下一个月' }));
+  for (let day = 1; day <= 30; day++) {
+    await userEvent.click(screen.getByRole('button', { name: `选择日期 2026-11-${String(day).padStart(2, '0')}` }));
+  }
+  await userEvent.click(screen.getByRole('button', { name: '下一个月' }));
+  await userEvent.click(screen.getByRole('button', { name: '选择日期 2026-12-01' }));
+  await userEvent.click(screen.getByRole('button', { name: '选择日期 2026-12-02' }));
+  expect(screen.getByRole('alert').textContent).toContain('每批最多选择 31 个日期');
+  expect(screen.getByText(/已选 31 天/)).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('开始时间'), { target: { value: '09:00' } });
+  fireEvent.change(screen.getByLabelText('结束时间'), { target: { value: '17:00' } });
+  await userEvent.click(screen.getByRole('button', { name: '整天覆盖并发布' }));
+  expect(screen.getByRole('alert').textContent).toContain('每批最多选择 31 天、发布 100 个时段');
+  expect(writes).toHaveLength(0);
+  fireEvent.change(screen.getByLabelText('开始时间'), { target: { value: '10:00' } });
+  fireEvent.change(screen.getByLabelText('结束时间'), { target: { value: '12:00' } });
+  await userEvent.click(screen.getByRole('button', { name: '整天覆盖并发布' }));
+  await waitFor(() => expect(writes).toHaveLength(1));
+  expect(writes[0].days).toHaveLength(31);
+}, 10000);
+
 it('shows the cancellation cutoff beside the application button before submission', async () => {
   vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :

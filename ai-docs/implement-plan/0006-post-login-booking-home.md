@@ -2,22 +2,22 @@
 id: "0006"
 title: "登录后约课主界面"
 status: VERIFIED
-revision: 4
-approved_revision: 4
+revision: 5
+approved_revision: 5
 created: 2026-09-30
-updated: 2026-10-04
+updated: 2026-10-05
 feature: "../features/0006-post-login-booking-home.md"
 ---
 
-# 0006 — 登录后约课主界面实施计划（revision 4 已验证）
+# 0006 — 登录后约课主界面实施计划（revision 5 已验证）
 
-> 第 1–9 节主体记录已验证的 revision 1 历史实现与证据；revision 2 记录已验证的课程与可用时间分离。revision 3 的教练导航与月历排班计划、实现和验证见文末。前文关于“时段绑定课程”的描述只适用于 revision 1。
+> 2026-10-05 用户“批准”revision 5，当前实施范围仅为文末 revision 5：取消排班日期的未来 31 天上限。revision 1–4 的批准、实现和验证均作为历史保留；其中“未来 31 天”是旧修订的排班规则。按批准范围先写目标测试并取得 RED，再实现至 GREEN。前文关于“时段绑定课程”的描述只适用于 revision 1。
 
 ## 1. Review 摘要
 
 用户希望登录后直接看到约课系统。已确认：学员浏览真实课程/时段并提交申请；固定两小时、一对一；提交后待教练确认且不占位，同一时段可多人申请；教练在工作区创建并发布课程/时段、确认或拒绝申请；教练设置 CAD 价格，线下付款。当前 v2 只有身份卡片和本地演示时段，无可预约真实数据。关联[功能契约 0006](../features/0006-post-login-booking-home.md)、[项目契约](../PROJECT_CONTRACT.md)与 [ADR 0001](../decisions/0001-v2-baseline.md)。
 
-上述“只有身份卡片”是 revision 1 开始前的历史背景。revision 2 的课程与可用时间分离、revision 3 的月历和导航均已验证；本次待审的 revision 4 在文末单独说明。
+上述“只有身份卡片”是 revision 1 开始前的历史背景。revision 2 的课程与可用时间分离、revision 3 的月历和导航、revision 4 的课程及预约操作均已验证；本次获批的 revision 5 在文末单独说明。
 
 **revision 1 已获批准的边界**：①教练填写地点和 IANA 时区，不存在/重复的当地时间拒绝；②确认一人后自动拒绝同槽其他待确认申请；③同一学员同一时段只可申请一次；④课程/时段创建即发布，本版不编辑或撤销已发布项，也不处理取消/改期；⑤仅在应用内看状态，无邮件/在线支付。批准依据见下表。
 
@@ -31,6 +31,7 @@ feature: "../features/0006-post-login-booking-home.md"
 | 2026-09-30 | 用户在收到 revision 2 计划后回复：“开始实现” | 2 | 按 revision 2 课程与可用时间分离、雪场/日级锁定及批量排班实施；不含生产部署或 Git commit/push |
 | 2026-09-30 | 用户在收到 revision 3 计划后回复：“开始实现” | 3 | 按 revision 3 教练三入口、月历多选及选中日整天替换方案实施；不含生产部署或 Git commit/push |
 | 2026-10-01 | 用户在收到 revision 4 计划后回复：“开始实现” | 4 | 按 revision 4 可见反馈、紧凑雪场管理、课程编辑/下架、必填拒绝理由、学员取消及再申请规则实施；不含生产部署或 Git commit/push |
+| 2026-10-05 | 用户在收到具体 revision 5 方案后回复：“批准” | 5 | 按 revision 5 前后端取消未来 31 天的排班日期上限并本地验证；保留批次/查询容量、过去时间和预约保护；不含 Git commit/push、生产部署或生产数据操作 |
 
 revision 1、revision 2 的批准记录保留。revision 3 已获批准，按目标测试 RED → 实现 GREEN → 回归执行。
 
@@ -413,3 +414,67 @@ revision 4 状态为 **VERIFIED**，尚未 RELEASED。V7 保留全部课程/预�
 ### 2026-10-04 提交授权
 
 用户明确要求“提交推送”，授权随 0009 当前工作区提交课程列表维护及关联文档；此前各阶段未提交记录作为历史保留。提交前统一检查见 [0009 配对计划](0009-course-selection-visuals.md)，不改变 revision 4、本地 VERIFIED 状态或生产部署边界。
+
+### Revision 5：取消排班日期的未来 31 天上限（已验证）
+
+#### Review 摘要与已核对事实
+
+用户于 2026-10-05 要求：“还有，把可用日期的只能一个月以内限制去掉”。关联 [TODO-0033](../todo/0033-availability-future-date-limit.md)及配对功能 R5-AC-01–04。当前限制准确含义是“日期不能晚于多伦多今天加 31 天”，不是月份导航限制。它存在于前端选择、选中日期提示、提交校验和后端批量发布/整天替换两个用例中；仅调整页面不足以成功发布。
+
+提议将这个日期上限取消，让教练可以提前安排更远的有效未来日期，包括跨月和跨年；每批最多 31 个日期、100 个生成时段，以及单次学员查询最多 31 天、教练按自然月读取的容量保护继续保留。过去日期/开始时间、DST、PENDING 和 BOOKED 保护、幂等与回滚继续沿用。现有月历查询年份有效范围不变，不引入新的提前天数或月份业务限制。
+
+#### 具体步骤与预计文件
+
+| 步骤 | 文件/模块 | 具体工作与完成条件 | 状态 |
+|---|---|---|---|
+| R5-P0 | 功能/计划、两个索引及 TODO-0033 | 整理范围、定位证据和验收；明确批准 revision 5 前不写测试或实现 | 已完成 |
+| R5-P1 | `frontend/src/App.test.tsx`；新增 `backend/src/test/java/com/geer/snowboard/v2/bookings/AvailabilityRevision5ApiTest.java` | 批准后先创建较远未来日期的月历选择/提交及两个发布接口目标测试；执行同一命令取得行为 RED，记录具体失败；测试/环境故障不计 RED | 已完成 |
+| R5-P2 | `frontend/src/BookingHome.tsx` | 去掉 `lastSelectable`、`invalidDate`、`hasPastSelection` 与日期点击中的未来 31 天上限；只对已过去日期/开始时间显示相应错误；保留日期个数/时段容量、选择撤销、跨月保存、发布反馈 | 已完成 |
+| R5-P3 | `backend/src/main/java/com/geer/snowboard/v2/scheduling/application/service/SlotService.java` | `createBatch` 和 `lockReplacement` 去掉 `today.plusDays(31)` 检查，保留过去日期及未来时段判定并更新错误文案；不改变 `prepare` 容量、`open` 查询跨度、月份读取或事务/锁协议 | 已完成 |
+| R5-P4 | 目标测试、既有前后端回归、文档 | 同一目标测试 GREEN；真实 MySQL 验证较远日期发布、整天替换、重放、月度读取及学员查询/申请；运行容量/时间/DST/权限/并发回归和构建，同步实际证据与状态 | 已完成 |
+
+#### 目标测试与回归边界
+
+- 前端使用固定时钟：选中今天后第 32 天、第 90 天及跨年日期，跨月往返后仍选中并可提交；提交体保持日期/时间/雪场字段一致；较远未来日期不会显示“开始时间已过”。保留今天开始时间已过时拒绝、已选日期过期后可以移除、过去日期只能查看，以及已有发布成功/刷新失败提示的回归。
+- 后端采用真实 MySQL 8.4 Testcontainers：两个发布入口均接受第 32 天、第 90 天及跨年日期；同键重放返回原结果、异内容冲突；较远日期可通过月历和学员有界日期查询读取，学员可提交 PENDING 申请。
+- 负向验收覆盖过去日期/已开始时段、32 个日期或超过 100 个生成时段的整批拒绝、重复日期、超过 31 天的学员查询跨度拒绝。复用并运行既有替换/预约测试，验证 PENDING 阻止覆盖、BOOKED 保留、雪场锁定、重叠冲突、并发、DST 与权限；既有覆盖缺失时补充必要用例。
+- 前端目标命令：在 `frontend/` 执行 `npm test -- --run src/App.test.tsx -t 'beyond 31 days'`，新增目标测试名称使用该关键词；相同测试先 RED 后 GREEN。
+- 后端目标命令：在 `backend/` 使用项目现有 Java 25/Maven 环境执行 `mvn -Dtest=AvailabilityRevision5ApiTest test`；实际执行时记录 Maven 路径/参数。Docker/时区/构建环境故障须先修复，不算目标 RED。
+- GREEN 后执行前端 `npm test -- --run`、`npm run lint`、`npm run build`；后端 `mvn test` 包含业务、架构和真实 MySQL 回归；390/1440px Chrome 查看跨月选择及提交反馈。浏览器使用本地测试响应，不在生产创建排班或预约。
+- 根目录执行 `python3 ai-docs/check_docs.py` 与 `git diff --check`。在功能、计划和票据记录真实命令/结果/限制，先区分 IMPLEMENTED 和 VERIFIED；生产发布另行授权与验收。
+
+#### 数据、架构、成本与恢复
+
+无 API 字段或数据库结构变化，无迁移或生产数据操作；后端改动仍在 scheduling 的应用服务内，不跨模块私表、不新增依赖或架构例外。按原有批次/查询容量约束处理请求，不新增付费资源。
+
+回退时恢复本次前后端校验和文案即可；如日后已发布较远日期，这些时段/预约不得因恢复日期上限而删除，原有读取和预约保护应继续运行。审批前无需执行回退或数据操作。当前工作区已完成的 Logo 统一保留，属于独立的已验证维护范围。
+
+#### 当前状态与审批边界
+
+- [x] 定位实际前后端约束，完成配对文档、索引与 ticket。
+- [x] 2026-10-05 用户“批准”revision 5，已记录日期、原话与范围。
+- [x] 目标测试取得有效 RED，实施后同一命令 GREEN；补充远期 PENDING 保护断言后另执行目标复核。
+- [x] 完成回归和浏览器验收，已记录实际证据并同步状态。
+
+**VERIFIED（本地）**。已完成前后端实现、目标 RED/GREEN、适用回归、浏览器和文档检查；不含 Git commit/push、生产部署或生产数据写入。全量测试关停的独立问题记录于 TODO-0034，未混入本修订实施范围。
+
+2026-10-05 规划阶段实际检查：根目录 `python3 ai-docs/check_docs.py` 通过（11 对功能/计划、33 张 ticket、链接/索引/状态/review 门槛）；`git diff --check` 通过。当时 `BookingHome.tsx` 的 Git 差异只有此前已验证的 Logo 复用，排班实现尚未修改。
+
+#### Revision 5 实际实现、验证与限制（2026-10-05）
+
+实际文件：`BookingHome.tsx` 移除日期选择、选中提示和提交的未来 31 天判断；`SlotService.createBatch` 与 `lockReplacement` 只拒绝过去日期，已有开始时间/容量/DST/锁协议保留。新增 `AvailabilityRevision5ApiTest`，在 `App.test.tsx` 新增两项交互测试；更新前后端 README、配对文档/索引及 TODO-0033。无 Flyway、API 字段、依赖、架构例外或付费资源变化。先进入 IMPLEMENTED，所有本功能验收与适用检查通过后进入 VERIFIED。
+
+Maven 实际环境：`JAVA_HOME=/Users/geerhong/Library/Java/JavaVirtualMachines/ms-25.0.4.1-1/Contents/Home`；`DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock`；`TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`。在 `backend/` 使用 `/private/tmp/geer-delivery-toolchain/apache-maven-3.9.16/bin/mvn -Dmaven.repo.local=/private/tmp/snowboard-v2-toolchain/m2` 加下表参数。初次使用旧临时 JDK 时缺少 `lib/jvm.cfg`，未执行到测试；改用已安装 ARM Java 25 后测试可运行，该环境故障不算 RED。
+
+| 验证 | 实际命令/操作 | 实际结果与边界 |
+|---|---|---|
+| 前端目标 RED → GREEN | `frontend/`: `npm test -- --run src/App.test.tsx -t 'beyond 31 days'` | 实现前 2/2 因第 32 天 `2026-11-06` 只有“查看日期”而失败；实现后同一命令 2/2 通过。固定多伦多时钟，验证第 32/90 天、跨年、跨月保留选择、实际提交体、过去日期拒绝，以及 31 日期/100 时段容量。 |
+| 后端目标 RED → GREEN | 上述 Maven 前缀 + `-Dtest=AvailabilityRevision5ApiTest test` | 有效 RED：8 项中 6 失败/0 错误；4 项因较远日期发布返回 400 而非 201，2 项因旧错误仍要求“未来 31 天”；DST 负向 2 项通过。实现后同一命令 8/8 GREEN。两个入口均接受第 32/90/370 天，重放、异内容冲突、远期月历/学员查询和 PENDING 申请均通过。 |
+| 目标补充复核 | 同一 Maven 目标命令 | 补充远期 PENDING 阻止整批覆盖且所有原 OPEN 保留的断言，简化撤回时段的月历断言；最终再次 8/8 通过，进程正常退出。 |
+| 后端全量回归 | 上述 Maven 前缀 + `test` | 37 类、152/152 通过，失败/错误/跳过均为 0，退出码 0 / BUILD SUCCESS。包含架构检查、预约并发、PENDING/BOOKED 保护、锁定、权限、DST、媒体和身份回归。完整测试结束后 Surefire 等待关停 hook 30 秒并强制结束测试 JVM；日志和转储单独记录 [TODO-0034](../todo/0034-full-backend-test-shutdown-timeout.md)。这条实际收尾异常不记为业务测试失败，也不声称测试资源关停已验证。 |
+| 前端回归 | `frontend/`: `npm test -- --run` | 5 文件、63/63 通过，包含原有开始时间过期、移除过期选择、发布反馈和其他业务交互。 |
+| 前端静态与构建 | `frontend/`: `npm run lint`、`npm run build` | 退出码均为 0；构建含 TypeScript `tsc --noEmit`。 |
+| Chrome 页面检查 | 根目录 `node .local/availability-revision5/browser-check.mjs` | 390/1440px × COACH/STUDENT 共 4 项通过；跨月选择和远期提交、学员读取跨年 31 天窗口并申请均正确，无页面异常或横向溢出。截图已查看；浏览器用本地测试响应，不代表真实生产端到端。真实持久化/预约由上述 MySQL API 测试验证。 |
+| 文档与空白 | 根目录 `python3 ai-docs/check_docs.py`、`git diff --check` | 通过；11 对功能/计划、34 张 ticket 的链接、索引、状态和批准门槛一致。 |
+
+本地运行产物在忽略的 `.local/availability-revision5/`：`frontend-red.log`、`frontend-green.log`、`backend-red.log`、`backend-green.log`、`backend-final-target.log`、各项回归日志、`browser-result.json` 及 390/1440px 月历截图。没有运行生产写请求、SMTP 发送、迁移、提交推送或部署；前一任务已验证的 Logo 改动保留。本地 IDEA 后端需重启以加载新的校验，测试 Maven 编译不等于正在运行的 IDEA 进程已更新。

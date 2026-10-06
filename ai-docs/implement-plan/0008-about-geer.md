@@ -11,6 +11,22 @@ feature: "../features/0008-about-geer.md"
 
 # 0008 — 关于 GEER 实施计划
 
+## 2026-10-05 首屏重设计撤回与 Logo 视觉维护
+
+用户于 2026-10-05 明确“算了，我觉得还是hero那个好 我都回退了”，取消此前已批准并本地验证的 revision 4 图文分栏重设计；用户已回退相关源码/文档，当前采用原 hero 和 revision 3 基线。该 revision 4 已 CANCELLED，未由 AI 提交或上线；其本地目标 RED/GREEN 不作为当前实现验收证据。
+
+本次 [TODO-0032](../todo/0032-coach-profile-logo-inconsistent.md) 依据用户明确“个人展示页面的logo用的不是约课里的，不一致，我想都用那个约课洁界面那个logo”，在已批准 0008 P-04 展示和 [0009 品牌](0009-course-selection-visuals.md)范围内维护，沿用 revision 3，无业务/验收流程、架构、数据或成本变化。按契约第 9 节与 0009 的纯 Logo/CSS 验证规则，不添加机械样式测试或伪造功能 RED/GREEN；运行既有回归和实际浏览器品牌/导航验证。
+
+- [x] 新 `frontend/src/GeerLogo.tsx` 统一现有字标资源；`BookingHome.tsx`、`AboutGeerPage.tsx`（页眉/页脚）、`CoachProfileEditor.tsx`（编辑页页眉）复用，约课图片属性与现有交互保持一致。
+- [x] `frontend/src/about-geer.css` 改用图片字标尺寸，适配窄屏页首/页脚与点击区域；保留当前 hero 规则。
+- [x] Chrome 检查 320/390/768/1440 px 的访客/已登录公开页、约课和编辑/预览，Logo 正常解码且同源同图、没有溢出，首页点击/键盘访问可用；运行前端测试/lint/类型与构建、文档检查。
+
+实际验证（2026-10-05）：`node .local/logo-consistency/browser-check.mjs` exit 0，28 个场景通过、0 页面脚本错误；检查四种宽度的访客/学员/教练公开页、学员/教练约课页、编辑页与草稿预览，所有 Logo 均来自原 `/images/geer-logo.png`、正常解码为 2172×724。首页按钮高度至少 44 px，Enter 返回登录/工作区，编辑页返回按钮可用；页面无横向溢出。桌面/手机页眉截图目视通过。桌面图标 132×26、手机 108×22；窄于 381 px 时公开页导航另起一行，避免较宽图片与登录/返回入口拥挤，窄屏页脚图标 96×20。
+
+前端 `npm test` 61/61、`npm run lint`、`npm run build`（含类型检查）均 exit 0；`python3 ai-docs/check_docs.py`、`git diff --check` 通过。新旧源码核对确认 hero 规则和 Logo PNG 字节一致；未改其他媒体、后端或云资源。验证日志/截图保存在忽略的 `.local/logo-consistency/`；临时 Vite 5174 随后停止。
+
+当前 VERIFIED（本地）；本次未执行 commit/push 或生产部署，旧 RELEASED 记录仅为历史版本证据。
+
 ## 2026-10-05 首屏人物照片裁切样式维护
 
 关联 [TODO-0031](../todo/0031-hero-portrait-head-cropped.md)。用户反馈拉宽窗口会裁掉人物照片上半部分；在现有线上 1920×2560 竖图上复现：1440/2560 px 窗口分别裁掉原图顶部约 863/1112 px，超宽屏截图头部不完整。直接顶部对齐的只读预览会只显示天空，因此采用向上移动取景位置的局部样式修正。

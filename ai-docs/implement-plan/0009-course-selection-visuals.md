@@ -5,11 +5,13 @@ status: VERIFIED
 revision: 3
 approved_revision: 3
 created: 2026-10-03
-updated: 2026-10-04
+updated: 2026-10-05
 feature: "../features/0009-course-selection-visuals.md"
 ---
 
 # 0009 — 选课页品牌与课程封面交互实施计划
+
+2026-10-05 Logo 维护：按用户明确要求统一约课与个人展示字标，`BookingHome.tsx` 使用共享 `GeerLogo.tsx`；生成的图片元素仍为原资源、`alt="GEER"`、132×26 属性与原 `booking-logo` class，现有响应式 CSS 沿用。原 PNG 字节核对一致；四种宽度学员/教练约课浏览器核验、全部前端 61/61、lint、类型/构建通过，详细命令和证据见 [0008 Logo 维护](0008-about-geer.md)、[TODO-0032](../todo/0032-coach-profile-logo-inconsistent.md)。属于既有品牌视觉范围维护，沿用 revision 3；无功能 RED/GREEN 声明或新增发布授权。
 
 ## 1. Review 摘要
 

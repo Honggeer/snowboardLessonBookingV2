@@ -32,3 +32,5 @@
 | TODO-0028 | [生产合法视频校验超时后被当作格式错误拒绝](0028-production-video-probe-timeout.md) | DONE | [0008 revision 2](../implement-plan/0008-about-geer.md) | 2026-10-04 |
 | TODO-0029 | [主页微信改为仅二维码并放开社交账号与链接填写](0029-coach-social-contact-simplification.md) | DONE | [0008 revision 3](../implement-plan/0008-about-geer.md) | 2026-10-05 |
 | TODO-0031 | [个人展示页首屏照片在窗口拉宽后裁掉头部](0031-hero-portrait-head-cropped.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-05 |
+| TODO-0032 | [个人展示页 Logo 与约课界面不一致](0032-coach-profile-logo-inconsistent.md) | DONE | [0008](../implement-plan/0008-about-geer.md)、[0009](../implement-plan/0009-course-selection-visuals.md) | 2026-10-05 |
+| TODO-0033 | [可用日期被限制在未来 31 天内](0033-availability-future-date-limit.md) | DONE | [0006 revision 5](../implement-plan/0006-post-login-booking-home.md) | 2026-10-05 |

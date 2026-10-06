@@ -3,6 +3,7 @@ import './booking.css';
 import CourseCard, { type Course } from './CourseCard';
 import CourseCoverEditor, { emptyCover, type CoverDraft } from './CourseCoverEditor';
 import type { MediaLink } from './coachProfileApi';
+import GeerLogo from './GeerLogo';
 
 type Account = { id: string; role: 'STUDENT' | 'COACH'; name: string; level: string | null };
 export type BookingDeepLink = { role: Account['role']; id: string };
@@ -378,7 +379,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     const preview = previewDays(days);
     const today = torontoDate();
     const now = torontoTime();
-    const invalidDate = days.some((day) => day.localDate < today || day.localDate > dateOffset(today, 31)
+    const invalidDate = days.some((day) => day.localDate < today
       || (day.localDate === today && timeMinutes(day.startTime) <= timeMinutes(now)));
     const validationError = mountains.every((mountain) => !mountain.active) ? '请先新增一座雪场。'
       : !days.length ? '请先在月历中选择可用日期。'
@@ -386,7 +387,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
           ? '请设置有效的开始和结束时间。'
           : preview.count === 0 ? '时间范围至少要包含一个完整的两小时时段。'
             : days.length > 31 || preview.count > 100 ? '每批最多选择 31 天、发布 100 个时段。'
-              : invalidDate ? '所选日期的开始时间已过或超出未来 31 天，请调整日期或时间。' : '';
+              : invalidDate ? '所选日期的开始时间已过，请调整日期或时间。' : '';
     if (validationError) { setCalendarFeedback(''); setCalendarWriteError(validationError); return; }
     setBusy(true); setError(''); setNotice(''); setCalendarWriteError(''); setCalendarFeedback('正在发布可用时间…');
     try {
@@ -525,8 +526,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   const preview = previewDays(draftDays);
   const today = torontoDate();
   const earliestSelectable = timeMinutes(slotStartTime) > timeMinutes(torontoTime()) ? today : dateOffset(today, 1);
-  const lastSelectable = dateOffset(today, 31);
-  const hasPastSelection = calendarSelection.some((date) => date < earliestSelectable || date > lastSelectable);
+  const hasPastSelection = calendarSelection.some((date) => date < earliestSelectable);
   const calendarDates = monthDates(calendarMonth);
   const [calendarYear, calendarNumber] = calendarMonth.split('-').map(Number);
   const firstWeekday = (new Date(Date.UTC(calendarYear, calendarNumber - 1, 1)).getUTCDay() + 6) % 7;
@@ -535,7 +535,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   return <main className="booking-app">
     <header className="booking-header">
       <div className="booking-header-inner">
-        <img className="booking-logo" src="/images/geer-logo.png" alt="GEER" width="132" height="26" />
+        <GeerLogo className="booking-logo" />
         <nav aria-label="主导航">
           {account.role === 'STUDENT' ? <>
             <button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => setTab('book')}>约课</button>
@@ -734,7 +734,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                   {Array.from({ length: firstWeekday }, (_, index) => <span key={`empty-${index}`} aria-hidden="true" />)}
                   {calendarDates.map((date) => {
                     const day = calendarDays.find((item) => item.localDate === date);
-                    const selectable = date >= earliestSelectable && date <= lastSelectable;
+                    const selectable = date >= earliestSelectable;
                     const selected = calendarSelection.includes(date);
                     return <button key={date} type="button" className={`coach-calendar-day${selected ? ' selected' : ''}${selected || selectable ? '' : ' unavailable'}${publishedDates.includes(date) ? ' just-published' : ''}`}
                       aria-label={`${selected ? '取消选择日期' : selectable ? '选择日期' : '查看日期'} ${date}`}
@@ -749,10 +749,6 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                         const currentToday = torontoDate();
                         if (date < currentToday) {
                           setCalendarAction({ message: `${date} 已过去，不能添加到排班。请选择未来日期。`, error: true });
-                          return;
-                        }
-                        if (date > dateOffset(currentToday, 31)) {
-                          setCalendarAction({ message: '只可添加未来 31 天内的日期。', error: true });
                           return;
                         }
                         if (date === currentToday && timeMinutes(slotStartTime) <= timeMinutes(torontoTime())) {

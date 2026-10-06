@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { profileRequest, socialLinkTarget, type CoachProfile } from './coachProfileApi';
 import './about-geer.css';
+import GeerLogo from './GeerLogo';
 
 function Dialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -86,7 +87,7 @@ export function CoachPresentation({ profile, preview = false, onBook, onRefresh 
         {(m.WECHAT_QR || preview) && <div className="geer-social-card geer-wechat-card"><span className="geer-social-icon wechat" aria-hidden="true">●●</span><div><strong>微信</strong>{!m.WECHAT_QR && preview && <span>二维码待上传</span>}</div>{m.WECHAT_QR && <button type="button" className="geer-qr-thumbnail" aria-label="放大微信二维码" onClick={() => setDialog('wechat')}><Photo key={m.WECHAT_QR.url} src={m.WECHAT_QR.url} alt="GEER 微信二维码" /></button>}</div>}
       </div></section>}
       <section className="geer-book-banner"><h2>一起开启下一次滑行</h2><button className="geer-button" type="button" onClick={onBook}>预约课程 <span aria-hidden="true">→</span></button></section>
-      <footer className="geer-footer"><span className="geer-wordmark">GEER</span><span>MORE THAN A RIDE</span><span className="geer-footer-mountains" aria-hidden="true">／╲／╲／╲</span></footer>
+      <footer className="geer-footer"><span className="geer-wordmark"><GeerLogo /></span><span>MORE THAN A RIDE</span><span className="geer-footer-mountains" aria-hidden="true">／╲／╲／╲</span></footer>
     </div>
     {dialog === 'certificate' && m.CERTIFICATE && <Dialog title="CASI 证书" onClose={() => setDialog(null)}><Photo key={m.CERTIFICATE.url} className="geer-dialog-image" src={m.CERTIFICATE.url} alt="CASI 证书大图" /><p>{c.casiLevel}</p></Dialog>}
     {dialog === 'wechat' && m.WECHAT_QR && <Dialog title="联系 GEER" onClose={() => setDialog(null)}><Photo key={m.WECHAT_QR.url} className="geer-qr-image" src={m.WECHAT_QR.url} alt="GEER 微信二维码" /></Dialog>}
@@ -102,7 +103,7 @@ export default function AboutGeerPage({ onBook, onHome, loggedIn }:
     return () => abort.abort();
   }, [reload]);
   return <main className="geer-about-page"><header className="geer-header"><div className="geer-shell geer-header-inner">
-    <button className="geer-wordmark" type="button" aria-label="GEER 首页" onClick={onHome}>GEER</button><nav aria-label="主导航"><span className="active">关于 GEER</span><button type="button" onClick={onBook}>预约课程</button></nav>
+    <button className="geer-wordmark" type="button" aria-label="GEER 首页" onClick={onHome}><GeerLogo /></button><nav aria-label="主导航"><span className="active">关于 GEER</span><button type="button" onClick={onBook}>预约课程</button></nav>
     <button className="geer-login" type="button" onClick={onHome}>{loggedIn ? '返回工作区' : '登录'}</button>
   </div></header>
   {error && <div className="geer-shell geer-page-state" role="alert"><p>{error}</p><button className="geer-button" type="button" onClick={() => setReload((n) => n + 1)}>重新加载</button></div>}

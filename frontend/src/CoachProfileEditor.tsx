@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { CoachPresentation } from './AboutGeerPage';
 import { ProfileApiError, profileRequest, requestKey, type CoachProfile, type Csrf, type MediaLink, type MediaPurpose, type Upload } from './coachProfileApi';
+import GeerLogo from './GeerLogo';
 import './about-geer.css';
 
 const fields = [
@@ -127,7 +128,7 @@ export default function CoachProfileEditor({ refreshCsrf, onUnauthorized, onBack
       if (!await finishUpload(u, slot)) await checkUpload(current.assetId, slot);
     } catch (e) { fail(e); } finally { if (mounted.current) setBusy(false); }
   }
-  return <main className="geer-editor"><header className="geer-header"><div className="geer-shell geer-header-inner"><span className="geer-wordmark">GEER</span><strong>个人主页</strong><button type="button" className="geer-login" onClick={onBack}>返回工作区</button></div></header>
+  return <main className="geer-editor"><header className="geer-header"><div className="geer-shell geer-header-inner"><span className="geer-wordmark"><GeerLogo /></span><strong>个人主页</strong><button type="button" className="geer-login" onClick={onBack}>返回工作区</button></div></header>
     <div className="geer-shell geer-editor-content"><div className="geer-editor-heading"><div><p className="geer-eyebrow">YOUR STORY</p><h1>让大家认识你</h1><p>编辑真实资料，预览后再发布到“关于 GEER”。</p></div><a href="/about-geer" target="_blank" rel="noopener noreferrer">查看公开页面 ↗</a></div>
       {error && <div className="geer-editor-alert" role="alert">{error}<button type="button" disabled={busy} onClick={() => void load()}>重新载入草稿</button></div>}
       {notice && <p className="geer-editor-notice" role="status">{notice}</p>}

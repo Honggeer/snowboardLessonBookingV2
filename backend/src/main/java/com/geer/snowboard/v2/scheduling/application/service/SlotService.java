@@ -78,8 +78,8 @@ public class SlotService implements SlotOperations {
         if (prior != null) return batchReplay(prior, fingerprint, tails);
         LocalDate today = LocalDate.now(clock.withZone(AvailabilityRange.ZONE));
         for (PreparedDay day : days) {
-            if (day.date().isBefore(today) || day.date().isAfter(today.plusDays(31)))
-                throw new BusinessProblem(400, "只能选择未来 31 天的日期");
+            if (day.date().isBefore(today))
+                throw new BusinessProblem(400, "不能选择过去的日期");
         }
         if (store.activeMountains(actor.id()).isEmpty())
             throw new BusinessProblem(409, "请先设置至少一座雪场");
@@ -125,8 +125,8 @@ public class SlotService implements SlotOperations {
         if (prior != null) return new ReplacementLock(dates, batchReplay(prior, fingerprint, tails(days)));
         LocalDate today = LocalDate.now(clock.withZone(AvailabilityRange.ZONE));
         for (PreparedDay day : days) {
-            if (day.date().isBefore(today) || day.date().isAfter(today.plusDays(31)))
-                throw new BusinessProblem(400, "只能选择未来 31 天的日期");
+            if (day.date().isBefore(today))
+                throw new BusinessProblem(400, "不能选择过去的日期");
             for (var window : day.split().windows()) {
                 if (!window.start().isAfter(clock.instant())) throw new BusinessProblem(400, "只能发布未来时段");
             }

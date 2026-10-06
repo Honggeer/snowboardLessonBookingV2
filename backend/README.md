@@ -60,6 +60,8 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 `GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V10。生产迁移与发布另需授权。
 
+批量新增和整天替换均不限制排班日期必须在未来 31 天内，支持有效的跨月、跨年未来日期；仍校验多伦多过去日期和时段开始时间，每批 1–31 个不同日期、最多 100 个生成时段。学员 `/api/slots` 每次查询跨度仍最多 31 天，教练月历每次读取一个自然月；可以将查询窗口移到更远的未来。无需数据库迁移；已有预约、雪场锁定和批次事务保护保留，验证见 [0006 revision 5](../ai-docs/implement-plan/0006-post-login-booking-home.md)。
+
 ## 预约邮件
 
 学员申请成功进入 PENDING 时，同事务保存教练邮件任务；教练确认后，同事务保存学员邮件任务。后台另行通过现有 SMTP 发送，两封邮件分别链接到需要登录且按账号授权的预约详情。任务写入失败会回滚申请或确认；SMTP 失败只影响邮件任务，不能改变已保存的预约状态。相关状态、API 和限制见[0007 功能文档](../ai-docs/features/0007-booking-email-notifications.md)。
