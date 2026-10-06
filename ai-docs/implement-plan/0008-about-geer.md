@@ -11,6 +11,34 @@ feature: "../features/0008-about-geer.md"
 
 # 0008 — 关于 GEER 实施计划
 
+## 2026-10-05 页脚网站设计合作入口维护（已验证）
+
+用户已 review 上一轮具体建议：页脚右侧三行“喜欢这个网站？”、“网站设计与全栈开发 · GEER”、honggeer1208@gmail.com 邮箱联系链接；桌面右对齐，手机在 Logo 下方左对齐，融入现有蓝色风格并随页面滚动。用户随后明确“可以，来吧，注意手机端的展示”。关联 [TODO-0035](../todo/0035-footer-web-design-contact.md)。在既有 revision 3 / P-04 响应式展示范围内作局部静态内容维护，保留 approved_revision 3；没有新编辑/API/发布规则、存储、架构或费用变化，用户对该具体文案和布局的确认已覆盖本地实施。
+
+具体文件与步骤：
+
+- `frontend/src/AboutGeerPage.tsx`：共享 `CoachPresentation` 的页脚将山峰装饰改为署名和合作信息；原 Logo 与 MORE THAN A RIDE 组成品牌区域，增加原生 `mailto:honggeer1208@gmail.com` 链接，箭头仅作装饰。公开页与草稿预览一致，不新建后台字段或自动发信流程。
+- `frontend/src/about-geer.css`：合作信息桌面右对齐，说明 13px/邮箱 14px；760px 及以下页脚改为纵向排列、左对齐，品牌信息与合作区分行；邮件链接至少 44px 高，窄屏可容纳邮箱和箭头，焦点样式清晰；移除未使用的页脚山峰样式，其他 hero/媒体/约课规则保持原样。
+- 本次是低影响的静态文案/样式维护，依契约第 9 节不新增机械文案/CSS 单元测试。使用实际 Chrome 验证脚本先核对旧页缺少入口，再以相同脚本验证修改后的真实 DOM、响应式几何与链接交互，不把样式验证说成业务功能测试。
+- 浏览器范围：320/360/390/430/768/1024/1440/1920px，访客/学员/教练公开页及教练编辑草稿预览。核对唯一邮箱链接、正确 mailto、品牌内容、邮箱不裁切、手机品牌在上/合作在下、左右对齐、至少 44px 点击高度、键盘 Enter 触发链接、无溢出/页面异常；只截获验证链接操作，不打开本机邮件客户端或实发邮件。
+- 回归命令：`frontend/` 下 `npm test -- --run`、`npm run lint`、`npm run build`；根目录 `python3 ai-docs/check_docs.py` 与 `git diff --check`。前端没有后端变更，不重复数据库/生产测试。记录截图/命令/结果，同步配对文档、索引与 ticket。
+
+恢复仅需还原本次页脚 DOM/CSS；不涉及数据恢复。已完成 IMPLEMENTED → VERIFIED（本地），未执行 commit/push、生产发布或外部发信。
+
+实际验证（2026-10-05）：
+
+| 验证 | 命令/操作 | 实际结果与限制 |
+|---|---|---|
+| 修改前后实际页面核对 | 根目录 `node .local/footer-design-contact/browser-check.mjs` | 修改前 320px 访客页已有页脚但缺少合作邮箱链接，明确失败；修改后同一浏览器验证脚本 32/32 通过，0 页面异常。覆盖八种宽度及访客/学员/教练公开页、教练编辑草稿预览；没有添加机械文案/CSS 单元测试，未将视觉核对说成业务功能 RED/GREEN。 |
+| 手机、布局及联系交互 | 上述脚本及 320/390/1440px 截图目视 | 所有邮箱为一行、点击高度 44px，无裁切/横向溢出。手机上下排列左对齐，桌面品牌在左/合作在右；键盘 Enter、触摸/点击均触发 `mailto:honggeer1208@gmail.com`，焦点轮廓可见。脚本阻止默认跳转，只验证触发目标，不打开本机邮件客户端或发送邮件。 |
+| 静态展示截图 | `FOOTER_CAPTURE_ONLY=1 node .local/footer-design-contact/browser-check.mjs` | 320/390/1440px 三项通过，在交互前截图，避免手机浏览器原生点击高亮影响展示截图；公开页截图已查看。 |
+| 前端回归 | `frontend/`: `npm test -- --run` | 5 文件、63/63 通过。 |
+| lint 与类型/构建 | `frontend/`: `npm run lint`、`npm run build` | 均退出 0；构建包含 `tsc --noEmit`，未引入依赖。 |
+| 改动边界 | 与修改前 `.local/footer-design-contact/baseline.json` 比较 | hero/人物取景相关 CSS 规则和 Logo PNG SHA-256 完全一致；只改变页脚 DOM/CSS 和相关文档。 |
+| 文档与空白 | 根目录 `python3 ai-docs/check_docs.py`、`git diff --check` | 通过；11 对功能/计划、35 张 ticket、链接/索引/状态和批准门槛一致。 |
+
+实际前端文件为 `AboutGeerPage.tsx`、`about-geer.css`，另更新前端 README；原生邮箱链接与共享展示组件即可实现，不新增组件/后端字段或服务器发信。全部浏览器操作使用本地 API 测试响应，不访问或修改生产资料。运行日志、前后脚本结果和截图保存在忽略的 `.local/footer-design-contact/`；全量 32 项报告与截图捕获 3 项报告分别保留。临时 5174 验证服务在检查后停止；不重启用户的开发服务。
+
 ## 2026-10-05 首屏重设计撤回与 Logo 视觉维护
 
 用户于 2026-10-05 明确“算了，我觉得还是hero那个好 我都回退了”，取消此前已批准并本地验证的 revision 4 图文分栏重设计；用户已回退相关源码/文档，当前采用原 hero 和 revision 3 基线。该 revision 4 已 CANCELLED，未由 AI 提交或上线；其本地目标 RED/GREEN 不作为当前实现验收证据。
@@ -168,6 +196,7 @@ feature: "../features/0008-about-geer.md"
 | 2026-10-04 | “批准修复并上线（推荐）”（revision 2 完整方案确认） | 2 | 批准 90 秒有界完整校验、临时超时/有限重试和界面提示、目标 RED/GREEN/回归、commit/push 与现有 CI/CD 上线；无扩容、新资源、转码或生产历史任务重置 |
 | 2026-10-04 | “保留长度上限，取消其余校验（推荐）” | N/A（revision 3 业务条件） | 确认社交账号 80 字、链接 2048 字上限继续保留，取消其他社交校验；具体实施计划及本次提交/上线仍待 review |
 | 2026-10-04 | “开始实现 批准”（对 revision 3 review 与实施/提交推送/上线问题的回复） | 3 | 批准微信仅二维码、社交字段独立可选及取消业务校验；保留 80/2048 字上限，兼容旧数据；目标 RED/GREEN/必要回归、commit/push 与既有流水线上线，不自动改用户草稿或发布内容 |
+| 2026-10-05 | review 三行文案、桌面/手机布局与邮箱链接建议后：“可以，来吧，注意手机端的展示” | 3 | 在 P-04 响应式展示范围内维护页脚固定署名及邮件联系链接，沿用既有规则；本地实现与验证，不含 Git commit/push、生产部署或外部发信 |
 
 revision 1/2 的批准与历史执行证据保留；revision 2 超时修复的 commit/push/上线已有明确授权并完成。本次 revision 3 已批准，当前 `approved_revision: 3`。
 

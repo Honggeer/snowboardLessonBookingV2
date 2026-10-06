@@ -87,7 +87,16 @@ export function CoachPresentation({ profile, preview = false, onBook, onRefresh 
         {(m.WECHAT_QR || preview) && <div className="geer-social-card geer-wechat-card"><span className="geer-social-icon wechat" aria-hidden="true">●●</span><div><strong>微信</strong>{!m.WECHAT_QR && preview && <span>二维码待上传</span>}</div>{m.WECHAT_QR && <button type="button" className="geer-qr-thumbnail" aria-label="放大微信二维码" onClick={() => setDialog('wechat')}><Photo key={m.WECHAT_QR.url} src={m.WECHAT_QR.url} alt="GEER 微信二维码" /></button>}</div>}
       </div></section>}
       <section className="geer-book-banner"><h2>一起开启下一次滑行</h2><button className="geer-button" type="button" onClick={onBook}>预约课程 <span aria-hidden="true">→</span></button></section>
-      <footer className="geer-footer"><span className="geer-wordmark"><GeerLogo /></span><span>MORE THAN A RIDE</span><span className="geer-footer-mountains" aria-hidden="true">／╲／╲／╲</span></footer>
+      <footer className="geer-footer">
+        <div className="geer-footer-brand"><span className="geer-wordmark"><GeerLogo /></span>
+          <span className="geer-footer-tagline">MORE THAN A RIDE</span></div>
+        <div className="geer-footer-contact">
+          <p className="geer-footer-contact-title">喜欢这个网站？</p>
+          <p className="geer-footer-contact-description">网站设计与全栈开发 · GEER</p>
+          <a href="mailto:honggeer1208@gmail.com"><span className="geer-footer-email">honggeer1208@gmail.com</span>
+            <span aria-hidden="true">↗</span></a>
+        </div>
+      </footer>
     </div>
     {dialog === 'certificate' && m.CERTIFICATE && <Dialog title="CASI 证书" onClose={() => setDialog(null)}><Photo key={m.CERTIFICATE.url} className="geer-dialog-image" src={m.CERTIFICATE.url} alt="CASI 证书大图" /><p>{c.casiLevel}</p></Dialog>}
     {dialog === 'wechat' && m.WECHAT_QR && <Dialog title="联系 GEER" onClose={() => setDialog(null)}><Photo key={m.WECHAT_QR.url} className="geer-qr-image" src={m.WECHAT_QR.url} alt="GEER 微信二维码" /></Dialog>}

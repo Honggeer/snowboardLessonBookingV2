@@ -34,3 +34,4 @@
 | TODO-0031 | [个人展示页首屏照片在窗口拉宽后裁掉头部](0031-hero-portrait-head-cropped.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-05 |
 | TODO-0032 | [个人展示页 Logo 与约课界面不一致](0032-coach-profile-logo-inconsistent.md) | DONE | [0008](../implement-plan/0008-about-geer.md)、[0009](../implement-plan/0009-course-selection-visuals.md) | 2026-10-05 |
 | TODO-0033 | [可用日期被限制在未来 31 天内](0033-availability-future-date-limit.md) | DONE | [0006 revision 5](../implement-plan/0006-post-login-booking-home.md) | 2026-10-05 |
+| TODO-0035 | [个人展示页增加网站设计与全栈开发合作入口](0035-footer-web-design-contact.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-05 |
