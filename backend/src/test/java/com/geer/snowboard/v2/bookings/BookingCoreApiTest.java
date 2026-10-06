@@ -92,19 +92,19 @@ class BookingCoreApiTest {
         mvc.perform(post("/api/bookings").with(user(student).roles("STUDENT")).with(csrf())
                         .header("Idempotency-Key", key).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk());
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED')",
                 Integer.class, booking)).isEqualTo(1);
         mvc.perform(post("/api/coach/bookings/{id}/confirm", booking)
                         .with(user(coach).roles("COACH")).with(csrf()))
                 .andExpect(status().isOk());
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED')",
                 Integer.class, booking)).isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT recipient_account_id FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_CONFIRMED'",
                 String.class, booking)).isEqualTo(student);
         mvc.perform(post("/api/coach/bookings/{id}/confirm", booking)
                         .with(user(coach).roles("COACH")).with(csrf()))
                 .andExpect(status().isOk());
-        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED')",
                 Integer.class, booking)).isEqualTo(2);
     }
 

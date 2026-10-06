@@ -1,6 +1,7 @@
 package com.geer.snowboard.v2.bookings.application.service;
 
 import com.geer.snowboard.v2.bookings.application.port.in.BookingOperations;
+import com.geer.snowboard.v2.bookings.application.port.in.BookingReminderOperations;
 import com.geer.snowboard.v2.bookings.application.port.out.BookedCourseLookup;
 import com.geer.snowboard.v2.bookings.application.port.out.BookedSlotAccess;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingMailQueue;
@@ -32,10 +33,13 @@ public class BookingService implements BookingOperations {
     private final BookingMailQueue mailQueue;
     private final Clock clock;
     private final BookingStudentContacts contacts;
+    private final BookingReminderOperations reminders;
     public BookingService(BookingStore store, BookedSlotAccess slots, BookedCourseLookup courses,
-                          BookingMailQueue mailQueue, Clock clock, BookingStudentContacts contacts) {
+                          BookingMailQueue mailQueue, Clock clock, BookingStudentContacts contacts,
+                          BookingReminderOperations reminders) {
         this.store = store; this.slots = slots; this.courses = courses;
         this.mailQueue = mailQueue; this.clock = clock; this.contacts = contacts;
+        this.reminders = reminders;
     }
 
     @Override @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -148,6 +152,7 @@ public class BookingService implements BookingOperations {
         store.rejectOtherPending(slot.id(), candidate.id(), now);
         store.rejectOtherMountains(actor.id(), candidate.localDate(), candidate.mountainId(), now);
         mailQueue.enqueue(candidate.id(), BookingMailQueue.BOOKING_CONFIRMED, candidate.studentId(), now);
+        reminders.scheduleConfirmed(candidate.id(), now);
         return store.findById(candidate.id());
     }
 

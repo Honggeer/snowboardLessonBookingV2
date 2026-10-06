@@ -1,0 +1,12 @@
+ALTER TABLE bookings_request
+    ADD COLUMN lesson_reminder_planned_at DATETIME(6) NULL,
+    ADD INDEX ix_booking_reminder_plan (status,lesson_reminder_planned_at,start_at_utc_snapshot,id);
+
+ALTER TABLE bookings_mail_task
+    ADD COLUMN reminder_start_at_utc DATETIME(6) NULL,
+    DROP CHECK ck_booking_mail_event,
+    ADD CONSTRAINT ck_booking_mail_event CHECK (event_type IN
+        ('APPLICATION_RECEIVED','BOOKING_CONFIRMED','STUDENT_LESSON_REMINDER','COACH_LESSON_REMINDER')),
+    ADD CONSTRAINT ck_booking_reminder_start CHECK (
+        (event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED') AND reminder_start_at_utc IS NULL)
+        OR (event_type IN ('STUDENT_LESSON_REMINDER','COACH_LESSON_REMINDER') AND reminder_start_at_utc IS NOT NULL));

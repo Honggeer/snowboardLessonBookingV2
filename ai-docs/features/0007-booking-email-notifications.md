@@ -4,7 +4,7 @@ title: "预约邮件通知与取消规则提示"
 status: VERIFIED
 plan: "../implement-plan/0007-booking-email-notifications.md"
 created: 2026-10-01
-updated: 2026-10-01
+updated: 2026-10-06
 contract_version: "1.6"
 modules: [bookings, identity, frontend]
 ---
@@ -131,3 +131,5 @@ revision 2 拟在本机复用用户已存的 Gmail 应用密码，不新增服�
 ## 11. 交付状态与后续
 
 revision 1 于 2026-10-01 完成代码并经全量回归、本地 Mailpit 与真实浏览器检查达到 VERIFIED。revision 2 配置已完成，真实 Gmail SMTP 接受两类预约邮件，用户确认两封均收到，当前为 VERIFIED。公网 HTTPS 链接和生产部署均未完成。
+
+- 2026-10-06 后续扩展：[0012 课前邮件提醒](0012-lesson-reminder-emails.md) revision 1 完成本地验证。在两种原通知之上增加双方独立的延时提醒、V12 及专用有界调度；0007 既有通知/权限契约和历史批准不变，详见 0012 实际证据，未进行本次生产发布。

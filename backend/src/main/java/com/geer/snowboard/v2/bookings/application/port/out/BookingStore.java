@@ -4,6 +4,7 @@ import com.geer.snowboard.v2.bookings.application.port.in.BookingOperations.Book
 import com.geer.snowboard.v2.sharedkernel.Page;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 
 public interface BookingStore {
     Booking findById(String id);
@@ -24,4 +25,6 @@ public interface BookingStore {
     void rejectOtherMountains(String coachId, LocalDate date, String mountainId, Instant now);
     boolean hasPendingMountain(String mountainId);
     boolean hasPendingDay(String coachId, LocalDate date);
+    List<Booking> lockUnplannedReminders(Instant now, int limit);
+    boolean markReminderPlanned(String bookingId, Instant now);
 }

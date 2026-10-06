@@ -43,6 +43,13 @@ class ProductionConfigTest(unittest.TestCase):
             if mount["target"].startswith("/run/secrets"):
                 self.assertTrue(mount["read_only"])
 
+    def test_reminders_and_booking_mail_worker_are_independently_switchable(self):
+        for value in ("true", "false"):
+            env = self.config({**PRODUCTION, "BOOKING_REMINDERS_ENABLED": value,
+                               "BOOKING_MAIL_WORKER_ENABLED": value})["services"]["backend"]["environment"]
+            self.assertEqual(env.get("BOOKING_REMINDERS_ENABLED"), value)
+            self.assertEqual(env.get("BOOKING_MAIL_WORKER_ENABLED"), value)
+
     def test_missing_parameters_fail_closed(self):
         self.config()
         for key in ["BACKEND_IMAGE", "SECRETS_DIR", "APP_PUBLIC_URL", "MAIL_HOST", "MEDIA_FROZEN_BUCKET"]:

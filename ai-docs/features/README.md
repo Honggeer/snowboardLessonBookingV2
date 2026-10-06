@@ -16,10 +16,11 @@
 | 0004 | [邮箱验证码找回密码](0004-password-recovery.md) | [0004](../implement-plan/0004-password-recovery.md) | VERIFIED | 2026-09-30 |
 | 0005 | [集成测试后台任务与数据库生命周期](0005-test-scheduler-lifecycle.md) | [0005](../implement-plan/0005-test-scheduler-lifecycle.md) | VERIFIED | 2026-09-30 |
 | 0006 | [登录后约课主界面](0006-post-login-booking-home.md) | [0006](../implement-plan/0006-post-login-booking-home.md) | VERIFIED | 2026-10-05 |
-| 0007 | [预约邮件通知与取消规则提示](0007-booking-email-notifications.md) | [0007](../implement-plan/0007-booking-email-notifications.md) | VERIFIED | 2026-10-01 |
+| 0007 | [预约邮件通知与取消规则提示](0007-booking-email-notifications.md) | [0007](../implement-plan/0007-booking-email-notifications.md) | VERIFIED | 2026-10-06 |
 | 0008 | [关于 GEER：教练主页与媒体管理](0008-about-geer.md) | [0008](../implement-plan/0008-about-geer.md) | VERIFIED | 2026-10-05 |
 | 0009 | [选课页品牌与课程封面交互](0009-course-selection-visuals.md) | [0009](../implement-plan/0009-course-selection-visuals.md) | VERIFIED | 2026-10-05 |
 | 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../implement-plan/0010-production-delivery.md) | IMPLEMENTED | 2026-10-05 |
 | 0011 | [首次预约前填写联系电话](0011-student-contact-phone.md) | [0011](../implement-plan/0011-student-contact-phone.md) | VERIFIED | 2026-10-06 |
+| 0012 | [已确认预约课前邮件提醒](0012-lesson-reminder-emails.md) | [0012](../implement-plan/0012-lesson-reminder-emails.md) | VERIFIED | 2026-10-06 |
 
 0010 的 deploy 目录整理已完成本地验证；当前目录与命令见 [部署入口](../../deploy/README.md)，实际证据保存在配对记录中。目录整理已由用户提交推送；生产密钥文件权限维护已实际执行并验证，代码发布状态另按远端 CI/CD 结果核对。

@@ -5,7 +5,7 @@ status: VERIFIED
 revision: 2
 approved_revision: 2
 created: 2026-10-01
-updated: 2026-10-01
+updated: 2026-10-06
 feature: "../features/0007-booking-email-notifications.md"
 ---
 
@@ -122,3 +122,5 @@ revision 1 的本地 Mailpit 实现已完成并验证。当前 `approved_revisio
 - revision 1 于 2026-10-01 完成 P-01~05 实现，并经 101 个后端测试、32 个前端测试、本地 Mailpit 投递、Chrome 双宽度检查及文档检查达到 VERIFIED。
 - revision 2 已按批准范围完成配置实现，达到 VERIFIED，`approved_revision: 2`；Compose 测试先 RED 后 GREEN，真实 Gmail SMTP 已接受教练及学员两类预约邮件，用户确认两封均收到。
 - 生产部署、真实公网 HTTPS 域名与发布后验证未执行，尚未 RELEASED。
+
+- 2026-10-06 后续扩展：[0012 课前邮件提醒](0012-lesson-reminder-emails.md) revision 1 完成本地验证。在两种原通知之上增加双方独立的延时提醒、V12 及专用有界调度；0007 既有通知/权限契约和历史批准不变，详见 0012 实际证据，未进行本次生产发布。

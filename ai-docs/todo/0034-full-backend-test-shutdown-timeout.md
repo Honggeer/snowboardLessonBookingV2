@@ -40,3 +40,6 @@ updated: 2026-10-06
 - 2026-10-06：验证 [0011 revision 1](../implement-plan/0011-student-contact-phone.md) 第二次全量测试时复现相同 Surefire 30 秒退出超时；日志 `.local/student-contact-phone/backend-regression-second.log`。该轮 167 项有 1 个独立的预约并发断言失败，两种问题分别记录；本票仍 OPEN，未将测试收尾问题解释为生产故障。
 
 - 2026-10-06：0011 最终完整回归 41 类、167 tests，0 failures/errors/skips，Maven exit 0 / BUILD SUCCESS，本轮没有记录相同的 Surefire 30 秒退出超时。日志 `.local/student-contact-phone/backend-regression-final.log`；业务并发断言已修复通过。第二轮有明确复现、根因尚未定位，一次未复现不足以结案，收尾问题仍 OPEN。
+
+- 2026-10-06：0012 第一次全量 193 tests 有 1 个独立的 Poller 测试瞬时关停断言失败，同时复现既有 Surefire 30 秒 JVM 收尾超时；日志 `.local/lesson-reminder-emails/backend-regression.log`，Maven exit 1。线程断言与 JVM 收尾分别记录；本票仍 OPEN，本功能未修改既有根因。
+- 2026-10-06：0012 最终全量复验 46 类、193 tests，0 failures/errors/skips，BUILD SUCCESS，Maven exit 0；仍出现 Surefire 30 秒 JVM 收尾超时及临时库关闭后的 Hikari 警告，日志 `.local/lesson-reminder-emails/backend-regression-final.log`。新 Poller 有限关闭断言已通过，未据此认为本票根因解决，状态保持 OPEN。

@@ -47,6 +47,8 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USER: ${MAIL_USER:?Set SMTP user}
       MAIL_FROM: ${MAIL_FROM:?Set verified sender}
+      BOOKING_REMINDERS_ENABLED: "${BOOKING_REMINDERS_ENABLED:-true}"
+      BOOKING_MAIL_WORKER_ENABLED: "${BOOKING_MAIL_WORKER_ENABLED:-true}"
       MEDIA_WORKER_ENABLED: "true"
       MEDIA_STORAGE_MODE: aws
       MEDIA_REGION: ca-central-1

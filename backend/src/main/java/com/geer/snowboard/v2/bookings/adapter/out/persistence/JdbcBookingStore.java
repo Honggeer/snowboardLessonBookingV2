@@ -31,6 +31,20 @@ public class JdbcBookingStore implements BookingStore {
     @Override public Booking findById(String id) {
         return jdbc.query("SELECT * FROM bookings_request WHERE id=?", MAPPER, id).stream().findFirst().orElse(null);
     }
+    @Override public List<Booking> lockUnplannedReminders(Instant now, int limit) {
+        return jdbc.query("""
+                SELECT * FROM bookings_request
+                WHERE status='CONFIRMED' AND lesson_reminder_planned_at IS NULL
+                  AND decided_at IS NOT NULL AND start_at_utc_snapshot>?
+                ORDER BY start_at_utc_snapshot,id LIMIT ? FOR UPDATE SKIP LOCKED
+                """, MAPPER, utc(now), limit);
+    }
+    @Override public boolean markReminderPlanned(String bookingId, Instant now) {
+        return jdbc.update("""
+                UPDATE bookings_request SET lesson_reminder_planned_at=?
+                WHERE id=? AND status='CONFIRMED' AND lesson_reminder_planned_at IS NULL
+                """, utc(now), bookingId)==1;
+    }
     @Override public Booking lockById(String id) {
         return jdbc.query("SELECT * FROM bookings_request WHERE id=? FOR UPDATE", MAPPER, id)
                 .stream().findFirst().orElse(null);

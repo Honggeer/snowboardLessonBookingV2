@@ -145,3 +145,13 @@ AL2023 采用 Python 3.11 venv 固定安装 Certbot 5.8.0（2026-10-04 已核对
 取消上线/替换资源前列清单及数据保留；EC2 停机仍有 EBS/存储费用，地址/卷/快照/S3/ECR/CloudFront/DNS 都需核对并按授权处理，不自动删除。
 
 P-08 应记录真实资源 ID、精确费用/使用量、IAM 正反例、OIDC subject、首次 SHA/digest/CommandId、TLS/邮件/完整视频、备份异机恢复及容量结果。按用户最新条件完成技术发布验收后进入 RELEASED；账号、业务/邮件、媒体与并发验收仍由用户自行完成。TODO-0024 的旧资源清理、本地视频 TODO-0022 与实际账单/长期容量仍需后续证据。
+
+## 9. 课前提醒与回退（0012）
+
+[0012](../../ai-docs/implement-plan/0012-lesson-reminder-emails.md)增加每日多伦多 18:00、24～48 小时窗口的双收件人提醒。复用现有 SMTP 和数据库，不新增账号/密钥。发布会追加 V12，后台分批检查现有未来已确认预约；不在迁移中一次性插入全部提醒。生产发布和实际生产投递须另有授权/验证，本地 Mailpit 结果不能替代用户收件。
+
+非秘密生产配置开关：`BOOKING_REMINDERS_ENABLED=false` 只暂停提醒规划/领取，保留待发提醒且不阻断申请/确认通知；`BOOKING_MAIL_WORKER_ENABLED=false` 暂停完整预约邮件轮询和补建。默认均为 `true`，修改后需由已有授权发布/运行流程使容器重新读取配置；不要改 SMTP 或数据库密钥。若停机错过 18:00，恢复仅发送仍距开课超过 24 小时的有效任务，达到截止时标 SKIPPED。
+
+V12 与旧应用的任务事件并不完全兼容。回退须先暂停完整预约邮件 worker，再使用旧镜像且保留 V12/任务；旧 worker 继续运行会把它不认识的提醒标 SKIPPED。原有申请/确认邮件也会随完整暂停而延后，恢复新版后再开启 worker。现有流水线的迁移/结构兼容门禁仍有效，不能绕过它来自动回退有结构变更的发布。
+
+只读排查按 `bookings_mail_task.event_type` 的 `STUDENT_LESSON_REMINDER` / `COACH_LESSON_REMINDER` 核对各自 status、attempts、next_attempt_at 和 last_error；DEAD 表示最终失败，SENT 表示 SMTP 接受，不能据此证明收件箱实收。人工重试前核对预约仍 CONFIRMED、任务开课时间一致且距开课超过 24 小时；不得批量复活失效提醒或删除 `lesson_reminder_planned_at` 让后台重建。缺少 decided_at 的旧确认记录需人工核对，不猜造时间。
