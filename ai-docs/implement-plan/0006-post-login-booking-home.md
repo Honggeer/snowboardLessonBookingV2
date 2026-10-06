@@ -11,6 +11,8 @@ feature: "../features/0006-post-login-booking-home.md"
 
 # 0006 — 登录后约课主界面实施计划（revision 5 已验证）
 
+2026-10-06 首次预约前填写电话和教练联系显示的扩展见[计划 0011 revision 1](0011-student-contact-phone.md)，已按批准的 revision 1 完成本地验证（VERIFIED）；此项未纳入 revision 1–5 的已有批准与验证范围。
+
 > 2026-10-05 用户“批准”revision 5，当前实施范围仅为文末 revision 5：取消排班日期的未来 31 天上限。revision 1–4 的批准、实现和验证均作为历史保留；其中“未来 31 天”是旧修订的排班规则。按批准范围先写目标测试并取得 RED，再实现至 GREEN。前文关于“时段绑定课程”的描述只适用于 revision 1。
 
 ## 1. Review 摘要

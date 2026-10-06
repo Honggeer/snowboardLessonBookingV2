@@ -10,6 +10,8 @@
 
 本地启动和验证命令见 [部署说明](deploy/README.md)、[后端说明](backend/README.md) 和 [前端说明](frontend/README.md)。
 
+首次预约前填写联系电话及联系确认用途说明见 [0011](ai-docs/implement-plan/0011-student-contact-phone.md)，已完成本地验证；保存后自动带入，教练在授权预约卡片查看当前电话。
+
 ## 结构
 
 ```text

@@ -46,6 +46,7 @@
 | 0008 | [关于 GEER：教练主页与媒体管理](0008-about-geer.md) | [0008](../features/0008-about-geer.md) | VERIFIED | 3 | 2026-10-05 |
 | 0009 | [选课页品牌与课程封面交互](0009-course-selection-visuals.md) | [0009](../features/0009-course-selection-visuals.md) | VERIFIED | 3 | 2026-10-05 |
 | 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../features/0010-production-delivery.md) | IMPLEMENTED | 4 | 2026-10-05 |
+| 0011 | [首次预约前填写联系电话](0011-student-contact-phone.md) | [0011](../features/0011-student-contact-phone.md) | VERIFIED | 1 | 2026-10-06 |
 
 ## 可运行文档检查
 

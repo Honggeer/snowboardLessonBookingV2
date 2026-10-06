@@ -17,6 +17,7 @@ function setup(role: 'COACH' | 'STUDENT', failSave = false, image = cover) {
       return Promise.resolve(failSave ? json({ detail: '保存失败，请重试' }, 503) : json({ ...savedCourse, ...body }));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'account-1', role, name: 'Geer', level: null }) :
         url === '/api/coach/media/uploads/asset-1' ? json({ id: 'asset-1', status: 'READY', preview: { ...cover, url: 'https://cdn.test/refreshed.png' } }) :
         /\/api\/(coach\/)?courses/.test(url) ? json({ items: [savedCourse], nextCursor: null }) : json({ items: [], nextCursor: null }));
@@ -162,6 +163,7 @@ it('uploads a cover through PUT and complete, blocks publishing until READY, and
       return Promise.resolve(json({ detail: '课程保存失败' }, 503));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach', role: 'COACH', name: 'GEER', level: null }) : json({ items: [], nextCursor: null }));
   });
   vi.stubGlobal('fetch', fetchMock); render(<App />);

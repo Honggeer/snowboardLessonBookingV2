@@ -289,3 +289,16 @@
   .course-options .course-option, .course-photo::after { transition: none; }
   .course-options .course-option:hover { transform: none; }
 }
+
+.student-contact { display: flex; flex-direction: column; gap: 9px; margin: 0 0 24px; padding-top: 20px; border-top: 1px solid #e5edf4; }
+.student-contact label { color: #233d58; font-size: 15px; font-weight: 750; }
+.student-contact input { box-sizing: border-box; width: 100%; min-width: 0; min-height: 46px; padding: 10px 12px; border: 1px solid #b8cbe0; border-radius: 7px; color: #16324e; background: #fff; font-size: 16px; }
+.student-contact input:focus-visible { outline: 2px solid #006dd0; outline-offset: 2px; }
+.student-contact input[aria-invalid="true"] { border-color: #be3434; }
+.student-contact input:disabled { color: #5f7186; background: #f4f7fa; }
+.student-contact .student-contact-help { margin: 0; color: #566e86; font-size: 13px; line-height: 1.6; }
+.student-contact-save, .student-contact-read-error button { align-self: flex-start; min-height: 44px; padding: 9px 13px; border: 1px solid #b9cfe4; border-radius: 7px; color: #0065bf; background: #f6faff; font-weight: 700; }
+.student-contact .booking-inline-status { margin: 0; }
+.coach-booking .coach-booking-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; }
+.coach-booking-contact a { display: inline-flex; align-items: center; min-height: 44px; color: #0065bf; font-weight: 700; overflow-wrap: anywhere; }
+.coach-booking-contact a:focus-visible { outline: 2px solid #006dd0; outline-offset: 3px; }

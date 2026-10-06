@@ -13,6 +13,7 @@ public interface BookingOperations {
                    String studentName, String status, String decisionReason, String courseTitle,
                    BigDecimal priceAmount, String currency, String mountainId, String location, String zoneId,
                    LocalDate localDate, Instant startAt, Instant endAt, Instant createdAt, Instant decidedAt) {}
+    record CoachBooking(Booking booking, String studentPhone) {}
     record Apply(String courseId, String slotId, String mountainId) {}
     record Reject(String reason) {}
     record Cancel(String reason) {}
@@ -25,9 +26,9 @@ public interface BookingOperations {
 
     Creation<Booking> apply(Actor actor, Apply command, String idempotencyKey);
     Page<Booking> mine(Actor actor, Integer limit, String cursor);
-    Page<Booking> coach(Actor actor, String status, Integer limit, String cursor);
+    Page<CoachBooking> coach(Actor actor, String status, Integer limit, String cursor);
     Booking mineOne(Actor actor, String bookingId);
-    Booking coachOne(Actor actor, String bookingId);
+    CoachBooking coachOne(Actor actor, String bookingId);
     Booking confirm(Actor actor, String bookingId);
     Booking reject(Actor actor, String bookingId, Reject command);
     Booking cancel(Actor actor, String bookingId, Cancel command);

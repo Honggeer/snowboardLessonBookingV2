@@ -3,7 +3,7 @@ id: TODO-0034
 title: "后端全量测试结束后 JVM 关停超时"
 status: OPEN
 created: 2026-10-05
-updated: 2026-10-05
+updated: 2026-10-06
 ---
 
 # TODO-0034 — 后端全量测试结束后 JVM 关停超时
@@ -36,3 +36,7 @@ updated: 2026-10-05
 
 - 具体阻塞 hook 和复现条件尚未确认；本票不将推测作为原因结论。
 - 2026-10-05：OPEN；已保存实际日志/线程转储并核实目标测试正常退出，尚未创建或批准本问题的具体修订计划。
+
+- 2026-10-06：验证 [0011 revision 1](../implement-plan/0011-student-contact-phone.md) 第二次全量测试时复现相同 Surefire 30 秒退出超时；日志 `.local/student-contact-phone/backend-regression-second.log`。该轮 167 项有 1 个独立的预约并发断言失败，两种问题分别记录；本票仍 OPEN，未将测试收尾问题解释为生产故障。
+
+- 2026-10-06：0011 最终完整回归 41 类、167 tests，0 failures/errors/skips，Maven exit 0 / BUILD SUCCESS，本轮没有记录相同的 Surefire 30 秒退出超时。日志 `.local/student-contact-phone/backend-regression-final.log`；业务并发断言已修复通过。第二轮有明确复现、根因尚未定位，一次未复现不足以结案，收尾问题仍 OPEN。

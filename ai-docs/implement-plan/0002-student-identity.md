@@ -11,6 +11,8 @@ feature: "../features/0002-student-identity.md"
 
 # 0002 — 学员注册、邮箱验证与账号登录实施计划
 
+2026-10-06 联系电话扩展见[计划 0011 revision 1](0011-student-contact-phone.md)，已按批准的 revision 1 完成本地验证（VERIFIED）；用户选择首次预约前填写，注册/登录不新增电话字段，本计划既有批准不覆盖该新功能实现。
+
 ## 生产邮件调查（2026-10-04–05，未变更业务规则）
 
 用户反馈注册邮箱未收到验证邮件，并授权“发现问题了直接修复，然后验证，提交推送”。关联 [TODO-0030](../todo/0030-production-registration-mail-not-received.md)。此次先只读定位，不将未确认的收件原因写成代码缺陷，不新增费用或跳过邮箱验证。

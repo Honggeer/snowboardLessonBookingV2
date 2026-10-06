@@ -5,6 +5,7 @@ import com.geer.snowboard.v2.bookings.application.port.out.BookedCourseLookup;
 import com.geer.snowboard.v2.bookings.application.port.out.BookedSlotAccess;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingMailQueue;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingStore;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingStudentContacts;
 import com.geer.snowboard.v2.bookings.domain.BookingStatus;
 import com.geer.snowboard.v2.sharedkernel.Actor;
 import com.geer.snowboard.v2.sharedkernel.BusinessProblem;
@@ -15,6 +16,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -27,10 +31,11 @@ public class BookingService implements BookingOperations {
     private final BookedCourseLookup courses;
     private final BookingMailQueue mailQueue;
     private final Clock clock;
+    private final BookingStudentContacts contacts;
     public BookingService(BookingStore store, BookedSlotAccess slots, BookedCourseLookup courses,
-                          BookingMailQueue mailQueue, Clock clock) {
+                          BookingMailQueue mailQueue, Clock clock, BookingStudentContacts contacts) {
         this.store = store; this.slots = slots; this.courses = courses;
-        this.mailQueue = mailQueue; this.clock = clock;
+        this.mailQueue = mailQueue; this.clock = clock; this.contacts = contacts;
     }
 
     @Override @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -45,9 +50,15 @@ public class BookingService implements BookingOperations {
                 + "\u0000" + command.mountainId());
         Booking existing = store.findByKey(actor.id(), key);
         if (existing != null) return replay(existing, store.fingerprint(actor.id(), key), fingerprint);
+        String phone = contacts.currentPhone(actor);
+        if (phone == null || phone.isBlank())
+            throw new BusinessProblem(400, "请先填写联系电话，用于教练联系并确认预约");
         var preview = slots.find(command.slotId());
         if (preview == null) throw new BusinessProblem(404, "时段不存在");
         var day = slots.lockDay(preview.coachId(), preview.localDate());
+        // A concurrent request may have committed while this request waited for the day lock.
+        existing = store.findByKey(actor.id(), key);
+        if (existing != null) return replay(existing, store.fingerprint(actor.id(), key), fingerprint);
         if (day == null || day.legacyReviewRequired()) throw new BusinessProblem(409, "当天地点待确认，暂不能申请");
         var slot = slots.lock(command.slotId());
         if (slot == null) throw new BusinessProblem(404, "时段不存在");
@@ -82,13 +93,16 @@ public class BookingService implements BookingOperations {
         actor.require("STUDENT");
         return store.mine(actor.id(), RequestKeys.limit(limit), cursor);
     }
-    @Override public Page<Booking> coach(Actor actor, String status, Integer limit, String cursor) {
+    @Override public Page<CoachBooking> coach(Actor actor, String status, Integer limit, String cursor) {
         actor.require("COACH");
         if (status != null) {
             try { BookingStatus.valueOf(status); }
             catch (IllegalArgumentException error) { throw new BusinessProblem(400, "无效申请状态"); }
         }
-        return store.coach(actor.id(), status, RequestKeys.limit(limit), cursor);
+        var page = store.coach(actor.id(), status, RequestKeys.limit(limit), cursor);
+        var ids = page.items().stream().map(Booking::studentId).collect(Collectors.toSet());
+        var phones = ids.isEmpty() ? Map.<String, String>of() : contacts.phonesForCoach(actor, ids);
+        return new Page<>(page.items().stream().map(booking -> new CoachBooking(booking, phones.get(booking.studentId()))).toList(), page.nextCursor());
     }
 
     @Override public Booking mineOne(Actor actor, String bookingId) {
@@ -99,9 +113,11 @@ public class BookingService implements BookingOperations {
         return booking;
     }
 
-    @Override public Booking coachOne(Actor actor, String bookingId) {
+    @Override public CoachBooking coachOne(Actor actor, String bookingId) {
         actor.require("COACH");
-        return own(actor, bookingId);
+        Booking booking = own(actor, bookingId);
+        var phones = contacts.phonesForCoach(actor, Set.of(booking.studentId()));
+        return new CoachBooking(booking, phones.get(booking.studentId()));
     }
 
     @Override @Transactional(isolation = Isolation.READ_COMMITTED)

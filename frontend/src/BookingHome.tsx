@@ -13,8 +13,15 @@ type Mountain = { id: string; name: string; active: boolean };
 type Slot = { id: string; zoneId: string; localDate: string; startAt: string; endAt: string;
   status: string; availableMountains: Mountain[] };
 type Booking = { id: string; slotId: string; studentName: string; status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED_BY_STUDENT';
-  decisionReason: string | null; courseTitle: string; priceAmount: string; currency: string;
+  studentPhone?: string | null; decisionReason: string | null; courseTitle: string; priceAmount: string; currency: string;
   location: string; zoneId: string; localDate: string; startAt: string; endAt: string };
+type StudentContact = { phone: string | null };
+function normalizedPhone(input: string): string | null {
+  if (input.length > 64) return null;
+  const phone = input.replace(/[ ()-]/g, '');
+  return /^\+[1-9][0-9]{6,14}$/.test(phone) ? phone : null;
+}
+const phoneValidationMessage = '请填写含国家区号的联系电话，例如 +1 416 555 0123。';
 type Tab = 'book' | 'mine' | 'courses' | 'availability' | 'applications';
 type DayInput = { localDate: string; startTime: string; endTime: string; mountainId: string };
 type MonthDay = { localDate: string; limitedMountain: Mountain | null; lockedMountain: Mountain | null;
@@ -171,6 +178,14 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
   const [cancelReason, setCancelReason] = useState('');
   const [cancelFeedback, setCancelFeedback] = useState('');
   const [cancelError, setCancelError] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [savedPhone, setSavedPhone] = useState<string | null>(null);
+  const [contactReady, setContactReady] = useState(false);
+  const [contactLoading, setContactLoading] = useState(true);
+  const [contactReadError, setContactReadError] = useState('');
+  const [contactReload, setContactReload] = useState(0);
+  const [contactError, setContactError] = useState('');
+  const [contactNotice, setContactNotice] = useState('');
 
   function fail(reason: unknown) {
     if (reason instanceof BookingApiError && reason.status === 401) { onUnauthorized(); return; }
@@ -188,6 +203,24 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     return result as T;
   }
   function post<T>(path: string, body: object, key?: string) { return write<T>('POST', path, body, key); }
+
+  useEffect(() => {
+    if (account.role !== 'STUDENT') return;
+    let active = true;
+    setContactReady(false); setContactLoading(true); setContactReadError('');
+    setContactPhone(''); setSavedPhone(null); setContactError(''); setContactNotice('');
+    get<StudentContact>('/api/student/contact').then((contact) => {
+      if (!active) return;
+      if (!contact || (contact.phone !== null && (typeof contact.phone !== 'string' || !normalizedPhone(contact.phone))))
+        throw new BookingApiError(502, '联系电话加载结果异常，请重试。');
+      setContactPhone(contact.phone ?? ''); setSavedPhone(contact.phone); setContactReady(true);
+    }).catch((reason) => {
+      if (!active) return;
+      if (reason instanceof BookingApiError && reason.status === 401) onUnauthorized();
+      else setContactReadError(reason instanceof BookingApiError ? reason.message : '联系电话加载失败，请重试。');
+    }).finally(() => { if (active) setContactLoading(false); });
+    return () => { active = false; };
+  }, [account.id, account.role, contactReload]);
 
   useEffect(() => {
     if (!deepLink) { setTargetBooking(null); setTargetError(''); return; }
@@ -308,12 +341,41 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     finally { setLoadingMore(false); }
   }
 
+  async function persistPhone(phone: string) {
+    if (phone !== savedPhone) {
+      const result = await write<StudentContact>('PATCH', '/api/student/contact', { phone });
+      if (!result || typeof result.phone !== 'string' || normalizedPhone(result.phone) !== result.phone)
+        throw new BookingApiError(502, '电话保存结果异常，请重试。');
+      setSavedPhone(result.phone); setContactPhone(result.phone);
+    } else setContactPhone(phone);
+  }
+
+  async function saveContact() {
+    if (busy || !contactReady || contactLoading) return;
+    const phone = normalizedPhone(contactPhone);
+    if (!phone) { setContactError(phoneValidationMessage); setContactNotice(''); return; }
+    setBusy(true); setContactError(''); setContactNotice('');
+    try {
+      await persistPhone(phone);
+      setContactNotice('联系电话已保存，下次预约会自动填入。');
+    } catch (reason) {
+      setContactError(reason instanceof BookingApiError ? reason.message : '电话保存结果暂时无法确认，请重试。');
+      if (reason instanceof BookingApiError && reason.status === 401) onUnauthorized();
+    } finally { setBusy(false); }
+  }
+
   async function submitBooking() {
-    if (!selectedCourseId || !selectedSlotId || !selectedMountainId || busy) return;
-    setBusy(true); setError(''); setNotice(''); setBookingWriteError(''); setBookingFeedback('提交中…');
+    if (!selectedCourseId || !selectedSlotId || !selectedMountainId || busy || !contactReady || contactLoading) return;
+    const phone = normalizedPhone(contactPhone);
+    if (!phone) { setContactError(phoneValidationMessage); setContactNotice(''); return; }
+    setBusy(true); setError(''); setNotice(''); setContactError(''); setContactNotice('');
+    setBookingWriteError(''); setBookingFeedback('提交中…');
+    let applying = false;
     try {
       const key = submissionKey ?? newIdempotencyKey();
       setSubmissionKey(key);
+      await persistPhone(phone);
+      applying = true;
       const booking = await post<Booking>('/api/bookings',
         { courseId: selectedCourseId, slotId: selectedSlotId, mountainId: selectedMountainId }, key);
       const saved: Booking = { ...booking, slotId: booking.slotId ?? selectedSlotId,
@@ -335,7 +397,10 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
       }
     } catch (reason) {
       setBookingFeedback('');
-      setBookingWriteError(reason instanceof Error ? reason.message : '提交失败，请重试。');
+      if (!applying) setContactError(reason instanceof BookingApiError ? reason.message : '电话保存结果暂时无法确认，请重试。');
+      else if (reason instanceof BookingApiError && reason.status >= 400 && reason.status < 500)
+        setBookingWriteError(`联系电话已保存，预约申请未成功：${reason.message}`);
+      else setBookingWriteError('联系电话已保存。预约提交结果暂时无法确认，请重试；重试不会重复创建预约。');
       if (reason instanceof BookingApiError && reason.status === 401) onUnauthorized();
     }
     finally { setBusy(false); }
@@ -449,8 +514,8 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     try {
       const result = await post<Booking>(`/api/coach/bookings/${booking.id}/${action}`,
         action === 'reject' ? { reason } : {});
-      setBookings((current) => current.map((item) => item.id === result.id ? result : item));
-      setTargetBooking((current) => current?.id === result.id ? result : current);
+      setBookings((current) => current.map((item) => item.id === result.id ? { ...item, ...result } : item));
+      setTargetBooking((current) => current?.id === result.id ? { ...current, ...result } : current);
       setRejectBookingId(null); setRejectReason('');
       setNotice(action === 'confirm' ? '已确认该申请；当天锁定这座雪场，其他雪场的待确认申请已拒绝。' : '已拒绝该申请。');
       setReload((value) => value + 1);
@@ -497,8 +562,8 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
     try {
       const result = await post<Booking>(`/api/bookings/${booking.id}/cancel`,
         { reason: booking.status === 'CONFIRMED' ? cancelReason : null });
-      setBookings((current) => current.map((item) => item.id === result.id ? result : item));
-      setTargetBooking((current) => current?.id === result.id ? result : current);
+      setBookings((current) => current.map((item) => item.id === result.id ? { ...item, ...result } : item));
+      setTargetBooking((current) => current?.id === result.id ? { ...current, ...result } : current);
       setCancelBookingId(null); setCancelReason('');
       setCancelFeedback('预约已取消。若该时段仍可约，可以重新提交申请。');
       setSelectedSlotId(null); setSelectedMountainId(null);
@@ -617,7 +682,26 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
               <div><dt>时间</dt><dd>{selectedSlot ? slotTime(selectedSlot) : '请选择时段'}</dd></div>
               <div><dt>雪场</dt><dd>{selectedMountain ? selectedMountain.name : '请选择雪场'}</dd></div>
               <div><dt>价格</dt><dd>{selectedCourse ? `CAD ${selectedCourse.priceAmount}` : '—'}</dd></div></dl>
-            <button type="button" className="booking-primary" disabled={!selectedSlot || !selectedMountain || busy || Boolean(alreadyApplied)} onClick={submitBooking}>
+            <div className="student-contact">
+              <label htmlFor="student-contact-phone">联系电话（必填）</label>
+              <p id="student-contact-purpose" className="student-contact-help">用于教练联系你、沟通并确认预约。</p>
+              <input id="student-contact-phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr"
+                required maxLength={64} placeholder="+1 416 555 0123" value={contactPhone}
+                disabled={busy || contactLoading || !contactReady} aria-invalid={Boolean(contactError)}
+                aria-describedby={`student-contact-purpose student-contact-format${contactError ? ' student-contact-error' : ''}`}
+                onChange={(event) => { setContactPhone(event.target.value); setContactError(''); setContactNotice(''); }} />
+              <p id="student-contact-format" className="student-contact-help">请包含国家区号（加拿大 +1，中国 +86）。保存后，下次预约会自动填入。</p>
+              {contactLoading && <p className="student-contact-help" role="status">正在加载联系电话…</p>}
+              {contactReadError && <div className="student-contact-read-error">
+                <p className="booking-inline-status error" role="alert">{contactReadError}</p>
+                <button type="button" disabled={busy || contactLoading} onClick={() => setContactReload((value) => value + 1)}>重试加载电话</button>
+              </div>}
+              <button type="button" className="student-contact-save" disabled={busy || contactLoading || !contactReady}
+                onClick={saveContact}>保存电话</button>
+              {contactError && <p id="student-contact-error" className="booking-inline-status error" role="alert">{contactError}</p>}
+              {contactNotice && <p className="booking-inline-status success" role="status">{contactNotice}</p>}
+            </div>
+            <button type="button" className="booking-primary" disabled={!selectedSlot || !selectedMountain || busy || !contactReady || contactLoading || Boolean(alreadyApplied)} onClick={submitBooking}>
               {busy ? '提交中…' : alreadyApplied ? '已申请该时段' : '申请预约'}</button>
             <p className="booking-cancel-policy">待确认申请可取消；教练确认后，须在课程开始至少 24 小时前取消。</p>
             {bookingFeedback && <p className="booking-inline-status success" role="status">{bookingFeedback}</p>}
@@ -657,6 +741,9 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
               key={booking.id}>
               <div><span className={`booking-status ${booking.status.toLowerCase()}`}>{statusLabel(booking.status)}</span>
                 <h3>{booking.studentName || '学员'} · {booking.courseTitle}</h3>
+                <p className="coach-booking-contact">联系电话：{booking.studentPhone
+                  ? <a href={`tel:${booking.studentPhone}`}>{booking.studentPhone}</a>
+                  : <span>未提供电话</span>}</p>
                 <p>{readableDate(booking.localDate)} · {slotTime(booking)} · {booking.location}</p>
                 <p>CAD {booking.priceAmount} · {booking.zoneId}</p></div>
               {booking.status === 'PENDING' && <div className="coach-actions">

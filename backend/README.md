@@ -58,7 +58,7 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期或在线支付。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
 
-`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V10。生产迁移与发布另需授权。
+`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V11。生产迁移与发布另需授权。
 
 批量新增和整天替换均不限制排班日期必须在未来 31 天内，支持有效的跨月、跨年未来日期；仍校验多伦多过去日期和时段开始时间，每批 1–31 个不同日期、最多 100 个生成时段。学员 `/api/slots` 每次查询跨度仍最多 31 天，教练月历每次读取一个自然月；可以将查询窗口移到更远的未来。无需数据库迁移；已有预约、雪场锁定和批次事务保护保留，验证见 [0006 revision 5](../ai-docs/implement-plan/0006-post-login-booking-home.md)。
 
@@ -98,3 +98,12 @@ S3Mock 忽略真实签名/过期校验，且 CORS 宽松，只用于本地测试
 创建请求可带 `coverAssetId` 和数字 `coverPositionX/Y`（0–100，最多两位小数，默认 50）。PATCH 缺省字段保留，`coverAssetId: null` 清除；替换图片未提供的位置归中。支持只更新构图；无图位置统一归中。列表新增 `coverAssetId`、位置和可空 `cover`（id/url/expiresAt/width/height），含签名响应 no-store，媒体故障降级无图。预约内部取课/锁课不签名。
 
 本地 IDEA 重启后自动应用追加 V10，无需修改旧迁移或重置数据。完整契约、并发协议与验证见 [0009](../ai-docs/implement-plan/0009-course-selection-visuals.md)。回退到不支持封面的旧应用时需暂停封面编辑及媒体清理，保留 V10。
+
+
+## 学员联系电话（0011）
+
+学员注册/登录仍无需电话。首次提交新预约前，在“申请信息”填写含国家区号的联系电话，例如 `+1 416 555 0123`。页面说明“用于教练联系你、沟通并确认预约。” 保存后自动带入后续预约，学员可在同一区域单独修改并保存。
+
+`GET /api/student/contact` 与 `PATCH /api/student/contact` 只操作当前登录学员，PATCH 需 CSRF，请求体为 `{ "phone": "+14165550123" }`，不接受目标账号作为授权依据。新预约缺电话返回 400；旧预约的幂等重放、查阅、确认、拒绝、取消保持原规则。教练授权的预约列表和详情返回可空 `studentPhone`，读取当前电话；学生预约及公开主页不增加电话。
+
+V11 只追加可空 `identity_account.contact_phone`，旧账号初值为空；本地 IDEA 重启后自动应用，不需重置数据库或新增环境变量。基本格式检查不验证号码真实可拨通，没有短信服务。实现与证据见 [0011](../ai-docs/implement-plan/0011-student-contact-phone.md)，生产发布/迁移需单独授权。

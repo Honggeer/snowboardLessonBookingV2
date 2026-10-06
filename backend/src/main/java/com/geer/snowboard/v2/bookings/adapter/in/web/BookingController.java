@@ -42,14 +42,15 @@ public final class BookingController {
         return bookings.mineOne(actors.current(), id);
     }
     @GetMapping("/api/coach/bookings")
-    public Page<Booking> coach(@RequestParam(required = false) String status,
+    public Page<CoachBookingResponse> coach(@RequestParam(required = false) String status,
                                @RequestParam(required = false) Integer limit,
                                @RequestParam(required = false) String cursor) {
-        return bookings.coach(actors.current(), status, limit, cursor);
+        var page = bookings.coach(actors.current(), status, limit, cursor);
+        return new Page<>(page.items().stream().map(CoachBookingResponse::from).toList(), page.nextCursor());
     }
     @GetMapping("/api/coach/bookings/{id}")
-    public Booking coachOne(@PathVariable String id) {
-        return bookings.coachOne(actors.current(), id);
+    public CoachBookingResponse coachOne(@PathVariable String id) {
+        return CoachBookingResponse.from(bookings.coachOne(actors.current(), id));
     }
     @PostMapping("/api/coach/bookings/{id}/confirm")
     public Booking confirm(@PathVariable String id) {

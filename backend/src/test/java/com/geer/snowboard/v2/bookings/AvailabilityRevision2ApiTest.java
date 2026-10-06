@@ -281,6 +281,8 @@ class AvailabilityRevision2ApiTest {
                 VALUES (?,?,?,?,?,?,?,?,?)
                 """, id, email, email, role.equals("COACH") ? "教练" : "学员",
                 role.equals("COACH") ? null : "BEGINNER", role, "test-hash", Instant.now(), Instant.now());
+        if (role.equals("STUDENT"))
+            jdbc.update("UPDATE identity_account SET contact_phone=? WHERE id=?", "+14165550123", id);
         return id;
     }
 }

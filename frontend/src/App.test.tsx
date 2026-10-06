@@ -17,6 +17,7 @@ it('selects and publishes dates beyond 31 days across months and years', async (
       return Promise.resolve(json({ slots: [], tails: [] }, 201));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: url.startsWith('/api/coach/mountains')
@@ -55,6 +56,7 @@ it('keeps batch capacities when selecting dates beyond 31 days', async () => {
       return Promise.resolve(json({ slots: [], tails: [] }, 201));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: url.startsWith('/api/coach/mountains')
@@ -86,6 +88,7 @@ it('keeps batch capacities when selecting dates beyond 31 days', async () => {
 it('shows the cancellation cutoff beside the application button before submission', async () => {
   vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: '学员', level: '零基础' }) :
         json({ items: [], nextCursor: null }),
   )));
@@ -108,6 +111,7 @@ it('opens a mailed booking link after login and fetches the exact student bookin
       return Promise.resolve(json({ id: 'student-1', role: 'STUDENT', name: '学员', level: '零基础' }));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? loggedIn
         ? json({ id: 'student-1', role: 'STUDENT', name: '学员', level: '零基础' }) : json({}, 401) :
         url === '/api/bookings/booking-target' ? json(target) :
@@ -136,6 +140,7 @@ it('submits mountain and availability when randomUUID is unavailable on a local 
       if (url === '/api/coach/availability/replacements') return Promise.resolve(json({ slots: [{ id: 'slot-1' }], tails: [] }, 201));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: url.startsWith('/api/coach/mountains') && savedMountain ? [mountain] : [], nextCursor: null }));
@@ -154,6 +159,7 @@ it('submits mountain and availability when randomUUID is unavailable on a local 
 it('shows mountain validation and API failures beside the add button', async () => {
   const fetchMock = vi.fn((url: string, options?: RequestInit) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           url === '/api/coach/mountains' && options?.method === 'POST'
@@ -176,6 +182,7 @@ it('shows mountain validation and API failures beside the add button', async () 
 it('explains missing availability prerequisites beside its publish button', async () => {
   vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: [], nextCursor: null }),
@@ -191,6 +198,7 @@ it('explains missing availability prerequisites beside its publish button', asyn
 it('explains why a calendar date cannot be added and confirms a valid selection beside the calendar', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: url.startsWith('/api/coach/mountains')
@@ -230,6 +238,7 @@ it('lets the coach remove a selected date after its start time has passed', asyn
   vi.setSystemTime(new Date(`${today}T12:00:00Z`));
   vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: url.startsWith('/api/coach/mountains')
@@ -257,6 +266,7 @@ it('shows a saved calendar result beside the publishing form', async () => {
         startAt: `${savedDate}T14:00:00Z`, endAt: `${savedDate}T16:00:00Z` }], tails: [] }, 201));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: savedDate
           ? [{ localDate: savedDate, limitedMountain: null, lockedMountain: null, legacyReviewRequired: false,
@@ -285,6 +295,7 @@ it('keeps calendar publish success visible when the month refresh fails', async 
       return Promise.resolve(json({ slots: [{ id: 'new-slot' }], tails: [] }, 201));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? (saved
           ? json({ detail: '月历读取失败' }, 503) : json({ zoneId: 'America/Toronto', days: [] })) :
@@ -309,6 +320,7 @@ it('keeps a successful student application visible when list refresh fails', asy
     startAt: '2026-10-10T14:00:00Z', endAt: '2026-10-10T16:00:00Z' };
   const fetchMock = vi.fn((url: string, options?: RequestInit) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
         url === '/api/bookings' && options?.method === 'POST' ? json(booking, 201) :
           url.startsWith('/api/bookings/mine') ? (++mineReads === 1 ? json({ items: [], nextCursor: null })
@@ -352,6 +364,7 @@ it('lets the coach edit and archive a course and requires a rejection reason', a
       }
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '教练', level: null }) :
         url.startsWith('/api/coach/courses') ? json({ items: [course], nextCursor: null }) :
           url.startsWith('/api/coach/bookings') ? json({ items: [{ ...booking,
@@ -391,6 +404,7 @@ it('lets the student cancel a pending application from the booking card', async 
       cancelled = true; return Promise.resolve(json({ ...booking, status: 'CANCELLED_BY_STUDENT' }));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
         url.startsWith('/api/bookings/mine') ? json({ items: [{ ...booking,
           status: cancelled ? 'CANCELLED_BY_STUDENT' : 'PENDING' }], nextCursor: null }) :
@@ -412,6 +426,7 @@ it('separates coach tabs and selects multiple calendar dates for one replacement
       return Promise.resolve(json({ slots: [], tails: [] }, 201));
     }
     return Promise.resolve(url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
         url.startsWith('/api/coach/availability/month') ? json({ zoneId: 'America/Toronto', days: [] }) :
           json({ items: url.startsWith('/api/coach/mountains')
@@ -448,7 +463,8 @@ it('lets the coach configure a mountain and publish a day range without a course
     }
     return Promise.resolve(
       url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
-        url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
+        url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
+      url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
           url.startsWith('/api/coach/mountains') ? json({ items: writes.some((write) => write.url === '/api/coach/mountains')
             ? [{ id: 'mountain-1', name: 'Blue Mountain', active: true }] : [], nextCursor: null }) :
             json({ items: [], nextCursor: null }),
@@ -480,7 +496,8 @@ it('submits the selected course, time, and mountain together', async () => {
     }
     return Promise.resolve(
       url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
-        url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
+        url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
+      url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
           url.startsWith('/api/courses') ? json({ items: [{ id: 'course-1', title: '单板基础课', description: '', priceAmount: '150.00', currency: 'CAD' }], nextCursor: null }) :
             url.startsWith('/api/slots') ? json({ items: [{ id: 'slot-1', zoneId: 'America/Toronto', localDate: '2026-10-10',
               startAt: '2026-10-10T14:00:00Z', endAt: '2026-10-10T16:00:00Z', status: 'OPEN',
@@ -499,6 +516,7 @@ it('submits the selected course, time, and mountain together', async () => {
 it('lands a restored student session on real course and slot browsing', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
         url.startsWith('/api/courses') ? json({ items: [{ id: 'course-1', title: '单板基础课', description: '从零开始', priceAmount: '150.00', currency: 'CAD' }], nextCursor: null }) :
           url.startsWith('/api/slots') ? json({ items: [{ id: 'slot-1', courseId: 'course-1', location: 'Blue Mountain', zoneId: 'America/Toronto', localDate: '2026-10-03', startAt: '2026-10-03T14:00:00Z', endAt: '2026-10-03T16:00:00Z' }], nextCursor: null }) :
@@ -515,6 +533,7 @@ it('lands a restored student session on real course and slot browsing', async ()
 it('lands a restored coach session on the publishing and applications work area', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
         url.startsWith('/api/coach/courses') || url.startsWith('/api/coach/slots') || url.startsWith('/api/coach/bookings')
           ? json({ items: [], nextCursor: null }) : json({}, 404),
@@ -533,6 +552,7 @@ it('submits a selected slot once and explains that the application is pending', 
     if (url === '/api/bookings') expect(options?.method).toBe('POST');
     return Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
         url.startsWith('/api/courses') ? json({ items: [{ id: 'course-1', title: '单板基础课', description: '从零开始', priceAmount: '150.00', currency: 'CAD' }], nextCursor: null }) :
           url.startsWith('/api/slots') ? json({ items: [{ id: 'slot-1', zoneId: 'America/Toronto', localDate: '2026-10-03', startAt: '2026-10-03T14:00:00Z', endAt: '2026-10-03T16:00:00Z', status: 'OPEN', availableMountains: [{ id: 'mountain-1', name: 'Blue Mountain', active: true }] }], nextCursor: null }) :
@@ -555,6 +575,7 @@ it('submits a selected slot once and explains that the application is pending', 
 it('continues browsing when a course list has another page', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
         url.startsWith('/api/courses') ? json(url.includes('cursor=next-course')
           ? { items: [{ id: 'course-2', title: '进阶单板课', description: '', priceAmount: '180.00', currency: 'CAD' }], nextCursor: null }
@@ -578,7 +599,8 @@ it('retries a timed out course publish with the same request key', async () => {
     }
     return Promise.resolve(
       url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
-        url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
+        url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
+      url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
           json({ items: [], nextCursor: null }),
     );
   });
@@ -608,7 +630,8 @@ it('lets the coach publish a course and independent availability through separat
     }
     return Promise.resolve(
       url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
-        url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
+        url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
+      url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
           url.startsWith('/api/coach/courses') ? json({ items: coursePublished ? [{ id: 'course-1', title: '基础课', description: '', priceAmount: '150.00', currency: 'CAD' }] : [], nextCursor: null }) :
             url.startsWith('/api/coach/mountains') ? json({ items: mountainPublished ? [{ id: 'mountain-1', name: 'Blue Mountain', active: true }] : [], nextCursor: null }) :
             json({ items: [], nextCursor: null }),
@@ -639,6 +662,7 @@ it('keeps the session on 403 and clears student data on 401', async () => {
   let status = 403;
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({ id: 'student-1', role: 'STUDENT', name: 'Geer', level: '入门' }) :
         url.startsWith('/api/courses') ? json({ detail: status === 403 ? '没有访问权限' : '请先登录' }, status) :
           json({ items: [], nextCursor: null }),
@@ -666,7 +690,8 @@ it('sends the coach confirmation and refreshes the application status', async ()
     }
     return Promise.resolve(
       url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
-        url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
+        url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
+      url === '/api/auth/me' ? json({ id: 'coach-1', role: 'COACH', name: '张教练', level: null }) :
           url.startsWith('/api/coach/bookings') ? json({ items: [{ ...application, status: confirmed ? 'CONFIRMED' : 'PENDING' }], nextCursor: null }) :
             json({ items: [], nextCursor: null }),
     );
@@ -701,6 +726,7 @@ it('gets a CSRF token, logs in, and recovers the account after rendering', async
 it('registers with one of three levels and shows the neutral check-email state', async () => {
   vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({}, 401) : json({ message: '请检查邮箱' }),
   )));
   render(<App />);
@@ -758,6 +784,7 @@ it('uses the approved blue visual assets and copy for the login screen', async (
 it('opens a neutral email-code password recovery flow from login', async () => {
   vi.stubGlobal('fetch', vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({}, 401) : json({ message: '如果账号可找回，请查收验证码' }),
   )));
   render(<App />);
@@ -776,7 +803,8 @@ it('verifies the code, confirms a new password, then returns to login', async ()
       return Promise.resolve(json({ token: 'csrf-' + csrfRequests, headerName: 'X-CSRF-TOKEN' }));
     }
     if (url === '/api/auth/login') return Promise.resolve(json({ id: '1', role: 'STUDENT', name: 'Geer', level: '入门' }));
-    return Promise.resolve(url === '/api/auth/me' ? json({}, 401) : json({ message: 'ok' }));
+    return Promise.resolve(url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
+      url === '/api/auth/me' ? json({}, 401) : json({ message: 'ok' }));
   });
   vi.stubGlobal('fetch', fetchMock);
   render(<App />);
@@ -818,6 +846,7 @@ it('verifies the code, confirms a new password, then returns to login', async ()
 it('submits an eight-character registration password and rejects seven', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({}, 401) : json({ message: '请检查邮箱' }),
   ));
   vi.stubGlobal('fetch', fetchMock);
@@ -836,6 +865,7 @@ it('submits an eight-character registration password and rejects seven', async (
 it('counts Unicode code points at the 128-character registration limit', async () => {
   const fetchMock = vi.fn((url: string) => Promise.resolve(
     url === '/api/auth/csrf' ? json({ token: 'csrf-1', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/student/contact' ? json({ phone: '+14165550123' }) :
       url === '/api/auth/me' ? json({}, 401) : json({ message: '请检查邮箱' }),
   ));
   vi.stubGlobal('fetch', fetchMock);

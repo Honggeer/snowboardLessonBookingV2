@@ -20,7 +20,7 @@ class CourseCoverMigrationTest {
             sql.executeUpdate("INSERT INTO identity_account (id,email,email_key,name,role,password_hash,created_at) VALUES ('"+coach+"','coach@test.invalid','coach@test.invalid','Coach','COACH','unused',CURRENT_TIMESTAMP(6))");
             sql.executeUpdate("INSERT INTO catalog_course (id,coach_id,title,description,price_amount,currency,idempotency_key,request_fingerprint,created_at) VALUES ('"+course+"','"+coach+"','Original course','Original description',150.25,'CAD','old-key','old-fingerprint',CURRENT_TIMESTAMP(6))");
         }
-        var flyway=Flyway.configure().dataSource(mysql.getJdbcUrl(),mysql.getUsername(),mysql.getPassword()).locations("classpath:db/migration").load();
+        var flyway=Flyway.configure().dataSource(mysql.getJdbcUrl(),mysql.getUsername(),mysql.getPassword()).locations("classpath:db/migration").target("10").load();
         assertThat(flyway.migrate().migrationsExecuted).isEqualTo(1);
         try(var connection=DriverManager.getConnection(mysql.getJdbcUrl(),mysql.getUsername(),mysql.getPassword());var sql=connection.createStatement()) {
             try(var row=sql.executeQuery("SELECT * FROM catalog_course WHERE id='"+course+"'")) {

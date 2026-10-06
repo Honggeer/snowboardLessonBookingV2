@@ -4,6 +4,10 @@ import com.geer.snowboard.v2.identity.application.port.out.IdentityStore;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -47,6 +51,23 @@ public class JdbcIdentityStore implements IdentityStore {
     @Override public void changePassword(String id, String passwordHash) {
         if (jdbc.update("UPDATE identity_account SET password_hash=?,credential_version=credential_version+1 WHERE id=?",
                 passwordHash, id) != 1) throw new IllegalStateException("Account disappeared while changing password");
+    }
+    @Override public String studentPhone(String id) {
+        return jdbc.query("SELECT contact_phone FROM identity_account WHERE id=? AND role='STUDENT'",
+                rs -> rs.next() ? rs.getString(1) : null, id);
+    }
+    @Override public void saveStudentPhone(String id, String phone) {
+        if (jdbc.update("UPDATE identity_account SET contact_phone=? WHERE id=? AND role='STUDENT'", phone, id) != 1)
+            throw new IllegalStateException("Account disappeared while saving contact phone");
+    }
+    @Override public Map<String, String> studentPhones(Set<String> ids) {
+        if (ids.isEmpty()) return Map.of();
+        String placeholders = String.join(",", Collections.nCopies(ids.size(), "?"));
+        Map<String, String> phones = new HashMap<>();
+        jdbc.query("SELECT id,contact_phone FROM identity_account WHERE role='STUDENT' AND contact_phone IS NOT NULL AND id IN ("
+                + placeholders + ")", (org.springframework.jdbc.core.RowCallbackHandler) rs ->
+                phones.put(rs.getString("id"), rs.getString("contact_phone")), ids.toArray());
+        return Map.copyOf(phones);
     }
     @Override public boolean coachExists() {
         return Boolean.TRUE.equals(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM identity_account WHERE role='COACH')", Boolean.class));

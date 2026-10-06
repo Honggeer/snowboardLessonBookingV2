@@ -11,6 +11,8 @@ modules: [frontend, identity, catalog, scheduling, bookings]
 
 # 0006 — 登录后约课主界面
 
+2026-10-06 新预约联系电话前置条件与教练联系显示单独见 [0011](0011-student-contact-phone.md) 与[计划 revision 1](../implement-plan/0011-student-contact-phone.md)，已按批准的 revision 1 完成本地验证（VERIFIED）；原有 revision 1–5 的批准/验证记录不授权这项新行为，已有预约处理规则保留。
+
 关联[实施计划 0006](../implement-plan/0006-post-login-booking-home.md)、[项目契约](../PROJECT_CONTRACT.md)和 [ADR 0001](../decisions/0001-v2-baseline.md)。用户于 2026-09-30 三次回复“开始实现”，分别批准 revision 1、revision 2、revision 3；2026-10-01 再次回复“开始实现”，批准 revision 4。第 1–11 节主体保留 revision 1 实现与验证记录；revision 2–4 的本地验证及各阶段发布边界保留为历史。2026-10-05 用户“批准”revision 5，已实现并本地验证取消排班日期的未来 31 天上限；正文中原有上限属于旧修订规则，新规则及验收见文末。
 
 ## 1. 目标、触发与范围
