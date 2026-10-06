@@ -4,6 +4,7 @@ import CourseCard, { type Course } from './CourseCard';
 import CourseCoverEditor, { emptyCover, type CoverDraft } from './CourseCoverEditor';
 import type { MediaLink } from './coachProfileApi';
 import GeerLogo from './GeerLogo';
+import ContactPhoneInput from './ContactPhoneInput';
 
 type Account = { id: string; role: 'STUDENT' | 'COACH'; name: string; level: string | null };
 export type BookingDeepLink = { role: Account['role']; id: string };
@@ -21,7 +22,7 @@ function normalizedPhone(input: string): string | null {
   const phone = input.replace(/[ ()-]/g, '');
   return /^\+[1-9][0-9]{6,14}$/.test(phone) ? phone : null;
 }
-const phoneValidationMessage = '请填写含国家区号的联系电话，例如 +1 416 555 0123。';
+const phoneValidationMessage = '请填写有效的联系电话。';
 type Tab = 'book' | 'mine' | 'courses' | 'availability' | 'applications';
 type DayInput = { localDate: string; startTime: string; endTime: string; mountainId: string };
 type MonthDay = { localDate: string; limitedMountain: Mountain | null; lockedMountain: Mountain | null;
@@ -685,12 +686,11 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
             <div className="student-contact">
               <label htmlFor="student-contact-phone">联系电话（必填）</label>
               <p id="student-contact-purpose" className="student-contact-help">用于教练联系你、沟通并确认预约。</p>
-              <input id="student-contact-phone" type="tel" inputMode="tel" autoComplete="tel" dir="ltr"
-                required maxLength={64} placeholder="+1 416 555 0123" value={contactPhone}
-                disabled={busy || contactLoading || !contactReady} aria-invalid={Boolean(contactError)}
-                aria-describedby={`student-contact-purpose student-contact-format${contactError ? ' student-contact-error' : ''}`}
-                onChange={(event) => { setContactPhone(event.target.value); setContactError(''); setContactNotice(''); }} />
-              <p id="student-contact-format" className="student-contact-help">请包含国家区号（加拿大 +1，中国 +86）。保存后，下次预约会自动填入。</p>
+              <ContactPhoneInput value={contactPhone} disabled={busy || contactLoading || !contactReady}
+                invalid={Boolean(contactError)}
+                describedBy={`student-contact-purpose student-contact-format${contactError ? ' student-contact-error' : ''}`}
+                onChange={(phone) => { setContactPhone(phone); setContactError(''); setContactNotice(''); }} />
+              <p id="student-contact-format" className="student-contact-help">选择国家或地区后填写电话号码。保存后，下次预约会自动填入。</p>
               {contactLoading && <p className="student-contact-help" role="status">正在加载联系电话…</p>}
               {contactReadError && <div className="student-contact-read-error">
                 <p className="booking-inline-status error" role="alert">{contactReadError}</p>

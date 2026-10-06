@@ -37,3 +37,4 @@
 | TODO-0035 | [个人展示页增加网站设计与全栈开发合作入口](0035-footer-web-design-contact.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-05 |
 | TODO-0036 | [预约学员没有联系电话可供教练确认](0036-student-contact-phone.md) | DONE | [0011 revision 1](../implement-plan/0011-student-contact-phone.md) | 2026-10-06 |
 | TODO-0037 | [已确认预约缺少课前邮件提醒](0037-lesson-reminder-emails.md) | DONE | [0012 revision 1](../implement-plan/0012-lesson-reminder-emails.md) | 2026-10-06 |
+| TODO-0038 | [电话填写要求手输国家区号，增加学员操作负担](0038-phone-country-prefix-input.md) | DONE | [0011 revision 2](../implement-plan/0011-student-contact-phone.md) | 2026-10-06 |

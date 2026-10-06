@@ -36,6 +36,7 @@ function studentApi(initial: string | null = null, failures: { read?: boolean; s
   });
   vi.stubGlobal('fetch', fetchMock); return { writes, keys, fetchMock, failures };
 }
+function phoneDigits(input: HTMLElement) { return (input as HTMLInputElement).value.replace(/\D/g, ''); }
 async function selectSlot() {
   await userEvent.click(await screen.findByRole('button', { name: /10:00.*12:00/ }));
   await userEvent.click(screen.getByRole('button', { name: 'Blue Mountain' }));
@@ -46,8 +47,8 @@ it('explains why phone is required and blocks an empty or invalid new booking', 
   const input = await screen.findByLabelText('联系电话（必填）');
   expect(screen.getByText('用于教练联系你、沟通并确认预约。')).toBeTruthy();
   await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
-  expect(await screen.findByText(/请填写含国家区号的联系电话/)).toBeTruthy();
-  await userEvent.type(input, '4165550123');
+  expect(await screen.findByText(/请填写有效的联系电话/)).toBeTruthy();
+  await userEvent.type(input, '123');
   await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
   expect(api.writes).toHaveLength(0);
 });
@@ -58,7 +59,7 @@ it('saves a valid phone before applying and reuses the booking key after an unkn
   await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
   expect(await screen.findByText(/预约提交结果暂时无法确认/)).toBeTruthy();
   expect(api.writes.map((write) => write.url)).toEqual(['/api/student/contact', '/api/bookings']);
-  expect((screen.getByLabelText('联系电话（必填）') as HTMLInputElement).value).toBe('+14165550123');
+  expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('4165550123');
   await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
   expect(await screen.findByText(/申请已提交，待教练确认/)).toBeTruthy();
   expect(api.keys).toHaveLength(2); expect(api.keys[0]).toBe(api.keys[1]);
@@ -68,11 +69,12 @@ it('saves a valid phone before applying and reuses the booking key after an unkn
 it('prefills the saved phone and allows changes without creating a booking', async () => {
   const api = studentApi('+14165550123'); render(<App />);
   const input = await screen.findByLabelText('联系电话（必填）');
-  await waitFor(() => expect((input as HTMLInputElement).value).toBe('+14165550123'));
+  await waitFor(() => expect(phoneDigits(input)).toBe('4165550123'));
   await userEvent.clear(input); await userEvent.type(input, '+86 138 0013 8000');
   await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
   expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
   expect(api.writes).toHaveLength(1); expect(api.writes[0].url).toBe('/api/student/contact');
+  expect(api.writes[0].body.phone).toBe('+8613800138000');
   await selectSlot(); await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
   expect(await screen.findByText(/申请已提交，待教练确认/)).toBeTruthy();
   expect(api.writes).toHaveLength(2);
@@ -94,7 +96,7 @@ it('keeps saved phone when a booking is rejected and explains the separate outco
   await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
   expect(await screen.findByText(/联系电话已保存.*时段已不可申请/)).toBeTruthy();
   expect(api.writes.map((write) => write.url)).toEqual(['/api/student/contact', '/api/bookings']);
-  expect((screen.getByLabelText('联系电话（必填）') as HTMLInputElement).value).toBe('+14165550123');
+  expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('4165550123');
 });
 
 it('allows browsing but requires a successful contact read before save or apply', async () => {
@@ -104,7 +106,7 @@ it('allows browsing but requires a successful contact read before save or apply'
   expect((screen.getByRole('button', { name: '保存电话' }) as HTMLButtonElement).disabled).toBe(true);
   api.failures.read = false;
   await userEvent.click(screen.getByRole('button', { name: '重试加载电话' }));
-  await waitFor(() => expect((screen.getByLabelText('联系电话（必填）') as HTMLInputElement).value).toBe('+14165550123'));
+  await waitFor(() => expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('4165550123'));
   await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
   expect(await screen.findByText(/申请已提交，待教练确认/)).toBeTruthy();
   expect(api.writes.map((write) => write.url)).toEqual(['/api/bookings']);
@@ -114,7 +116,7 @@ it.each(['+123456', '+1234567890123456', '+01234567', '+1/4165550123'])('rejects
   const api = studentApi(); render(<App />);
   fireEvent.change(await screen.findByLabelText('联系电话（必填）'), { target: { value: phone } });
   await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
-  expect(await screen.findByText(/请填写含国家区号的联系电话/)).toBeTruthy(); expect(api.writes).toHaveLength(0);
+  expect(await screen.findByText(/请填写有效的联系电话/)).toBeTruthy(); expect(api.writes).toHaveLength(0);
 });
 
 it('shows phone only on coach cards, keeps it after confirm, and labels legacy missing contacts', async () => {
@@ -149,14 +151,14 @@ it('clears a saved phone and unsaved draft when logging out and switching accoun
   }));
   render(<App />);
   const firstInput = await screen.findByLabelText('联系电话（必填）');
-  await waitFor(() => expect((firstInput as HTMLInputElement).value).toBe('+14165550123'));
+  await waitFor(() => expect(phoneDigits(firstInput)).toBe('4165550123'));
   fireEvent.change(firstInput, { target: { value: '+8613800138000' } });
   await userEvent.click(screen.getByRole('button', { name: '退出' }));
   await userEvent.type(await screen.findByLabelText('邮箱'), 'second@example.test');
   await userEvent.type(screen.getByLabelText('密码'), 'private-test-password');
   await userEvent.click(screen.getByRole('button', { name: '登录' }));
   const secondInput = await screen.findByLabelText('联系电话（必填）');
-  await waitFor(() => expect((secondInput as HTMLInputElement).value).toBe('+14165550124'));
+  await waitFor(() => expect(phoneDigits(secondInput)).toBe('4165550124'));
   expect(document.body.textContent).not.toContain('+8613800138000');
   expect(document.body.textContent).not.toContain('+14165550123');
 });
@@ -164,11 +166,120 @@ it('clears a saved phone and unsaved draft when logging out and switching accoun
 it('does not overwrite an unsaved phone when the booking lists refresh', async () => {
   const api = studentApi('+14165550123'); render(<App />);
   const input = await screen.findByLabelText('联系电话（必填）');
-  await waitFor(() => expect((input as HTMLInputElement).value).toBe('+14165550123'));
+  await waitFor(() => expect(phoneDigits(input)).toBe('4165550123'));
   fireEvent.change(input, { target: { value: '+8613800138000' } });
   await userEvent.click(screen.getByRole('button', { name: '我的预约' }));
   await userEvent.click(screen.getByRole('button', { name: '刷新状态' }));
   await userEvent.click(screen.getByRole('button', { name: '约课' }));
-  expect((await screen.findByLabelText('联系电话（必填）') as HTMLInputElement).value).toBe('+8613800138000');
+  expect(phoneDigits(await screen.findByLabelText('联系电话（必填）'))).toBe('13800138000');
   expect(api.fetchMock.mock.calls.filter(([url]) => url === '/api/student/contact')).toHaveLength(1);
+});
+
+
+it('country selector defaults to Canada and saves a local number before applying', async () => {
+  const api = studentApi(); render(<App />); await selectSlot();
+  const country = await screen.findByRole('combobox', { name: '国家或地区' });
+  expect((country as HTMLSelectElement).value).toBe('CA');
+  expect(screen.getByRole('option', { name: '加拿大 +1' })).toBeTruthy();
+  expect(screen.queryByText(/请包含国家区号/)).toBeNull();
+  await userEvent.type(screen.getByLabelText('联系电话（必填）'), '4165550123');
+  await userEvent.click(screen.getByRole('button', { name: '申请预约' }));
+  expect(await screen.findByText(/申请已提交，待教练确认/)).toBeTruthy();
+  expect(api.writes.map(write => write.url)).toEqual(['/api/student/contact', '/api/bookings']);
+  expect(api.writes[0].body.phone).toBe('+14165550123');
+});
+
+it('country selector switches prefixes without losing the entered number', async () => {
+  const api = studentApi(); render(<App />);
+  const country = await screen.findByRole('combobox', { name: '国家或地区' });
+  const input = screen.getByLabelText('联系电话（必填）');
+  await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
+  await userEvent.type(input, '13800138000');
+  await userEvent.selectOptions(country, 'CN');
+  expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('13800138000');
+  await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes[0].body.phone).toBe('+8613800138000');
+});
+
+it('country selector restores an existing Chinese number without rewriting it', async () => {
+  const api = studentApi('+8613800138000'); render(<App />);
+  const country = await screen.findByRole('combobox', { name: '国家或地区' });
+  await waitFor(() => expect((country as HTMLSelectElement).value).toBe('CN'));
+  await waitFor(() => expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('13800138000'));
+  await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes).toHaveLength(0);
+});
+
+it('country selector detects a pasted full international number without a duplicate prefix', async () => {
+  const api = studentApi(); render(<App />);
+  const user = userEvent.setup();
+  const country = await screen.findByRole('combobox', { name: '国家或地区' });
+  const input = screen.getByLabelText('联系电话（必填）');
+  await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
+  await user.click(input);
+  await user.paste('+86 138 0013 8000');
+  expect(document.activeElement).toBe(input);
+  expect((country as HTMLSelectElement).value).toBe('CN');
+  expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('13800138000');
+  await user.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes[0].body.phone).toBe('+8613800138000');
+});
+
+it('country selector preserves an unrecognised legacy international value', async () => {
+  const api = studentApi('+9991234567'); render(<App />);
+  const input = await screen.findByLabelText('联系电话（必填）');
+  await waitFor(() => expect((input as HTMLInputElement).value).toBe('+9991234567'));
+  expect((screen.getByRole('combobox', { name: '国家或地区' }) as HTMLSelectElement).value).toBe('');
+  await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes).toHaveLength(0);
+});
+
+it('country selector keeps a pasted unrecognised calling code in international format', async () => {
+  const api = studentApi(); render(<App />);
+  const user = userEvent.setup();
+  const input = await screen.findByLabelText('联系电话（必填）');
+  await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
+  await user.click(input); await user.paste('+9991234567');
+  expect((screen.getByRole('combobox', { name: '国家或地区' }) as HTMLSelectElement).value).toBe('');
+  expect((screen.getByLabelText('联系电话（必填）') as HTMLInputElement).value).toBe('+9991234567');
+  await user.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes[0].body.phone).toBe('+9991234567');
+});
+
+
+it.each(['+1 (416) 555-0123', ' +1 (416) 555-0123 '])('country selector handles a pasted Canadian number %s and keeps editing focus', async phone => {
+  const api = studentApi(); render(<App />);
+  const user = userEvent.setup();
+  const input = await screen.findByLabelText('联系电话（必填）');
+  await user.click(input); await user.paste(phone);
+  expect(document.activeElement).toBe(input);
+  expect(phoneDigits(screen.getByLabelText('联系电话（必填）'))).toBe('4165550123');
+  expect((screen.getByRole('combobox', { name: '国家或地区' }) as HTMLSelectElement).value).toBe('CA');
+  await user.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes[0].body.phone).toBe('+14165550123');
+});
+
+it('country selector retains the existing basic length rule instead of requiring metadata-valid numbers', async () => {
+  const api = studentApi('+1234567'); render(<App />);
+  const input = await screen.findByLabelText('联系电话（必填）');
+  await waitFor(() => expect(phoneDigits(input)).toBe('234567'));
+  await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/联系电话已保存/)).toBeTruthy();
+  expect(api.writes).toHaveLength(0);
+});
+
+it.each(['416/5550123', '4165550123456789'])('country selector rejects invalid local input %s without saving filtered digits', async phone => {
+  const api = studentApi(); render(<App />);
+  const input = await screen.findByLabelText('联系电话（必填）');
+  await waitFor(() => expect((input as HTMLInputElement).disabled).toBe(false));
+  fireEvent.change(input, { target: { value: phone } });
+  await userEvent.click(screen.getByRole('button', { name: '保存电话' }));
+  expect(await screen.findByText(/请填写有效的联系电话/)).toBeTruthy();
+  expect(api.writes).toHaveLength(0);
 });

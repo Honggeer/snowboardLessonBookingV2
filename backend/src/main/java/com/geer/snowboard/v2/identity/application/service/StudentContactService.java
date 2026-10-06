@@ -24,7 +24,7 @@ public class StudentContactService implements StudentContactOperations {
         ContactPhone phone;
         try { phone = ContactPhone.parse(command == null ? null : command.phone()); }
         catch (IllegalArgumentException invalid) {
-            throw new BusinessProblem(400, "请填写含国家区号的联系电话，例如 +1 416 555 0123。");
+            throw new BusinessProblem(400, "请填写有效的联系电话。");
         }
         store.saveStudentPhone(actor.id(), phone.value());
         return new Contact(phone.value());

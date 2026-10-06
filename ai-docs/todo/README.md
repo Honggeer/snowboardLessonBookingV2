@@ -30,3 +30,4 @@ ticket 是待办记录，**不批准实现代码**。若工作已在获批计划
 | TODO-0024 | [现有 EC2 根盘未启用加密](0024-ec2-root-volume-unencrypted.md) | IN_PROGRESS | [0010 revision 3](../implement-plan/0010-production-delivery.md) | 2026-10-04 |
 | TODO-0030 | [生产学员注册验证邮件未在收件箱找到](0030-production-registration-mail-not-received.md) | OPEN | [0002](../implement-plan/0002-student-identity.md)、[0010](../implement-plan/0010-production-delivery.md) | 2026-10-05 |
 | TODO-0034 | [后端全量测试结束后 JVM 关停超时](0034-full-backend-test-shutdown-timeout.md) | OPEN | [0005](../implement-plan/0005-test-scheduler-lifecycle.md) | 2026-10-06 |
+| TODO-0039 | [前端构建和测试依赖 source-map-js 出现高等级审计告警](0039-frontend-source-map-js-audit.md) | OPEN | [0001](../implement-plan/0001-project-foundation.md)、[0011 revision 2](../implement-plan/0011-student-contact-phone.md) | 2026-10-06 |

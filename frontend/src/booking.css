@@ -302,3 +302,8 @@
 .coach-booking .coach-booking-contact { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; }
 .coach-booking-contact a { display: inline-flex; align-items: center; min-height: 44px; color: #0065bf; font-weight: 700; overflow-wrap: anywhere; }
 .coach-booking-contact a:focus-visible { outline: 2px solid #006dd0; outline-offset: 3px; }
+
+.student-phone-input { display: grid; grid-template-columns: minmax(0, 112px) minmax(0, 1fr); gap: 8px; }
+.student-phone-input select { box-sizing: border-box; width: 100%; min-width: 0; min-height: 46px; padding: 10px 6px; border: 1px solid #b8cbe0; border-radius: 7px; color: #16324e; background: #fff; font-size: 14px; }
+.student-phone-input select:disabled { color: #5f7186; background: #f4f7fa; }
+.student-phone-input input { padding-inline: 8px; }
