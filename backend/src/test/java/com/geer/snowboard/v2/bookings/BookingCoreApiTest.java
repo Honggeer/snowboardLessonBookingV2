@@ -11,6 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.jayway.jsonpath.JsonPath;
 import com.geer.snowboard.v2.identity.application.port.out.PasswordHashes;
+import com.geer.snowboard.v2.bookings.application.port.in.BookingMailOperations;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingMailSender;
+import com.geer.snowboard.v2.bookings.adapter.out.mail.SmtpBookingMailSender;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -18,6 +21,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.zone.ZoneOffsetTransition;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.UUID;
 import java.util.List;
 import java.util.Map;
@@ -28,6 +35,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.beans.factory.support.StaticListableBeanFactory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -37,6 +51,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
+import org.testcontainers.containers.GenericContainer;
 
 @SpringBootTest(webEnvironment = WebEnvironment.MOCK, properties = {
         "identity.mail.worker.enabled=false", "booking.mail.worker.enabled=false", "spring.session.jdbc.cleanup-cron=-"})
@@ -56,8 +71,260 @@ class BookingCoreApiTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired PasswordHashes passwords;
+    @Autowired BookingMailOperations mailWorker;
+    @Autowired TestMailSender testMailSender;
     private final Map<String, String> slotCourses = new ConcurrentHashMap<>();
     private final Map<String, String> coachMountains = new ConcurrentHashMap<>();
+
+    @TestConfiguration static class MailOverride {
+        @Bean @Primary TestMailSender testMailSender() { return new TestMailSender(); }
+    }
+
+    static class TestMailSender implements BookingMailSender {
+        BookingMailSender delegate;
+        @Override public void send(String email, String subject, String body) {
+            if (delegate == null) throw new IllegalStateException("Test SMTP is not configured");
+            delegate.send(email, subject, body);
+        }
+    }
+
+    @Test
+    void manualAndBothAutomaticRejectionsActuallyReachOnlyTheirStudentsInMailpit() throws Exception {
+        jdbc.update("UPDATE bookings_mail_task SET status='SKIPPED' WHERE status='PENDING'");
+        try (var mailpit = new GenericContainer<>("ghcr.io/axllent/mailpit:v1.31.3").withExposedPorts(1025, 8025)) {
+            mailpit.start();
+            var smtp = new JavaMailSenderImpl();
+            smtp.setHost(mailpit.getHost());
+            smtp.setPort(mailpit.getMappedPort(1025));
+            var factory = new StaticListableBeanFactory();
+            factory.addBean("mail", smtp);
+            testMailSender.delegate = new SmtpBookingMailSender(factory.getBeanProvider(JavaMailSender.class),
+                    new MockEnvironment().withProperty("identity.mail.from", "geer@example.test"));
+
+            String coach = account("COACH", null), course = publishCourse(coach);
+            String date = LocalDate.now(ZoneId.of("America/Toronto")).plusDays(12).toString();
+            String manualStudent = account("STUDENT", "BEGINNER");
+            String manual = apply(manualStudent, publishSlot(coach, course, date, "10:00"));
+            rejectBooking(coach, manual, "时间不合适");
+            String slot = publishSlot(coach, course, date, "12:00");
+            String chosenStudent = account("STUDENT", "BEGINNER"), sameSlotStudent = account("STUDENT", "NOVICE");
+            String chosen = apply(chosenStudent, slot), sameSlot = apply(sameSlotStudent, slot);
+            String otherMountainStudent = account("STUDENT", "BEGINNER");
+            String otherMountain = apply(otherMountainStudent, publishSlot(coach, course, date, "14:00"), createMountain(coach));
+            confirmBooking(coach, chosen);
+            mailWorker.runOnce();
+
+            var expectedBookings = Map.of(manualStudent, manual, sameSlotStudent, sameSlot, otherMountainStudent, otherMountain);
+            var expectedReasons = Map.of(manualStudent, "时间不合适", sameSlotStudent, "该时段已确认给其他学员",
+                    otherMountainStudent, "当天已确认在其他雪场授课");
+            var client = HttpClient.newHttpClient();
+            String api = "http://" + mailpit.getHost() + ":" + mailpit.getMappedPort(8025);
+            String list = client.send(HttpRequest.newBuilder(URI.create(api + "/api/v1/messages")).GET().build(),
+                    HttpResponse.BodyHandlers.ofString()).body();
+            assertThat((Integer) JsonPath.read(list, "$.total")).isEqualTo(4);
+            List<String> ids = JsonPath.read(list, "$.messages[*].ID");
+            for (String id : ids) {
+                String message = client.send(HttpRequest.newBuilder(URI.create(api + "/api/v1/message/" + id)).GET().build(),
+                        HttpResponse.BodyHandlers.ofString()).body();
+                String recipient = JsonPath.read(message, "$.To[0].Address");
+                String student = recipient.replace("@example.test", "");
+                String subject = JsonPath.read(message, "$.Subject"), body = JsonPath.read(message, "$.Text");
+                if (student.equals(chosenStudent)) {
+                    assertThat(subject).isEqualTo("GEER 课程预约已确认");
+                    assertThat(body).contains("/#/my-bookings/" + chosen);
+                } else {
+                    assertThat(expectedBookings).containsKey(student);
+                    assertThat(subject).isEqualTo("GEER 预约申请未通过");
+                    assertThat(body).contains("拒绝原因：" + expectedReasons.get(student),
+                            "/#/my-bookings/" + expectedBookings.get(student), "America/Toronto", "课程：", "雪场：")
+                            .doesNotContain(chosenStudent, "@example.test");
+                }
+            }
+            for (String booking : expectedBookings.values())
+                assertThat(jdbc.queryForObject("SELECT status FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'",
+                        String.class, booking)).isEqualTo("SENT");
+        } finally {
+            testMailSender.delegate = null;
+        }
+    }
+
+    @Test
+    void concurrentCancellationAndRejectionCreateOnlyTheNotificationMatchingTheFinalDecision() throws Exception {
+        String coach = account("COACH", null), student = account("STUDENT", "BEGINNER");
+        String slot = publishSlot(coach, publishCourse(coach),
+                LocalDate.now(ZoneId.of("America/Toronto")).plusDays(10).toString(), "10:00");
+        String booking = apply(student, slot);
+        var gate = new CountDownLatch(1);
+        try (var pool = Executors.newFixedThreadPool(2)) {
+            var rejection = pool.submit(() -> {
+                gate.await();
+                return mvc.perform(post("/api/coach/bookings/{id}/reject", booking).with(user(coach).roles("COACH")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"时间不合适\"}"))
+                        .andReturn().getResponse().getStatus();
+            });
+            var cancellation = pool.submit(() -> {
+                gate.await();
+                return mvc.perform(post("/api/bookings/{id}/cancel", booking).with(user(student).roles("STUDENT")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{}"))
+                        .andReturn().getResponse().getStatus();
+            });
+            gate.countDown();
+            assertThat(List.of(rejection.get(10, java.util.concurrent.TimeUnit.SECONDS), cancellation.get(10, java.util.concurrent.TimeUnit.SECONDS)))
+                    .containsExactlyInAnyOrder(200, 409);
+        }
+        String result = jdbc.queryForObject("SELECT status FROM bookings_request WHERE id=?", String.class, booking);
+        assertThat(result).isIn("REJECTED", "CANCELLED_BY_STUDENT");
+        assertThat(rejectionMailCount(booking)).isEqualTo(result.equals("REJECTED") ? 1 : 0);
+    }
+
+    @Test
+    void manualRejectionCreatesOneStudentMailAndDoesNotRecreateCleanedTasks() throws Exception {
+        String coach = account("COACH", null);
+        String student = account("STUDENT", "BEGINNER");
+        String slot = publishSlot(coach, publishCourse(coach),
+                LocalDate.now(ZoneId.of("America/Toronto")).plusDays(2).toString(), "10:00");
+        String booking = apply(student, slot);
+        rejectBooking(coach, booking, "  时间不合适  ");
+        assertThat(rejectionMailCount(booking)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT recipient_account_id FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'",
+                String.class, booking)).isEqualTo(student);
+        assertThat(jdbc.queryForObject("SELECT decision_reason FROM bookings_request WHERE id=?", String.class, booking))
+                .isEqualTo("时间不合适");
+        rejectBooking(coach, booking, "重复操作");
+        assertThat(rejectionMailCount(booking)).isEqualTo(1);
+        mvc.perform(get("/api/bookings/{id}", booking).with(user(student).roles("STUDENT")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"));
+        mvc.perform(get("/api/bookings/{id}", booking).with(user(account("STUDENT", "NOVICE")).roles("STUDENT")))
+                .andExpect(status().isNotFound());
+        jdbc.update("DELETE FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'", booking);
+        rejectBooking(coach, booking, "清理后重放");
+        assertThat(rejectionMailCount(booking)).isZero();
+        assertThat(jdbc.queryForObject("SELECT status FROM scheduling_slot WHERE id=?", String.class, slot)).isEqualTo("OPEN");
+    }
+
+    @Test
+    void confirmationNotifiesOnlyTheApplicationsActuallyAutoRejected() throws Exception {
+        String coach = account("COACH", null);
+        String course = publishCourse(coach);
+        String mountain = ensureMountain(coach);
+        String otherMountain = createMountain(coach);
+        String date = LocalDate.now(ZoneId.of("America/Toronto")).plusDays(4).toString();
+        String chosenSlot = publishSlot(coach, course, date, "10:00");
+        String chosen = apply(account("STUDENT", "BEGINNER"), chosenSlot);
+        String competitorStudent = account("STUDENT", "NOVICE");
+        String competitor = apply(competitorStudent, chosenSlot);
+        String otherCompetitor = apply(account("STUDENT", "NOVICE"), chosenSlot, otherMountain);
+        String sameMountain = apply(account("STUDENT", "BEGINNER"), publishSlot(coach, course, date, "12:00"));
+        String otherMountainStudent = account("STUDENT", "BEGINNER");
+        String otherMountainBooking = apply(otherMountainStudent, publishSlot(coach, course, date, "14:00"), otherMountain);
+        String terminalSlot = publishSlot(coach, course, date, "16:00");
+        String oldRejected = apply(account("STUDENT", "BEGINNER"), terminalSlot, otherMountain);
+        jdbc.update("UPDATE bookings_request SET status='REJECTED',decision_reason='历史拒绝',decided_at=? WHERE id=?",
+                Instant.now(), oldRejected);
+        String cancelled = apply(account("STUDENT", "BEGINNER"), terminalSlot, otherMountain);
+        jdbc.update("UPDATE bookings_request SET status='CANCELLED_BY_STUDENT',decided_at=? WHERE id=?", Instant.now(), cancelled);
+        String otherDate = apply(account("STUDENT", "BEGINNER"), publishSlot(coach, course,
+                LocalDate.now(ZoneId.of("America/Toronto")).plusDays(8).toString(), "10:00"), otherMountain);
+
+        confirmBooking(coach, chosen);
+        for (String rejected : List.of(competitor, otherCompetitor, otherMountainBooking))
+            assertThat(rejectionMailCount(rejected)).as(rejected).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT recipient_account_id FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'",
+                String.class, competitor)).isEqualTo(competitorStudent);
+        assertThat(jdbc.queryForObject("SELECT recipient_account_id FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'",
+                String.class, otherMountainBooking)).isEqualTo(otherMountainStudent);
+        for (String sameSlot : List.of(competitor, otherCompetitor))
+            assertThat(jdbc.queryForObject("SELECT decision_reason FROM bookings_request WHERE id=?", String.class, sameSlot))
+                    .isEqualTo("该时段已确认给其他学员");
+        assertThat(jdbc.queryForObject("SELECT decision_reason FROM bookings_request WHERE id=?", String.class, otherMountainBooking))
+                .isEqualTo("当天已确认在其他雪场授课");
+        for (String unaffected : List.of(chosen, sameMountain, otherDate, oldRejected, cancelled))
+            assertThat(rejectionMailCount(unaffected)).as(unaffected).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_request WHERE id IN (?,?) AND status='PENDING'",
+                Integer.class, sameMountain, otherDate)).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT locked_mountain_id FROM scheduling_day WHERE coach_id=? AND local_date=?",
+                String.class, coach, LocalDate.parse(date))).isEqualTo(mountain);
+        confirmBooking(coach, chosen);
+        assertThat(rejectionMailCount(competitor)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_CONFIRMED'",
+                Integer.class, chosen)).isEqualTo(1);
+    }
+
+    @Test
+    void rejectionMailInsertFailureRollsBackManualAndAutomaticDecisions() throws Exception {
+        String coach = account("COACH", null);
+        String student = account("STUDENT", "BEGINNER");
+        String course = publishCourse(coach);
+        String date = LocalDate.now(ZoneId.of("America/Toronto")).plusDays(6).toString();
+        String manualSlot = publishSlot(coach, course, date, "10:00");
+        String manual = apply(student, manualSlot);
+        String chosenSlot = publishSlot(coach, course, date, "12:00");
+        String chosen = apply(account("STUDENT", "BEGINNER"), chosenSlot);
+        String competitor = apply(student, chosenSlot);
+        String otherMountain = createMountain(coach);
+        String other = apply(account("STUDENT", "BEGINNER"), publishSlot(coach, course, date, "14:00"), otherMountain);
+        jdbc.execute("ALTER TABLE bookings_mail_task ADD CONSTRAINT ck_rejection_failure_test CHECK "
+                + "(event_type <> 'BOOKING_REJECTED' OR recipient_account_id <> '" + student + "')");
+        try {
+            mvc.perform(post("/api/coach/bookings/{id}/reject", manual).with(user(coach).roles("COACH")).with(csrf())
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"无法授课\"}"))
+                    .andExpect(status().isServiceUnavailable());
+            mvc.perform(post("/api/coach/bookings/{id}/confirm", chosen).with(user(coach).roles("COACH")).with(csrf()))
+                    .andExpect(status().isServiceUnavailable());
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_request WHERE id IN (?,?,?,?) AND status='PENDING'",
+                    Integer.class, manual, chosen, competitor, other)).isEqualTo(4);
+            assertThat(jdbc.queryForObject("SELECT status FROM scheduling_slot WHERE id=?", String.class, chosenSlot)).isEqualTo("OPEN");
+            assertThat(jdbc.queryForObject("SELECT locked_mountain_id FROM scheduling_day WHERE coach_id=? AND local_date=?",
+                    String.class, coach, LocalDate.parse(date))).isNull();
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id IN (?,?,?,?) AND event_type <> 'APPLICATION_RECEIVED'",
+                    Integer.class, manual, chosen, competitor, other)).isZero();
+        } finally {
+            jdbc.execute("ALTER TABLE bookings_mail_task DROP CHECK ck_rejection_failure_test");
+        }
+        String otherStudent = jdbc.queryForObject("SELECT student_id FROM bookings_request WHERE id=?", String.class, other);
+        jdbc.execute("ALTER TABLE bookings_mail_task ADD CONSTRAINT ck_rejection_failure_test CHECK "
+                + "(event_type <> 'BOOKING_REJECTED' OR recipient_account_id <> '" + otherStudent + "')");
+        try {
+            mvc.perform(post("/api/coach/bookings/{id}/confirm", chosen).with(user(coach).roles("COACH")).with(csrf()))
+                    .andExpect(status().isServiceUnavailable());
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_request WHERE id IN (?,?,?,?) AND status='PENDING'",
+                    Integer.class, manual, chosen, competitor, other)).isEqualTo(4);
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id IN (?,?,?,?) AND event_type <> 'APPLICATION_RECEIVED'",
+                    Integer.class, manual, chosen, competitor, other)).isZero();
+            assertThat(jdbc.queryForObject("SELECT status FROM scheduling_slot WHERE id=?", String.class, chosenSlot)).isEqualTo("OPEN");
+            assertThat(jdbc.queryForObject("SELECT locked_mountain_id FROM scheduling_day WHERE coach_id=? AND local_date=?",
+                    String.class, coach, LocalDate.parse(date))).isNull();
+        } finally {
+            jdbc.execute("ALTER TABLE bookings_mail_task DROP CHECK ck_rejection_failure_test");
+        }
+        confirmBooking(coach, chosen);
+        assertThat(rejectionMailCount(competitor)).isEqualTo(1);
+        assertThat(rejectionMailCount(other)).isEqualTo(1);
+    }
+
+    private int rejectionMailCount(String booking) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'",
+                Integer.class, booking);
+    }
+
+    private void rejectBooking(String coach, String booking, String reason) throws Exception {
+        mvc.perform(post("/api/coach/bookings/{id}/reject", booking).with(user(coach).roles("COACH")).with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"reason\":\"" + reason + "\"}"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("REJECTED"));
+    }
+
+    private void confirmBooking(String coach, String booking) throws Exception {
+        mvc.perform(post("/api/coach/bookings/{id}/confirm", booking).with(user(coach).roles("COACH")).with(csrf()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CONFIRMED"));
+    }
+
+    private String createMountain(String coach) throws Exception {
+        var response = mvc.perform(post("/api/coach/mountains").with(user(coach).roles("COACH")).with(csrf())
+                        .header("Idempotency-Key", UUID.randomUUID().toString()).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Other mountain " + UUID.randomUUID() + "\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        return JsonPath.read(response.getResponse().getContentAsString(), "$.id");
+    }
 
     @Test
     void bookingMailTasksAreCreatedOnceAndDeepLinksRequireTheCorrectAccount() throws Exception {
@@ -312,6 +579,8 @@ class BookingCoreApiTest {
                 Integer.class, slotId)).isEqualTo(1);
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_request WHERE slot_id=? AND status='REJECTED'",
                 Integer.class, slotId)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task t JOIN bookings_request b ON b.id=t.booking_id "
+                        + "WHERE b.slot_id=? AND t.event_type='BOOKING_REJECTED'", Integer.class, slotId)).isEqualTo(1);
     }
 
     @Test
@@ -659,8 +928,11 @@ class BookingCoreApiTest {
 
     private String apply(String student, String slotId) throws Exception {
         String coachId = jdbc.queryForObject("SELECT coach_id FROM scheduling_slot WHERE id=?", String.class, slotId);
-        String courseId = slotCourses.get(slotId);
         String mountainId = ensureMountain(coachId);
+        return apply(student, slotId, mountainId);
+    }
+    private String apply(String student, String slotId, String mountainId) throws Exception {
+        String courseId = slotCourses.get(slotId);
         var result = mvc.perform(post("/api/bookings").with(user(student).roles("STUDENT")).with(csrf())
                         .header("Idempotency-Key", UUID.randomUUID().toString())
                         .contentType(MediaType.APPLICATION_JSON).content(application(courseId, slotId, mountainId)))

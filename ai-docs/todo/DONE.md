@@ -38,3 +38,4 @@
 | TODO-0037 | [已确认预约缺少课前邮件提醒](0037-lesson-reminder-emails.md) | DONE | [0012 revision 1](../implement-plan/0012-lesson-reminder-emails.md) | 2026-10-06 |
 | TODO-0038 | [电话填写要求手输国家区号，增加学员操作负担](0038-phone-country-prefix-input.md) | DONE | [0011 revision 2](../implement-plan/0011-student-contact-phone.md) | 2026-10-06 |
 | TODO-0016 | [登录页关于 GEER 入口不醒目且缺少可点击提示](0016-login-about-geer-visibility.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-07 |
+| TODO-0040 | [预约申请被拒绝后学员没有邮件通知](0040-booking-rejection-email.md) | DONE | [0007 revision 3](../implement-plan/0007-booking-email-notifications.md) | 2026-10-08 |

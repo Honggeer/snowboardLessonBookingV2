@@ -3,7 +3,7 @@ id: TODO-0034
 title: "后端全量测试结束后 JVM 关停超时"
 status: OPEN
 created: 2026-10-05
-updated: 2026-10-06
+updated: 2026-10-08
 ---
 
 # TODO-0034 — 后端全量测试结束后 JVM 关停超时
@@ -43,3 +43,7 @@ updated: 2026-10-06
 
 - 2026-10-06：0012 第一次全量 193 tests 有 1 个独立的 Poller 测试瞬时关停断言失败，同时复现既有 Surefire 30 秒 JVM 收尾超时；日志 `.local/lesson-reminder-emails/backend-regression.log`，Maven exit 1。线程断言与 JVM 收尾分别记录；本票仍 OPEN，本功能未修改既有根因。
 - 2026-10-06：0012 最终全量复验 46 类、193 tests，0 failures/errors/skips，BUILD SUCCESS，Maven exit 0；仍出现 Surefire 30 秒 JVM 收尾超时及临时库关闭后的 Hikari 警告，日志 `.local/lesson-reminder-emails/backend-regression-final.log`。新 Poller 有限关闭断言已通过，未据此认为本票根因解决，状态保持 OPEN。
+
+- 2026-10-08：0007 revision 3 首次完整回归 203 tests、1 failure（旧迁移测试仍断言版本 12，已同步为 13）、0 errors/skips，Maven exit 1；同时复现 Surefire 30 秒 JVM 退出超时。日志 `.local/booking-rejection-emails/backend-regression-first.log`。迁移断言与 JVM 收尾分别处理，本票根因未修改，保持 OPEN；最终回归另记录。
+
+- 2026-10-08：0007 revision 3 最终完整回归 47 类、203 tests、0 failures/errors/skips，Maven exit 0；核对全部报告均在本轮生成，仍出现 Surefire 30 秒退出超时及临时库关闭后的 Hikari 警告。日志 `.local/booking-rejection-emails/backend-regression-final.log` 及 `backend-test-summary.json`。旧迁移版本断言已通过，JVM 收尾根因仍未修复，本票保持 OPEN。

@@ -64,7 +64,9 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 ## 预约邮件
 
-学员申请成功进入 PENDING 时，同事务保存教练邮件任务；教练确认后，同事务保存学员邮件任务。后台另行通过现有 SMTP 发送，两封邮件分别链接到需要登录且按账号授权的预约详情。任务写入失败会回滚申请或确认；SMTP 失败只影响邮件任务，不能改变已保存的预约状态。相关状态、API 和限制见[0007 功能文档](../ai-docs/features/0007-booking-email-notifications.md)。
+学员申请成功进入 PENDING 时，同事务保存教练邮件任务；教练确认后，同事务保存学员确认邮件任务。教练手动拒绝、同一时段确认其他学员、当天锁定雪场而自动拒绝其他雪场申请时，每条实际被拒绝的申请同事务保存所属学员的 `BOOKING_REJECTED` 通知。拒绝邮件包含原因、课程、雪场、预约当地时间和本人详情链接，不包含其他申请人的资料。已提交且仍待确认的申请在之后被拒绝时也通知；以前已经拒绝的记录不补发。
+
+后台通过现有 SMTP 发送，邮件链接需要登录且按账号授权。任一通知任务写入失败会回滚对应业务操作，包括确认中产生的自动拒绝、占位和雪场锁定；SMTP 失败只影响邮件任务，不能改变已保存的预约状态。V13 扩展现有事件约束，保留 V12 提醒数据。回退不认识拒绝事件的旧应用前，先暂停整个预约邮件 worker，保留未完成任务，避免旧 worker 将其跳过。相关状态、API 和限制见[0007 功能文档](../ai-docs/features/0007-booking-email-notifications.md)。
 
 `APP_PUBLIC_URL` 必须是收件人可访问的站点根地址；本机 `localhost:5173` 或 `localhost:8088` 只适合在运行应用的电脑上打开。不能用请求 Host 构造邮件链接。`BOOKING_MAIL_WORKER_ENABLED=false` 可暂停预约邮件轮询，`BOOKING_MAIL_WORKER_DELAY_MS` 可调整毫秒间隔。每轮最多处理 10 项；失败退避并最多尝试 8 次，超过上限记 `DEAD`。用 `SELECT id,booking_id,event_type,attempts,last_error FROM bookings_mail_task WHERE status='DEAD'` 排查，确认 SMTP 恢复后可针对指定任务重置为 `PENDING`、`attempts=0` 和当前 `next_attempt_at`；发送前 worker 仍会核对预约当前状态。邮件采用至少一次投递，发信成功后进程中断可能重复。
 
@@ -113,6 +115,6 @@ V11 只追加可空 `identity_account.contact_phone`，旧账号初值为空；�
 
 本地重启后自动应用 V12，后台每分钟最多补建 50 条现有未来已确认预约；使用实际确认时间判断是否曾有有效提醒窗口。确认时已错过最后窗口的不附加提醒，缺少确认时间的旧记录不猜造。正常到期后由默认 10 秒轮询执行，临时失败独立退避、最多 8 次；恢复/重试也只在距开课超过 24 小时期间发送，取消或过期则跳过。SMTP 接受后写回失败可能重复投递。
 
-`BOOKING_REMINDERS_ENABLED=false` 只暂停规划和领取课前提醒，保留已计划任务，申请/确认通知继续工作；恢复为 `true` 后继续处理有效任务。`BOOKING_MAIL_WORKER_ENABLED=false` 暂停全部预约邮件后台任务，用于完整暂停或回退准备。两者默认 `true`，非秘密设置；无需新 SMTP 密钥或第三方服务。实际验证和限制见 [0012](../ai-docs/implement-plan/0012-lesson-reminder-emails.md)。
+`BOOKING_REMINDERS_ENABLED=false` 只暂停规划和领取课前提醒，保留已计划任务，申请/确认/拒绝通知继续工作；恢复为 `true` 后继续处理有效任务。`BOOKING_MAIL_WORKER_ENABLED=false` 暂停全部预约邮件后台任务，用于完整暂停或回退准备。两者默认 `true`，非秘密设置；无需新 SMTP 密钥或第三方服务。实际验证和限制见 [0012](../ai-docs/implement-plan/0012-lesson-reminder-emails.md)。
 
 V12 扩展现有邮件事件、保存提醒开课时间与预约规划标记。回退旧应用前先暂停整个预约邮件 worker，保留 V12 与任务：旧 worker 不认识新提醒事件，会将其跳过。生产发布、迁移和回退另需具体授权；不要删除追加列/任务或重置数据库。

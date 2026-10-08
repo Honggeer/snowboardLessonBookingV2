@@ -2,14 +2,16 @@
 id: "0007"
 title: "预约邮件通知与取消规则提示"
 status: VERIFIED
-revision: 2
-approved_revision: 2
+revision: 3
+approved_revision: 3
 created: 2026-10-01
-updated: 2026-10-06
+updated: 2026-10-08
 feature: "../features/0007-booking-email-notifications.md"
 ---
 
-# 0007 — 预约邮件通知与取消规则提示实施计划（revision 2 已批准）
+# 0007 — 预约邮件通知与取消规则提示实施计划（revision 3 已本地验证）
+
+当前新增范围与具体实施步骤见文末 **revision 3 — 拒绝邮件通知**。用户已确认手动和系统自动拒绝都通知。用户已批准 revision 3，当前 `approved_revision: 3`，已完成目标测试 RED/GREEN 与本地验证。第 1–9 节保留 revision 1–2 的实施与验证历史，历史批准不覆盖本次新增事件。
 
 ## 1. Review 摘要
 
@@ -32,8 +34,9 @@ feature: "../features/0007-booking-email-notifications.md"
 |---|---|---|---|
 | 2026-10-01 | 用户在收到 revision 1 计划链接、明确“预约成功”指教练确认及邮件范围的 review 请求后回复“开始实现” | 1 | 按 revision 1：PENDING 通知教练、CONFIRMED 通知学员、两类邮件直达该笔预约、提交前显示 24 小时规则 |
 | 2026-10-01 | 用户收到 revision 2 计划链接及“Compose 读取 Gmail 参数、链接用 V2_PUBLIC_URL、身份与预约邮件真实外发”的 review 请求后回复“开始实现” | 2 | 按 revision 2 在本机接入已有 SMTP，少量真实测试；此前明确链接地址通过参数传入，未来部署换参数 |
+| 2026-10-08 | 用户收到 revision 3 计划后回复“开始实现，然后顺便能不能把网页名称改成Ride With GEER？约课平台V2听着好蠢” | 3 | 批准手动和两种自动拒绝邮件、既有待确认后续转换、无历史补发、V13 与本地验证；另明确授权浏览器标题改为 Ride With GEER；不授权提交/推送或生产部署 |
 
-revision 1 的本地 Mailpit 实现已完成并验证。当前 `approved_revision: 2`；revision 2 已获上述批准，开始按测试先行流程实施。用户 2026-10-01 的“帮我接入……用一样的邮箱发”是本次修订的需求来源。
+revision 1–2 的本地实现已完成并验证；revision 2 执行时为 `approved_revision: 2`。当前 revision 3 已在 2026-10-08 获批，历史批准仅用于追溯。
 
 ## 3. 实现步骤与预计文件
 
@@ -120,7 +123,107 @@ revision 1 的本地 Mailpit 实现已完成并验证。当前 `approved_revisio
 ## 9. 完成状态与后续
 
 - revision 1 于 2026-10-01 完成 P-01~05 实现，并经 101 个后端测试、32 个前端测试、本地 Mailpit 投递、Chrome 双宽度检查及文档检查达到 VERIFIED。
-- revision 2 已按批准范围完成配置实现，达到 VERIFIED，`approved_revision: 2`；Compose 测试先 RED 后 GREEN，真实 Gmail SMTP 已接受教练及学员两类预约邮件，用户确认两封均收到。
+- revision 2 已按批准范围完成配置实现，达到 VERIFIED，当时 `approved_revision: 2`；Compose 测试先 RED 后 GREEN，真实 Gmail SMTP 已接受教练及学员两类预约邮件，用户确认两封均收到。
 - 生产部署、真实公网 HTTPS 域名与发布后验证未执行，尚未 RELEASED。
 
 - 2026-10-06 后续扩展：[0012 课前邮件提醒](0012-lesson-reminder-emails.md) revision 1 完成本地验证。在两种原通知之上增加双方独立的延时提醒、V12 及专用有界调度；0007 既有通知/权限契约和历史批准不变，详见 0012 实际证据，未进行本次生产发布。
+
+## revision 3 — 拒绝邮件通知（已本地验证）
+
+### R3-1. Review 摘要
+
+- 需求提出时，手动和两种自动拒绝都不发邮件。用户 2026-10-08 要求拒绝邮件，并已选择“手动拒绝和系统自动拒绝都通知（推荐）”。
+- 实现后，教练手动拒绝、同一时段确认其他学员、当天雪场锁定导致其他雪场申请自动拒绝，均通知每条实际被拒绝申请的所属学员；已确认学员继续收到确认通知。
+- 标题“GEER 预约申请未通过”，正文包含拒绝原因、课程/雪场/预约当地时间和需登录的本人详情链接；不包含其他学员资料。适用于上线后实际拒绝的申请，包括此前已提交且仍 PENDING 的记录。
+- 已批准的具体取舍：不补发以前已经 REJECTED 的历史申请；复用现有异步队列/SMTP及重试；新增 V13 扩展两个约束；邮件内容和事务回滚行为见[功能验收 AC-R3-01~08](../features/0007-booking-email-notifications.md)。
+- 无阻塞业务问题；覆盖范围确认不是实施批准。当前 VERIFIED，关联[TODO-0040](../todo/0040-booking-rejection-email.md)。不包括取消通知、UI 改版、外部真实发信、付费服务、提交/推送或生产部署。
+
+### R3-2. 批准状态
+
+用户于 2026-10-08 回复“开始实现，然后顺便能不能把网页名称改成Ride With GEER？约课平台V2听着好蠢”，明确批准已交付 review 的 revision 3，`approved_revision: 3`；按 WORK-09 开始实施。附带网页标题是用户明确指定内容的文案维护：仅修改 `frontend/index.html` 的 title 并验证构建产物，不新增行为测试，不改变预约业务或本修订的验收范围。
+
+### R3-3. 实现步骤与预计文件
+
+| 步骤 | 预计文件/模块 | 具体改动与边界 | 完成条件 | 状态 |
+|---|---|---|---|---|
+| P-R3-01 | `BookingCoreApiTest.java`、`BookingMailWorkerTest.java`、新增 `BookingRejectionMailMigrationTest.java` | 批准后先写 AC-R3 目标测试；首先使用既有 API 和事件字符串断言手动/两种自动拒绝任务缺失，运行取得有效 RED；不依赖尚不存在的常量造成编译失败 | 因应有拒绝任务数量为 0 得到 RED，并记录命令 | 完成 |
+| P-R3-02 | `backend/src/main/resources/db/migration/V13__booking_rejection_emails.sql`、`FoundationMigrationTest.java`、`LegacyAvailabilityMigrationTest.java` | 追加迁移扩展事件与提醒时间两项约束；原事件、数据、唯一键、外键不变；全新库版本断言更新到 13 | V12→V13 和全新库迁移通过，非法事件/提醒时间仍被拒绝 | 完成 |
+| P-R3-03 | `BookingStore.java`、`JdbcBookingStore.java` | 两种批量自动拒绝返回本次实际拒绝对象的最小标识集合；在现有日锁下先锁定匹配 PENDING 行、条件更新，保证返回对象与实际转换一致；SQL 留在 adapter | 两种自动拒绝与非目标/终态隔离、竞争测试通过 | 完成 |
+| P-R3-04 | `BookingService.java`、`BookingMailQueue.java` | 新增拒绝事件；手动拒绝首次成功和确认中的两种自动拒绝在同一事务逐条给所属学员入任务；终态早返回，不建历史或重复任务 | 手动/自动任务、重复操作、故障整体回滚达到 GREEN | 完成 |
+| P-R3-05 | `BookingMailWorker.java`、`JdbcBookingMailQueue.java`、相关 worker/MySQL 测试 | 新增 REJECTED + 所属学员有效性校验与拒绝模板；课前提醒关闭时领取及最终过期回收白名单覆盖拒绝事件；沿用普通通知 lease 与重试 | 正确发信、错误状态/收件人跳过、暂停提醒仍通知、失败/恢复通过 | 完成 |
+| P-R3-06 | `BookingCoreApiTest.java`、`BookingMailWorkerTest.java`、`BookingRejectionMailMigrationTest.java`及既有提醒/架构测试 | 同一初始目标用例 GREEN；核对批量目标、同事务失败、并发/取消/重复请求、清理后不重建、旧数据与原通知回归 | AC-R3-01~08 适用回归通过，记录真实 MySQL 证据 | 完成：203 项断言通过，既有 JVM 退出问题另票记录 |
+| P-R3-07 | `BookingCoreApiTest.java` 的隔离 Mailpit/API 冒烟、`backend/README.md`、配对文档/索引/ticket | 在隔离 Mailpit 环境走手动和两种自动拒绝完整链路，核对收件人/原因/链接；不改用户当前 Gmail 配置或触发外部真实邮件；更新文档证据 | Mailpit 各路径实收、授权链接及文档检查通过 | 完成：三种拒绝及原确认实收，文档同步 |
+
+### R3-4. 数据、API、架构与兼容影响
+
+- bookings 自有表与端口；新事件 `BOOKING_REJECTED` 长度符合现有 VARCHAR(32)。V13 同时调整 `ck_booking_mail_event` 与 `ck_booking_reminder_start`，拒绝普通事件必须无提醒时间，两类提醒必须有提醒时间。不修改 V1–V12，不新增表、索引、字段或数据补发任务。
+- application 依赖自己的纯 Java 端口；持久化 adapter 返回本次实际转换的申请/学员标识，由 service 入队，不在 adapter 内调用 SMTP 或跨模块直接读 identity 表。单向 bookings→identity、不新增架构违规，ADR 0001 无变化。
+- 既有拒绝/确认 API、教练授权、CSRF、DTO、前端状态/缓存/登录深链接不变。预约通知无前端行为改动；附带网页 title 按同条用户指令维护，不新增前端功能测试；既有后端单笔 GET 授权覆盖新邮件链接。
+- 保留 READ COMMITTED 和现有日/时段/学员锁顺序；自动拒绝只基于锁定的 PENDING 转换，确认所持日锁与申请/拒绝/取消互斥。逐条建任务不截断实际受影响申请；任一任务插入失败整个操作回滚。唯一键与终态早返回共同处理重复，终态任务清理后也不重新通知。
+- `JdbcBookingMailQueue.claim(now,false)` 修改前在领取与最终过期回收中只允许原两类通知，本修订已同时增加拒绝事件；提醒的 120 秒 lease 和时间截止规则保留，拒绝仍用普通 30 秒 lease 与 8 次退避，不随提醒开关暂停。
+- 新程序需 V13 先应用。旧程序无法处理新拒绝任务，会将未知事件 SKIPPED，不能直接让旧 worker 消费已有拒绝任务；回退流程必须暂停预约邮件 worker，并保存/核对未完成任务，再按批准方案恢复。不改既有 Gmail 凭据、公开地址或新依赖版本。
+
+### R3-5. 验收与验证计划
+
+批准前仅文档检查；不创建或运行本修订的功能测试。批准后以 `backend/` 为工作目录，适用本机 Colima 时使用：
+
+```sh
+env DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock ./mvnw -q -Dtest=BookingCoreApiTest,BookingMailWorkerTest,BookingRejectionMailMigrationTest test
+```
+
+| 验收 | 测试场景与预期 RED | 实现后 GREEN/回归 |
+|---|---|---|
+| AC-R3-01~03 | 手动拒绝和确认触发的两种自动拒绝应各产生所属学员任务；当前应因任务数量 0 失败 | 同一用例通过，逐条收件账号与原因正确；原确认/提醒任务仍准确 |
+| AC-R3-04~05 | 重复操作/独立事务竞争不重复或误通知，注入拒绝事件插入失败应回滚所有状态和新增任务；当前无拒绝写入而无法触发应有回滚 | 检查确认、时段、雪场锁定、自动拒绝对象、全部新增任务共同回滚；竞争只有一个最终状态及其匹配通知 |
+| AC-R3-06~07 | V13 后拒绝 worker 原分支会将拒绝任务 SKIPPED；关闭提醒时原队列不能领取拒绝任务 | 正确模板/SENT，错误状态或归属 SKIPPED；失败重试/8 次 DEAD、lease 恢复与旧 token fencing；暂停提醒仍正常领取/回收拒绝任务 |
+| AC-R3-08 | V12 尚不允许拒绝事件；新增迁移目标测试验证升级后的合法事件与原约束 | V12 历史任务及旧终态无额外通知；新拒绝普通任务可写，原四类事件可写，非法事件及提醒时间组合仍被阻止；全新库版本 13 |
+
+- 初始 API RED 不使用未定义常量；容器/编译/夹具故障不算 RED。worker 的有效 RED 在迁移已具备后、worker 分支实现前记录。迁移与功能验证只在隔离真实 MySQL 8.4 测试库执行。
+- 后端适用回归包括 `BookingCoreApiTest,BookingMailWorkerTest,BookingRejectionMailMigrationTest,LessonReminderApiTest,LessonReminderWorkerTest,LessonReminderScheduleTest,LessonReminderMigrationTest,FoundationMigrationTest,ArchitectureTest,ArchitectureBaselineTest`；先定向后运行 `./mvnw -q test` 并记录结果。若重现 [TODO-0034](../todo/0034-full-backend-test-shutdown-timeout.md)，记录 JVM 关闭失败，不声称全量命令成功。
+- Mailpit 使用独立配置/隔离环境，覆盖手动拒绝和确认导致的两种自动拒绝，核对每名受影响学员邮件内容、链接、任务状态及已确认学员的原通知。不复用真实 Gmail 发信作为本次默认验证。
+- 文档检查 `python3 ai-docs/check_docs.py`、`git diff --check`；同步功能、计划、两索引及 TODO-0040。通知功能不改变前端行为、Compose 默认 SMTP 参数或基础设施；附带网页 title 以 `npm run build` 及源 HTML/产物标题检查验证，不新增文案专用测试。
+
+### R3-6. 风险、成本、部署与恢复
+
+- 一次确认可能拒绝多条申请，邮件数量按真实转换数增长，仍由现有每轮 10 条 worker 限制投递速率；复用 SMTP/MySQL，无新增固定费用。SMTP 限流/送达/重复投递仍按既有语义记录。
+- V13 是追加 DDL，不能假定事务回滚或删除迁移可恢复。迁移只扩展约束，保留所有历史数据；生产前按已授权交付流程备份和验证恢复。本计划本身只授权本地实现/验证。
+- 应用回退时先暂停预约邮件 worker，保留拒绝任务，不让旧 worker 将新事件标 SKIPPED；恢复新程序并核对 PENDING/CLAIMED/DEAD 后再启用。若曾被旧程序误跳过，应另行审阅受影响任务恢复，不批量修改历史业务状态或自动补发。
+- 当前 `main` 推送的 CI 成功后会触发现有生产交付工作流；若后续用户要求提交/推送，需结合该实际发布影响核对授权。本次需求和范围选择尚未授权提交、推送、生产发布或真实邮件外发。
+
+### R3-7. 实际执行与偏差
+
+| 日期 | 实际工作 | 结果 | 边界 |
+|---|---|---|---|
+| 2026-10-08 | 阅读契约、0006/0007/0012、端口、service、持久化队列、V8/V12、现有测试和 Git 改动 | 确认三种拒绝均无入队；现有 V12 两项约束和暂停提醒白名单均需扩展 | 只读分析，无功能测试或实现 |
+| 2026-10-08 | 用户选择全部拒绝通知；更新 revision 3 配对文档、索引与 TODO-0040 | 覆盖范围明确，设计阶段进入 AWAITING_REVIEW，随后获用户明确批准 | 需求澄清与实施批准分开记录；独立 `frontend/README.md` 改动保留 |
+| 2026-10-08 | V13、BookingStore/JdbcBookingStore、BookingService、BookingMailQueue/Worker、JdbcBookingMailQueue、backend README | 三种拒绝同事务通知，失败回滚、授权、独立重试及暂停提醒兼容；无架构基线增加 | 依批准范围实现，无业务或架构偏差 |
+| 2026-10-08 | API/worker/迁移目标与回归测试、隔离 Mailpit | RED 后 GREEN，真实 MySQL 事务/竞争与 SMTP 实收通过；最终 47 类、203 tests、0 failures/errors/skips，Maven exit 0 | P-R3-07 使用 API + 独立 Mailpit 容器替代交互式脚本；验收不变，保留当前 Gmail 配置 |
+| 2026-10-08 | FoundationMigrationTest、LegacyAvailabilityMigrationTest | 最新数据库版本断言同步到 13；首次全量旧断言失败后最终通过 | 适用迁移回归维护；不修改 V1–V12 |
+| 2026-10-08 | frontend/index.html | 浏览器 title 改为 Ride With GEER，源 HTML 与构建产物一致，前端构建 exit 0 | 同条用户消息明确授权的纯文案维护，无新增功能测试 |
+
+### R3-8. 实际验证证据
+
+本修订使用独立真实 MySQL 8.4 与隔离 Mailpit。下列 Maven 命令均在 `backend/`，带 `DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock` 与 `TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock`。日志保存在被 Git 忽略的 `.local/booking-rejection-emails/`，未发送真实外部邮件或改变当前 Gmail 配置。
+
+| 日期 | 实际命令/步骤 | 实际结果 | 日志与限制 |
+|---|---|---|---|
+| 2026-10-08 | `./mvnw -q '-Dtest=BookingCoreApiTest#manualRejectionCreatesOneStudentMailAndDoesNotRecreateCleanedTasks+confirmationNotifiesOnlyTheApplicationsActuallyAutoRejected+rejectionMailInsertFailureRollsBackManualAndAutomaticDecisions' test` | 3 项有效 RED：应有任务为 0，故障应 503 却返回 200；错误 0 | `api-red.log`；行为缺失，非环境/编译错误 |
+| 2026-10-08 | `./mvnw -q '-Dtest=BookingMailWorkerTest#sendsRejectionReasonToTheStudentWhenLessonRemindersArePaused+rejectionClaimsRecoverAndFenceOldTokensWithLessonRemindersPaused' test` | V13 已具备时 2 项有效 RED：暂停提醒后不发信/不领取；错误 0 | `worker-red.log` |
+| 2026-10-08 | `./mvnw -q -Dtest=BookingRejectionMailMigrationTest test`（V13 创建前） | Flyway 提示迁移 13 不存在；补迁移后在后续 GREEN 通过 | `migration-red.log`；不作为 API/worker 有效 RED 证据 |
+| 2026-10-08 | `./mvnw -q -Dtest=BookingCoreApiTest,BookingMailWorkerTest,BookingRejectionMailMigrationTest test` | 初始同一目标及定向回归 30/30 GREEN：API 21、worker 8、迁移 1；exit 0 | `target-green.log`；不包含后来增加的 SMTP/取消竞争两项 |
+| 2026-10-08 | 第一次 `./mvnw -q test` | 203 tests、1 failure、0 errors/skips，exit 1；旧迁移测试仍断言 12，随后同步到 13 | `backend-regression-first.log`；另复现既有 TODO-0034，未把本轮视为全量通过 |
+| 2026-10-08 | 最终 `./mvnw -q test`；核对 XML 修改时间晚于本轮开始 | 47 类、203 tests、0 failures/errors/skips；Maven exit 0，全部 47 份报告来自本轮，无旧报告混入 | `backend-regression-final.log`、`backend-test-summary.json`；仍有既有 Surefire 30 秒 JVM 退出超时及临时库关闭后的 Hikari 警告，不宣称完整测试生命周期无故障 |
+| 2026-10-08 | 最终回归中的 `manualAndBothAutomaticRejectionsActuallyReachOnlyTheirStudentsInMailpit` | 手动/同一时段/其他雪场三类拒绝各发本人一封；原确认邮件一封，共 4 封真实 SMTP 邮件进入独立 Mailpit；收件人、原因、标题、快照时区、详情链接及 SENT 全部正确 | 本机沙箱实收；不是生产学生邮箱实收。既有提醒的 Mailpit 回归同时通过 |
+| 2026-10-08 | API/worker/迁移/架构回归 | 重放与清理后不重建、并发确认/取消竞争、手动及两种自动拒绝任务失败整体回滚、错误状态/归属跳过、8 次 DEAD、普通 lease/旧 token/暂停提醒兼容、V12→V13 与旧任务约束、原权限/提醒/架构均通过 | 新增 V13，无架构例外或基线改变；JVM 收尾问题见原票 |
+| 2026-10-08 | `npm run build`（frontend/），读取源/产物 HTML | exit 0；源与产物均为 `<title>Ride With GEER</title>` | `frontend-build.log`；纯文案无新增功能测试；用户 README SHA-256 保持原值 |
+| 2026-10-08 | `python3 ai-docs/check_docs.py`、`git diff --check` | 通过：13 对功能/计划、40 张 ticket、链接/索引/状态/review 门槛及空白检查 | 文档检查不能代替功能或生产验证 |
+
+### R3-9. 完成状态与后续
+
+- revision 3 已完成 P-R3-01~07 与 AC-R3-01~08，本地达到 VERIFIED，`approved_revision: 3`；revision 1–2 的批准和 VERIFIED 历史保留。
+- 功能、计划、两索引、backend README 及 TODO-0040 已同步，TODO-0040 按可观察完成判定结案。
+- 既有 [TODO-0034](../todo/0034-full-backend-test-shutdown-timeout.md) 仍 OPEN；本轮所有功能断言与 Maven exit 0 不表示 JVM 收尾问题已修复，原票已补两次回归证据。
+- 网页标题按同条用户指令维护为 Ride With GEER；原 `frontend/README.md` 改动完整保留。
+- 改动留在工作区，未提交、推送、部署生产或向外部真实邮箱发测试邮件，当前不标 RELEASED。
+
+- 2026-10-08 用户明确要求“提交推送”，授权将本次拒绝通知、网页标题及配套测试/文档提交并推送到现有 main。已核对 main 推送经 CI 后触发现有 Production delivery；沿用获批 0010 交付管道，不新建资源、不向真实学生发测试邮件。提交与远端工作流结果在本轮执行后报告；当前本地 VERIFIED 不预先升级为生产功能验收。

@@ -149,8 +149,10 @@ public class BookingService implements BookingOperations {
         slots.markBooked(slot.id());
         Instant now = clock.instant();
         if (!store.confirm(candidate.id(), now)) throw new BusinessProblem(409, "申请已被处理");
-        store.rejectOtherPending(slot.id(), candidate.id(), now);
-        store.rejectOtherMountains(actor.id(), candidate.localDate(), candidate.mountainId(), now);
+        for (var rejected : store.rejectOtherPending(slot.id(), candidate.id(), now))
+            mailQueue.enqueue(rejected.bookingId(), BookingMailQueue.BOOKING_REJECTED, rejected.studentId(), now);
+        for (var rejected : store.rejectOtherMountains(actor.id(), candidate.localDate(), candidate.mountainId(), now))
+            mailQueue.enqueue(rejected.bookingId(), BookingMailQueue.BOOKING_REJECTED, rejected.studentId(), now);
         mailQueue.enqueue(candidate.id(), BookingMailQueue.BOOKING_CONFIRMED, candidate.studentId(), now);
         reminders.scheduleConfirmed(candidate.id(), now);
         return store.findById(candidate.id());
@@ -172,7 +174,9 @@ public class BookingService implements BookingOperations {
         if (BookingStatus.valueOf(candidate.status()) == BookingStatus.REJECTED) return candidate;
         if (!BookingStatus.valueOf(candidate.status()).mayReject())
             throw new BusinessProblem(409, "已确认申请不能拒绝");
-        if (!store.reject(candidate.id(), reason, clock.instant())) throw new BusinessProblem(409, "申请已被处理");
+        Instant now = clock.instant();
+        if (!store.reject(candidate.id(), reason, now)) throw new BusinessProblem(409, "申请已被处理");
+        mailQueue.enqueue(candidate.id(), BookingMailQueue.BOOKING_REJECTED, candidate.studentId(), now);
         return store.findById(candidate.id());
     }
 

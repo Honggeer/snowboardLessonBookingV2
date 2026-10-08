@@ -40,13 +40,13 @@ public class JdbcBookingMailQueue implements BookingMailQueue {
                 UPDATE bookings_mail_task
                 SET status='DEAD',claim_until=NULL,claim_token=NULL,last_error='Claim expired after final attempt'
                 WHERE status='CLAIMED' AND claim_until<=? AND attempts>=8
-                  AND (? OR event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED'))
+                  AND (? OR event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED','BOOKING_REJECTED'))
                 """, utc(now),includeReminders);
         Long id=jdbc.query("""
                 SELECT id FROM bookings_mail_task
                 WHERE ((status='PENDING' AND next_attempt_at<=?)
                    OR (status='CLAIMED' AND claim_until<=? AND attempts<8))
-                  AND (? OR event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED'))
+                  AND (? OR event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED','BOOKING_REJECTED'))
                 ORDER BY next_attempt_at,id LIMIT 1 FOR UPDATE SKIP LOCKED
                 """, rs->rs.next()?rs.getLong(1):null,utc(now),utc(now),includeReminders);
         if (id==null) return null;

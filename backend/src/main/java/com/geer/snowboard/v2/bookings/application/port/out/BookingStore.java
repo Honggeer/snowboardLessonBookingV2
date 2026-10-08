@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface BookingStore {
+    record RejectedApplication(String bookingId, String studentId) {}
     Booking findById(String id);
     Booking lockById(String id);
     Booking findByKey(String studentId, String key);
@@ -21,8 +22,8 @@ public interface BookingStore {
     boolean reject(String id, String reason, Instant now);
     boolean cancel(String id, String reason, Instant now);
     boolean hasConfirmedDay(String coachId, LocalDate date);
-    void rejectOtherPending(String slotId, String chosenId, Instant now);
-    void rejectOtherMountains(String coachId, LocalDate date, String mountainId, Instant now);
+    List<RejectedApplication> rejectOtherPending(String slotId, String chosenId, Instant now);
+    List<RejectedApplication> rejectOtherMountains(String coachId, LocalDate date, String mountainId, Instant now);
     boolean hasPendingMountain(String mountainId);
     boolean hasPendingDay(String coachId, LocalDate date);
     List<Booking> lockUnplannedReminders(Instant now, int limit);

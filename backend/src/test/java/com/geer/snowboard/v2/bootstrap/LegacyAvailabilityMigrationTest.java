@@ -95,7 +95,7 @@ class LegacyAvailabilityMigrationTest {
         var after = Flyway.configure().dataSource(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword())
                 .locations("classpath:db/migration").load();
         after.migrate();
-        assertThat(after.info().current().getVersion().getVersion()).isEqualTo("12");
+        assertThat(after.info().current().getVersion().getVersion()).isEqualTo("13");
         try (var connection = DriverManager.getConnection(mysql.getJdbcUrl(), mysql.getUsername(), mysql.getPassword());
              var statement = connection.createStatement()) {
             try (var rows = statement.executeQuery("SELECT course_id,location FROM scheduling_slot WHERE id='" + slot + "'")) {

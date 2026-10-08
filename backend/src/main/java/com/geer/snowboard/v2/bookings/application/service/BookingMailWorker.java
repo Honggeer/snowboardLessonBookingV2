@@ -82,6 +82,8 @@ public class BookingMailWorker implements BookingMailOperations {
                     booking.status().equals("PENDING") && task.recipientAccountId().equals(booking.coachId());
             case BookingMailQueue.BOOKING_CONFIRMED ->
                     booking.status().equals("CONFIRMED") && task.recipientAccountId().equals(booking.studentId());
+            case BookingMailQueue.BOOKING_REJECTED ->
+                    booking.status().equals("REJECTED") && task.recipientAccountId().equals(booking.studentId());
             case BookingMailQueue.STUDENT_LESSON_REMINDER, BookingMailQueue.COACH_LESSON_REMINDER ->
                     booking.status().equals("CONFIRMED") && booking.startAt().equals(task.reminderStartAt())
                     && now.isBefore(booking.startAt().minusSeconds(86400))
@@ -93,6 +95,7 @@ public class BookingMailWorker implements BookingMailOperations {
 
     private static String subject(BookingMailQueue.Task task) {
         if (task.reminder()) return "GEER 课前提醒：即将上课";
+        if (task.eventType().equals(BookingMailQueue.BOOKING_REJECTED)) return "GEER 预约申请未通过";
         return task.eventType().equals(BookingMailQueue.APPLICATION_RECEIVED)
                 ? "GEER 收到新的预约申请" : "GEER 课程预约已确认";
     }
@@ -106,6 +109,11 @@ public class BookingMailWorker implements BookingMailOperations {
         String details = "课程：" + booking.courseTitle() + "\n"
                 + "雪场：" + booking.location() + "\n"
                 + "时间：" + schedule + "\n";
+        if (task.eventType().equals(BookingMailQueue.BOOKING_REJECTED)) {
+            return "你的预约申请未通过。\n拒绝原因：" + booking.decisionReason() + "\n" + details
+                    + "查看预约：" + publicUrl + "/#/my-bookings/" + booking.id()
+                    + "\n\n请登录后查看，以页面当前状态为准。";
+        }
         if (task.reminder()) {
             boolean coach = task.eventType().equals(BookingMailQueue.COACH_LESSON_REMINDER);
             String deadline = formatter.withZone(zone).format(booking.startAt().minusSeconds(86400));

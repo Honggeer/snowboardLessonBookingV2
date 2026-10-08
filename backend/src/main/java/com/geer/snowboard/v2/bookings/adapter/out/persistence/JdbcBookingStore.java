@@ -126,19 +126,36 @@ public class JdbcBookingStore implements BookingStore {
                 WHERE coach_id=? AND local_date_snapshot=? AND status='CONFIRMED')
                 """, Boolean.class, coachId, date));
     }
-    @Override public void rejectOtherPending(String slotId, String chosenId, Instant now) {
-        jdbc.update("""
+    @Override public List<RejectedApplication> rejectOtherPending(String slotId, String chosenId, Instant now) {
+        List<RejectedApplication> rejected = jdbc.query("""
+                SELECT id,student_id FROM bookings_request
+                WHERE slot_id=? AND id<>? AND status='PENDING'
+                ORDER BY id FOR UPDATE
+                """, (rs, row) -> new RejectedApplication(rs.getString(1), rs.getString(2)), slotId, chosenId);
+        if (rejected.isEmpty()) return rejected;
+        int changed = jdbc.update("""
                 UPDATE bookings_request SET status='REJECTED',decision_reason='该时段已确认给其他学员',decided_at=?
                 WHERE slot_id=? AND id<>? AND status='PENDING'
                 """, utc(now), slotId, chosenId);
+        if (changed != rejected.size()) throw new IllegalStateException("Automatic rejection target changed while locked");
+        return rejected;
     }
-    @Override public void rejectOtherMountains(String coachId, LocalDate date, String mountainId, Instant now) {
-        jdbc.update("""
+    @Override public List<RejectedApplication> rejectOtherMountains(String coachId, LocalDate date, String mountainId, Instant now) {
+        List<RejectedApplication> rejected = jdbc.query("""
+                SELECT id,student_id FROM bookings_request
+                WHERE coach_id=? AND local_date_snapshot=? AND status='PENDING'
+                  AND mountain_id IS NOT NULL AND mountain_id<>?
+                ORDER BY id FOR UPDATE
+                """, (rs, row) -> new RejectedApplication(rs.getString(1), rs.getString(2)), coachId, date, mountainId);
+        if (rejected.isEmpty()) return rejected;
+        int changed = jdbc.update("""
                 UPDATE bookings_request
                 SET status='REJECTED',decision_reason='当天已确认在其他雪场授课',decided_at=?
                 WHERE coach_id=? AND local_date_snapshot=? AND status='PENDING'
                   AND mountain_id IS NOT NULL AND mountain_id<>?
                 """, utc(now), coachId, date, mountainId);
+        if (changed != rejected.size()) throw new IllegalStateException("Automatic rejection target changed while locked");
+        return rejected;
     }
     @Override public boolean hasPendingMountain(String mountainId) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""

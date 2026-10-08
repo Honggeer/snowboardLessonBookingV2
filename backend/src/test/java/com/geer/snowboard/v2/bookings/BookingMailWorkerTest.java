@@ -5,6 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.geer.snowboard.v2.bookings.application.port.in.BookingMailOperations;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingMailQueue;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingMailSender;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingStore;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingMailContacts;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingLinkBase;
+import com.geer.snowboard.v2.bookings.application.port.out.BookingReminderSettings;
+import com.geer.snowboard.v2.bookings.application.service.BookingMailWorker;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -65,10 +70,88 @@ class BookingMailWorkerTest {
     @Autowired BookingMailOperations worker;
     @Autowired FakeSender sender;
     @Autowired Clock clock;
+    @Autowired BookingStore bookings;
+    @Autowired BookingMailContacts contacts;
+    @Autowired BookingLinkBase links;
 
     @BeforeEach void resetSender() {
         sender.messages.clear();
         sender.fail = false;
+    }
+
+    @Test void sendsRejectionReasonToTheStudentWhenLessonRemindersArePaused() {
+        Fixture fixture = booking("REJECTED");
+        jdbc.update("UPDATE bookings_request SET decision_reason='当天已确认在其他雪场授课' WHERE id=?", fixture.bookingId());
+        queue.enqueue(fixture.bookingId(), "BOOKING_REJECTED", fixture.studentId(), clock.instant());
+        new BookingMailWorker(queue, bookings, contacts, sender, clock, links, new BookingReminderSettings(false)).runOnce();
+        assertThat(sender.messages).hasSize(1);
+        assertThat(sender.messages.getFirst().email()).isEqualTo(fixture.studentId() + "@example.test");
+        assertThat(sender.messages.getFirst().subject()).isEqualTo("GEER 预约申请未通过");
+        assertThat(sender.messages.getFirst().body()).contains("你的预约申请未通过", "拒绝原因：当天已确认在其他雪场授课",
+                "课程：单板课程", "雪场：Blue Mountain", "America/Toronto", "以页面当前状态为准",
+                "http://localhost:5173/#/my-bookings/" + fixture.bookingId())
+                .doesNotContain("已获教练确认", fixture.coachId(), "@example.test");
+        assertThat(taskStatus(fixture)).isEqualTo("SENT");
+    }
+
+    @Test void skipsRejectionMailForAnotherRecipientOrANonRejectedBooking() {
+        Fixture wrongRecipient = booking("REJECTED");
+        queue.enqueue(wrongRecipient.bookingId(), "BOOKING_REJECTED", wrongRecipient.coachId(), clock.instant());
+        for (String status : List.of("PENDING", "CONFIRMED", "CANCELLED_BY_STUDENT")) {
+            Fixture fixture = booking(status);
+            queue.enqueue(fixture.bookingId(), "BOOKING_REJECTED", fixture.studentId(), clock.instant());
+            worker.runOnce();
+            assertThat(taskStatus(fixture)).isEqualTo("SKIPPED");
+        }
+        assertThat(taskStatus(wrongRecipient)).isEqualTo("SKIPPED");
+        assertThat(sender.messages).isEmpty();
+    }
+
+    @Test void rejectionMailRetriesAndStopsAfterEightFailuresWithoutChangingTheDecision() {
+        Fixture fixture = booking("REJECTED");
+        queue.enqueue(fixture.bookingId(), "BOOKING_REJECTED", fixture.studentId(), clock.instant());
+        sender.fail = true;
+        worker.runOnce();
+        assertThat(taskStatus(fixture)).isEqualTo("PENDING");
+        sender.fail = false;
+        jdbc.update("UPDATE bookings_mail_task SET next_attempt_at=? WHERE booking_id=?", clock.instant().minusSeconds(1), fixture.bookingId());
+        worker.runOnce();
+        assertThat(taskStatus(fixture)).isEqualTo("SENT");
+        assertThat(sender.messages).hasSize(1);
+        Fixture exhausted = booking("REJECTED");
+        queue.enqueue(exhausted.bookingId(), "BOOKING_REJECTED", exhausted.studentId(), clock.instant());
+        sender.fail = true;
+        for (int attempt = 0; attempt < 8; attempt++) {
+            worker.runOnce();
+            jdbc.update("UPDATE bookings_mail_task SET next_attempt_at=? WHERE booking_id=? AND status='PENDING'",
+                    clock.instant().minusSeconds(1), exhausted.bookingId());
+        }
+        assertThat(taskStatus(exhausted)).isEqualTo("DEAD");
+        assertThat(jdbc.queryForObject("SELECT attempts FROM bookings_mail_task WHERE booking_id=?", Integer.class, exhausted.bookingId())).isEqualTo(8);
+        assertThat(jdbc.queryForObject("SELECT status FROM bookings_request WHERE id=?", String.class, exhausted.bookingId())).isEqualTo("REJECTED");
+    }
+
+    @Test void rejectionClaimsRecoverAndFenceOldTokensWithLessonRemindersPaused() {
+        Fixture fixture = booking("REJECTED");
+        queue.enqueue(fixture.bookingId(), "BOOKING_REJECTED", fixture.studentId(), clock.instant());
+        Instant claimedAt = clock.instant();
+        var old = queue.claim(claimedAt, false);
+        assertThat(old).isNotNull();
+        assertThat(old.claimUntil()).isCloseTo(claimedAt.plusSeconds(30),
+                org.assertj.core.api.Assertions.within(1, java.time.temporal.ChronoUnit.MILLIS));
+        jdbc.update("UPDATE bookings_mail_task SET claim_until=? WHERE id=?", clock.instant().minusSeconds(1), old.id());
+        var renewed = queue.claim(clock.instant(), false);
+        assertThat(renewed.claimToken()).isNotEqualTo(old.claimToken());
+        queue.sent(old, clock.instant());
+        assertThat(taskStatus(fixture)).isEqualTo("CLAIMED");
+        jdbc.update("UPDATE bookings_mail_task SET attempts=8,claim_until=? WHERE id=?", clock.instant().minusSeconds(1), renewed.id());
+        assertThat(queue.claim(clock.instant(), false)).isNull();
+        assertThat(taskStatus(fixture)).isEqualTo("DEAD");
+    }
+
+    private String taskStatus(Fixture fixture) {
+        return jdbc.queryForObject("SELECT status FROM bookings_mail_task WHERE booking_id=? AND event_type='BOOKING_REJECTED'",
+                String.class, fixture.bookingId());
     }
 
     @Test void sendsTheCorrectRecipientDetailsAndDirectLinkForEachTransition() {
