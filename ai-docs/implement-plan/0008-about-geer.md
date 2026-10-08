@@ -5,11 +5,107 @@ status: VERIFIED
 revision: 3
 approved_revision: 3
 created: 2026-10-02
-updated: 2026-10-05
+updated: 2026-10-07
 feature: "../features/0008-about-geer.md"
 ---
 
 # 0008 — 关于 GEER 实施计划
+
+## 2026-10-07 登录副标题入口实现（已批准，本地已验证）
+
+用户在 review 最新副标题位置与文案后明确：“直接开始实现然后推送提交”，随后“继续”。这批准当前入口的视觉维护及提交推送。沿用已批准 revision 3，在共享登录页同时应用手机/桌面副标题，访问、认证、API、数据、依赖和费用均无变化；不额外申请云资源或手动操作生产。推送 main 后由既有 CI / Production delivery 流水线按其配置自动交付。
+
+实施步骤与验收：
+
+1. 先在 `AboutGeerPage.test.tsx` 添加目标交互测试：唯一的关于 GEER 链接位于欢迎回来后的副标题，灰色提示文案取代旧副标题，链接有真实 `/about-geer` 地址；普通点击/键盘 Enter 可进入公开页，返回后登录输入仍可用，注册/找回文案保留。实际运行至缺少目标入口而 RED。
+2. `App.tsx` 移除原顶部按钮，在原登录副标题中显示「第一次访问？ 关于 GEER ↗」真实链接。普通同页点击沿用现有导航，修饰键/新标签页保留浏览器链接语义。`style.css` 删除顶部/手机胶囊样式和 60px 顶部留白，链接继承副标题字体/字重/字距，蓝字、下划线与键盘焦点；其余提示灰色。
+3. 同一目标测试 GREEN；前端全量测试、lint、类型/构建。实际 Chrome 八种宽度及两种横屏检查副标题位置、相同字体/字号/常规字重、唯一入口、单行/无横向溢出、点击/键盘进入及返回后输入、注册/找回；真实截图核对，模拟匿名 API，不提交登录或发信。
+4. 同步功能/计划/索引、设计状态和 TODO-0016；记录实际 RED/GREEN、回归与浏览器结果。只提交本次入口与设计/记录相关改动，保留用户独立 `frontend/README.md`。提交标题采用 `fix: ...`，推送 origin/main，并核对对应提交的 CI 状态；不在验证前宣称 RELEASED。
+
+当前 IMPLEMENTED → VERIFIED（本地）；上述实现、验收与文档步骤已完成。本次无需增加功能 ID 或修改架构 ADR。仅有样式数值的部分由真实浏览器核验，不写机械 CSS 单元测试；新增目标测试覆盖入口语义与导航行为。Git 提交/推送范围由当前授权覆盖，操作结果以对应 Git 和 CI 记录为准，不能把本地 VERIFIED 或推送成功称为已生产发布。
+
+实际验证（2026-10-07）：
+
+| 检查 | 实际命令/操作 | 结果与限制 |
+|---|---|---|
+| 目标 RED | `frontend/`：`npm test -- src/AboutGeerPage.test.tsx -t 'login subtitle'` | exit 1，2/2 因旧页面缺少「第一次访问？」及真实关于 GEER 链接失败；非环境/测试错误。 |
+| 同一目标 GREEN | 同上命令，实现后再次执行 | exit 0，2/2 通过、其他 9 项跳过；副标题位置/唯一链接/真实 href、点击和 Enter 导航、返回保留登录输入、注册/找回文案通过。 |
+| 前端回归 | `frontend/`：`npm test` | exit 0，6 文件、89/89 通过。 |
+| lint 与类型/构建 | `frontend/`：`npm run lint`、`npm run build` | 均 exit 0；build 含 tsc，139 modules，JS 486.07 kB/gzip 138.76 kB。 |
+| 实际 Chrome | 根目录 `node .local/login-about-subtitle/browser-check.mjs` | exit 0，10/10：320/360/390/430/768/900/901/1440px 及 740×360、844×390 横屏；提示灰色、链接蓝色、字体/字号/字重/字距/行高相同，常规 400/normal，单行/唯一入口/无横向溢出、标题下/邮箱前、无顶部留白，触摸/点击和 Tab/Enter、返回输入、注册/找回通过；桌面 Meta+点击真实打开新标签页，原页保持登录。无 POST/页面异常，匿名 API 替身。 |
+| 真实截图 | 查看 320/390/1440px 截图 | [手机](../design/0008-login-about-subtitle-implemented-mobile.png)、[桌面](../design/0008-login-about-subtitle-implemented-desktop.png)、[320px](../design/0008-login-about-subtitle-implemented-320.png)已保存；实际 Chrome 模拟视口，不宣称 iOS 真机或生产验收。 |
+| 文档/空白 | `python3 ai-docs/check_docs.py`、`git diff --check` | 13 对功能/计划、39 tickets，链接、状态、索引和 review 门槛通过；无空白错误。 |
+
+本地证据在 `.local/login-about-subtitle/`：red/green/frontend-tests/lint/build/browser.log、browser-results.json、browser-check.mjs 和各视口截图。浏览器工具使用隔离在 `/private/tmp/geer-login-subtitle-browser` 的 Playwright 1.57.0，应用依赖/锁文件未改；未执行后端测试，因为本轮不涉及后端、API、SQL 或任务。TODO-0016 按实际验收 DONE 并归档。用户独立 frontend README 保留，不纳入本次提交；生产状态另按该提交的既有 CI/CD 结果核对。
+
+## 2026-10-07 欢迎回来下方的副标题链接草图（历史设计阶段，随后获准实施）
+
+最新用户原话：“我还是觉得有点奇怪，要不在登陆界面表单上方 欢迎回来标题下面，把那个继续你的滑雪旅程换成：第一次访问？关于GEER【箭头】，关于GEER用连接，其他的是灰色的，跟原有字体一样”。这替代此前忘记密码下方的草图方向，当前仍为设计阶段。
+
+按该要求制作[当前草图及设计说明](../design/0008-login-about-subtitle-design.md)：原副标题位置展示「第一次访问？ 关于 GEER ↗」，前半句原灰色，链接及箭头蓝色；同一字体、字号、常规字重、行高和字距，左对齐。取消顶部独立导航行，且不在忘记密码下方保留第二入口；其余品牌/表单/操作视觉沿用当前版本。先使用内置 image_gen 制作位置提案，字形修正仍有偏差，最终以独立静态 HTML 复用现有 CSS/素材并由本地 Chrome 截图，780×1888 PNG（390 CSS px、2 倍比例），已查看图片并核对位置、颜色及常规字形。静态草图不接入应用或业务导航，未作功能测试。完整提示词、实际图像与文档核验结果保存在设计说明中。
+
+本轮 DRAFT，等待视觉 review；既有 revision 3 / VERIFIED 指已有实现，不表示本提案获批。TODO-0016 保持 OPEN；桌面是否同步采用留待后续 review。未进入实现阶段，不修改应用源码、功能测试、依赖、API 或数据，不执行 Git/生产操作。
+
+## 2026-10-07 忘记密码下方入口设计草图（历史，已被新反馈替代）
+
+用户原话：“我觉得aboutgeer入口位置那个不如放到忘记密码下面，帮我设计一下，先做个design草图出来”。当前授权是设计草图，本轮不进入实现阶段，不写功能测试或修改应用源码。
+
+第一版以实际手机登录截图生成胶囊入口提案。用户随后明确：“不好，我觉得和创建账号和忘记密码风格保持一致就好”。据此修订[第二版手机设计图与说明](../design/0008-login-about-below-recovery-design.md)：位置仍在忘记密码下方、页脚之前，改为与创建账号/忘记密码相同的居中蓝色文字链接，字号、字重及排列节奏一致，文案只保留「关于 GEER」。第二版以第一版草图为编辑目标；移除边框、背景、斜体、下划线和箭头，保留其余布局。完整提示词、参考图与全页草图的局限保存在设计说明中。设计提案为 DRAFT，待用户视觉 review；桌面是否一并调整留待后续 review。
+
+既有 revision 3 / VERIFIED 和下述实际验证记录保留，代表当前实现，不作为本提案获批或已实现的依据。关联 TODO-0016 保持 OPEN。仅设计及文档维护，不执行 Git/生产操作。第一版 924×1702 PNG 的位置技术核对及文档检查通过，但胶囊样式被用户否定；不作为第二版验收。第二版实际结果记录在设计说明中；生成图不作为 CSS 像素级或交互验证证据，本轮不写功能测试或修改应用源码。
+
+## 2026-10-06 登录入口位置反馈修正（已本地验证）
+
+用户在看到上一版手机入口后反馈：“这个位置有点丑。。。”，否定把入口放在登录说明旁边的排列。本次继续已授权的现有入口视觉维护，恢复用户此前偏好的右上角和简洁单行；沿用 revision 3，不改变导航、认证、数据、依赖或费用。关联 [TODO-0016](../todo/0016-login-about-geer-visibility.md) 重新打开；上一版技术验证保留，但不作为用户认可视觉的证据。本次无 Git/生产授权。
+
+具体步骤：
+
+1. 修改前用 `.local/mobile-about-entry/topbar/browser-check.mjs before` 核对上一版位置；照片和表单之间的说明旁布局不满足新位置目标，横屏首屏的入口亦不可见。纯展示核对，不新增机械样式单元测试。
+2. `frontend/src/App.tsx` 撤销上一版标题容器与入口移动，恢复原来的根布局入口；`frontend/src/style.css` 删除说明旁网格，将手机入口置于顶部右侧。手机登录页为入口留独立 60px 导航行，含顶部 safe-area 补偿；按钮距顶部 8px、至少 44px 高，单行 18px/600/italic，浅色背景、蓝色细边框和小胶囊形状。品牌图在导航行下方，不把按钮叠在 Logo 上，不缩放或裁切现有图片。桌面保持原来的右上角。
+3. Chrome 320/360/390/430/768/900/901/1440px 和 740×360、844×390 横屏，共 10 场景。核对首屏右上角、按钮下缘不超过图片上缘、单行/44px/无溢出、整块触摸/点击及 Tab/Enter 导航、返回后登录和注册/找回输入；查看 320/390/1440px 截图。只模拟 API，不提交登录或操作生产。
+4. 运行前端 `npm test`、`npm run lint`、`npm run build`（含类型）与根目录文档检查/空白检查；同步当前方案、实际证据、索引及 ticket。恢复只需还原本次入口样式；保留用户独立 frontend README 修改。
+
+当前 IMPLEMENTED → VERIFIED（本地技术），本次记录在 `.local/mobile-about-entry/topbar/`。App 已恢复到 HEAD 的原入口 DOM，最终源码差异仅为手机 CSS；桌面前后 1440px 截图 SHA-256 完全相同。上一版位置被用户否定的记录保留，技术验证不代替用户的视觉意见。本次未提交、推送或上线。
+
+实际验证：
+
+| 检查 | 命令/实际步骤 | 结果与限制 |
+|---|---|---|
+| 修改前位置核对 | `node .local/mobile-about-entry/topbar/browser-check.mjs before` | 上一版说明旁按钮未位于顶部独立导航行，横屏首屏断言 `entry is offscreen` 失败、exit 1；不是功能测试 RED，修改前截图保存于 topbar/before-*.png。 |
+| 修改后展示/交互 | `node .local/mobile-about-entry/topbar/browser-check.mjs after` | 10/10、exit 0：八种宽度及两种横屏，入口首屏可见、位于图片上方、单行/44px、无横向溢出；触摸/留白点击、Tab/Enter 进入既有公开页、返回登录可填写；注册/找回页面可编辑且无重复入口。无页面异常/POST，仅匿名 API 替身。 |
+| 截图 | 实际查看 after-320/390.png，核对 after-1440.png 哈希 | 320/390px 为右上角浅蓝胶囊，顶部单独一行，Logo 和照片完整；1440px 与最初桌面基线图哈希相同。Chrome 视口模拟，不宣称 iOS Safari 真机验收。 |
+| 前端回归 | `frontend/`：`npm test` | 6 文件、87/87、exit 0；纯样式维护未新增机械 CSS 单元测试。 |
+| lint/类型/构建 | `frontend/`：`npm run lint`、`npm run build` | 均 exit 0，build 含 tsc；139 modules，JS 485.99 kB/gzip 138.73 kB。 |
+| 文档 | `python3 ai-docs/check_docs.py`、`git diff --check` | 13 对功能/计划、39 tickets；链接/状态/索引通过，无空白错误。 |
+
+证据：topbar/ 下 before.log、after.log、after-results.json、before/after-320/390/768/1440.png、frontend-tests.log、lint.log、build.log。TODO-0016 按实际技术验收再次 DONE 并归档；当前手机样式以上述顶部位置为准。
+
+## 2026-10-06 上一版登录说明旁入口（技术已验证，用户否定位置）
+
+用户当前原话：“有一个小改进，就是手机端登陆界面 关于GEER那个太不显眼了，可能都注意不到，能不能改一下？” 本次按明确修改请求维护既有登录入口的手机样式，关联重新打开的 [TODO-0016](../todo/0016-login-about-geer-visibility.md)。沿用已批准 revision 3 / P-04 响应式入口范围；不新增行为、导航/认证规则、字段、接口、依赖、数据或成本，不变更桌面布局，不恢复已撤回的 hero 重设计。用户对现有入口的可见性修正请求覆盖本地维护；不含本次 commit/push 或生产发布。
+
+具体步骤与验收：
+
+1. 只读核对 App 的登录专用入口和样式。现状在 <=900px 为 top 4px、16px/600/italic、透明底蓝字，与品牌照片争夺视觉注意；实际 Chrome 保存修改前截图和几何/导航结果。
+2. `frontend/src/App.tsx` 将既有同一按钮移至表单标题/说明容器，不复制入口或改 onClick；`frontend/src/style.css` 的 <=900px 媒体查询把手机入口放在「欢迎回来」下方、登录说明右侧，脱离品牌图片。增加白底蓝色细边框/内边距、18px/600/italic、44px 触控与焦点反馈；标题独占一行，说明/入口两列，外侧沿用表单间距。修改前实际截图显示原入口紧邻图片 GEER 字标，因此改用表单内网格布局，不用依赖图片高度的定位公式。桌面保留原页面右上角单行/下划线/斜体样式，不加多行说明、动画或整块宣传卡片。
+3. 这是纯样式维护，按契约第 9 节不新增机械 CSS 单元测试；先用真实 Chrome 检查旧样式缺少独立背景/字号与边距，再以相同脚本验收修改后入口的单行、首屏、边界、触控、无溢出，点击留白/触摸及 Tab/Enter 进入既有公开主页，返回后邮箱/密码可编辑。无真实登录/发信/生产写入。
+4. 浏览器范围 320/360/390/430/768/900/901/1440px；小屏高度 640px 起，兼顾断点两侧。检查深蓝字与白色底的对比、44px 点击范围、标题/说明无重叠和表单边距，实际查看 320/390px 手机及 1440px 桌面截图；既有认证/注册/恢复/主页导航交互由前端回归验证。
+5. 运行 `frontend/` 下 `npm test`、`npm run lint`、`npm run build`（含类型），根目录 `python3 ai-docs/check_docs.py` 和 `git diff --check`；同步功能、索引、ticket 与实际证据。无后端/数据库变动，不重复后端集成测试。
+
+恢复只需还原本次入口 DOM 排列和媒体查询 CSS；不涉及数据恢复。用户既有 `frontend/README.md` 修改保留。本次 IMPLEMENTED → VERIFIED（本地），未提交/推送或生产发布；既有整体 revision 3 的业务和发布历史保留。
+
+实际验证（2026-10-06）：
+
+| 验证 | 实际命令/操作 | 实际结果与限制 |
+|---|---|---|
+| 修改前展示核对 | 根目录 `node .local/mobile-about-entry/browser-check.mjs before` | 实际 Chrome 八种宽度导航/键盘/输入正常；六种 <=900px 的旧入口为透明底、16px、top 4px，缺少拟改进的独立背景/字号/间距，脚本 exit 1；320/390px 截图确认文字紧贴图片 Logo。纯展示核对，不宣称功能测试 RED。 |
+| 修改后展示与交互 | 根目录 `node .local/mobile-about-entry/browser-check.mjs after` | 8/8、exit 0；320/360/390/430/768/900/901/1440px，首屏单行/44px、按钮不遮图片/标题/说明/邮箱字段、无横向溢出/页面异常；点击留白、手机触摸、Tab/Enter 进入 `/about-geer`，返回可填邮箱/密码。注册/找回页亦无溢出、可编辑且无重复登录入口。模拟匿名 API，无 POST、发信或生产操作。 |
+| 实际截图与桌面对照 | 查看 after-320/390/1440.png，核对 before/after-1440.png SHA-256 | 手机按钮位于登录说明右侧，18px/600/italic、深蓝字/白色底、点击高度 44px；桌面截图哈希完全相同，仍为页面右上角 16px/600/italic。320px 小屏说明和按钮各自完整可见。 |
+| 前端回归 | `frontend/`：`npm test` | 6 个文件、87/87、exit 0；没有新增机械 CSS 单元测试，既有认证、恢复、公开导航与预约等回归全部通过。 |
+| lint、类型与构建 | `frontend/`：`npm run lint`、`npm run build` | 均 exit 0，build 包含 tsc；139 modules，JS 486.05 kB/gzip 138.73 kB。 |
+| 文档与改动检查 | 根目录 `python3 ai-docs/check_docs.py`、`git diff --check` | 13 对功能/计划、39 tickets，链接/状态/索引/review 一致；无空白错误。文档证据不替代展示/交互结果。 |
+
+本次私有本地证据在 `.local/mobile-about-entry/`：browser-check.mjs、before.log、after.log、after-results.json、before/after-320/390/768/1440.png、frontend-tests.log、lint.log、build.log。最终结果同时覆盖登录入口、注册及找回页；截图是 Chrome 模拟手机视口，不声称 iOS Safari 真机验收。TODO-0016 再次 DONE 并归档；功能与索引同步，本次无 Git/生产授权。
 
 ## 2026-10-05 页脚网站设计合作入口维护（已验证）
 
@@ -187,6 +283,7 @@ feature: "../features/0008-about-geer.md"
 
 | 日期 | 用户原话/可定位消息 | 批准 revision | 范围与条件 |
 |---|---|---|---|
+| 2026-10-07 | “直接开始实现然后推送提交”；中断后“继续” | 3（登录入口视觉维护） | 批准当前副标题提示/链接的实现、RED/GREEN/前端与浏览器验证、相关设计文档提交及推送 origin/main，触发现有 CI/CD；保留用户独立 frontend README，不新增资源或手动生产操作 |
 | 2026-10-02 | “无需登录也能看，方便分享给潜在学员” | N/A | 确定访问范围 |
 | 2026-10-02 | “就一个就够，我会专门制作一个视频，后台可自行编辑吧” | N/A | 确定视频数量和维护方式 |
 | 2026-10-02 | “不错，完全按照这个模版生成” | N/A | 确认两张视觉稿；当时上传限额、本地环境及完整实施方案尚未定稿 |
@@ -338,7 +435,7 @@ S3Mock 支持版本、预签名请求形状和 Range GET，但**不验证签名�
 
 2026-10-03 用户进一步要求“放在右上角比较好，字体大小14px,不要太加粗”。`App.tsx` 将单行入口置于登录页根布局，`style.css` 在页面右上角定位，当时桌面/手机均使用 14px、font-weight 400；保留文字、链接标志、下划线和键盘焦点。`npm run lint`、`npm run build`（含类型检查）通过；Chrome 在用户现有 Vite 5173 与匿名 API 测试替身下核验五种宽度：入口 y=20px（桌面）/4px（手机/平板）、右侧页边距内，计算字体 14px / 400，单行、无溢出，点击和 Tab/Enter 导航通过。该字号版本随后按下述用户反馈调整，前述卡片和大字版本仅保留历史执行记录。
 
-2026-10-03 用户反馈“有点太小了，font weight:600 斜体字”。字号调整为 16px、font-weight 600、font-style italic；入口局部允许字体合成斜体，确保缺少原生斜体的中文字体也显示倾斜。保持右上角单行入口，链接标志随字号缩放。frontend/ `npm run lint`、`npm run build`（含类型检查）通过；`node /tmp/geer-0016-italic-browser.mjs` 使用现有 Vite 5173、匿名 API 测试替身与 Chrome，在 320/390/768/1024/1440 px 确认计算样式为 16px / 600 / italic、点击区域高 44px、首屏单行、右上角位置、无横向溢出，点击和 Tab/Enter 进入公开页；无页面脚本错误，未提交登录。桌面/手机截图更新，手机截图目视确认中文与 GEER 均为斜体。当前展示以此样式为准，纯样式修正未新增单元测试。
+2026-10-03 用户反馈“有点太小了，font weight:600 斜体字”。字号调整为 16px、font-weight 600、font-style italic；入口局部允许字体合成斜体，确保缺少原生斜体的中文字体也显示倾斜。保持右上角单行入口，链接标志随字号缩放。frontend/ `npm run lint`、`npm run build`（含类型检查）通过；`node /tmp/geer-0016-italic-browser.mjs` 使用现有 Vite 5173、匿名 API 测试替身与 Chrome，在 320/390/768/1024/1440 px 确认计算样式为 16px / 600 / italic、点击区域高 44px、首屏单行、右上角位置、无横向溢出，点击和 Tab/Enter 进入公开页；无页面脚本错误，未提交登录。桌面/手机截图更新，手机截图目视确认中文与 GEER 均为斜体。2026-10-03 当时展示以此样式为准；手机端当前样式以上方 2026-10-06 维护节为准，纯样式修正未新增单元测试。
 
 ### 测试先行：实际 RED → GREEN
 

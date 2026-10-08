@@ -19,7 +19,6 @@
 | TODO-0013 | [根 README 的功能状态落后于功能索引](0013-root-readme-feature-status-stale.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-02 |
 | TODO-0014 | [首次访问时并行会话初始化使登录偶发失败](0014-anonymous-session-bootstrap-race.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-02 |
 | TODO-0015 | [新增媒体轮询在临时测试库关闭后继续访问数据库](0015-media-poller-test-lifecycle.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-02 |
-| TODO-0016 | [登录页关于 GEER 入口不醒目且缺少可点击提示](0016-login-about-geer-visibility.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-03 |
 | TODO-0017 | [实施计划索引把实现中和已实现定义误写为已验证](0017-plan-status-definitions-duplicated.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-03 |
 | TODO-0018 | [课程封面仅展示在右半边并支持纵向构图](0018-course-cover-right-half.md) | DONE | [0009 revision 3](../implement-plan/0009-course-selection-visuals.md) | 2026-10-03 |
 | TODO-0019 | [课程照片边缘采用斜向渐变并去掉默认纹理](0019-course-cover-diagonal-fade.md) | DONE | [0009 revision 3](../implement-plan/0009-course-selection-visuals.md) | 2026-10-03 |
@@ -38,3 +37,4 @@
 | TODO-0036 | [预约学员没有联系电话可供教练确认](0036-student-contact-phone.md) | DONE | [0011 revision 1](../implement-plan/0011-student-contact-phone.md) | 2026-10-06 |
 | TODO-0037 | [已确认预约缺少课前邮件提醒](0037-lesson-reminder-emails.md) | DONE | [0012 revision 1](../implement-plan/0012-lesson-reminder-emails.md) | 2026-10-06 |
 | TODO-0038 | [电话填写要求手输国家区号，增加学员操作负担](0038-phone-country-prefix-input.md) | DONE | [0011 revision 2](../implement-plan/0011-student-contact-phone.md) | 2026-10-06 |
+| TODO-0016 | [登录页关于 GEER 入口不醒目且缺少可点击提示](0016-login-about-geer-visibility.md) | DONE | [0008](../implement-plan/0008-about-geer.md) | 2026-10-07 |

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { CoachPresentation } from './AboutGeerPage';
@@ -7,6 +7,54 @@ import type { CoachProfile } from './coachProfileApi';
 
 afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState(null, '', '/'); });
 const json = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body }) as Response;
+
+function anonymousSession() {
+  const fetchMock = vi.fn((url: string) => Promise.resolve(
+    url === '/api/auth/csrf' ? json({ token: 'csrf', headerName: 'X-CSRF-TOKEN' }) :
+      url === '/api/coach-profile' ? json({ published: false, version: 0, content: {}, media: {} }) :
+        json({}, 401)));
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+it('places the public link in the login subtitle and preserves input on return', async () => {
+  anonymousSession();
+  render(<App />);
+  const prompt = screen.getByText('第一次访问？').closest('p') as HTMLElement;
+  expect(screen.getByRole('heading', { name: '欢迎回来' }).nextElementSibling).toBe(prompt);
+  const link = within(prompt).getByRole('link', { name: '关于 GEER' });
+  expect(link.getAttribute('href')).toBe('/about-geer');
+  expect(link.textContent).toContain('↗');
+  expect(screen.getAllByRole('link', { name: '关于 GEER' })).toHaveLength(1);
+  expect(screen.queryByRole('button', { name: /关于 GEER/ })).toBeNull();
+  expect(screen.queryByText('继续你的滑雪旅程')).toBeNull();
+  await userEvent.type(screen.getByLabelText('邮箱'), 'visitor@example.test');
+  await userEvent.type(screen.getByLabelText('密码'), 'test-password');
+  await userEvent.click(link);
+  expect(await screen.findByText('教练正在准备个人主页，敬请期待。')).toBeTruthy();
+  expect(window.location.pathname).toBe('/about-geer');
+  await userEvent.click(screen.getByRole('button', { name: '登录' }));
+  expect(screen.getByLabelText('邮箱')).toHaveProperty('value', 'visitor@example.test');
+  expect(screen.getByLabelText('密码')).toHaveProperty('value', 'test-password');
+});
+
+it('supports keyboard entry from the login subtitle without changing registration or recovery copy', async () => {
+  anonymousSession();
+  render(<App />);
+  const link = screen.getByRole('link', { name: '关于 GEER' });
+  link.focus();
+  await userEvent.keyboard('{Enter}');
+  expect(await screen.findByText('教练正在准备个人主页，敬请期待。')).toBeTruthy();
+  await userEvent.click(screen.getByRole('button', { name: '登录' }));
+  await userEvent.click(screen.getByRole('button', { name: '创建账号' }));
+  expect(screen.getByText('与更多滑雪爱好者一起，刻下属于你的轨迹')).toBeTruthy();
+  expect(screen.queryByRole('link', { name: '关于 GEER' })).toBeNull();
+  expect(screen.queryByText('第一次访问？')).toBeNull();
+  await userEvent.click(screen.getByRole('button', { name: '登录' }));
+  await userEvent.click(screen.getByRole('button', { name: '忘记密码' }));
+  expect(screen.getByText('输入账号邮箱，获取找回验证码。')).toBeTruthy();
+  expect(screen.queryByRole('link', { name: '关于 GEER' })).toBeNull();
+});
 
 it('opens the public coach profile directly without booking data or login', async () => {
   window.history.replaceState(null, '', '/about-geer');

@@ -212,10 +212,6 @@ export default function App() {
 
   return (
     <main className={'auth-layout view-' + view}>
-      {view === 'login' && <button type="button" className="auth-about-link" onClick={() => navigate('about')}>
-        <span>关于 GEER</span>
-        <span className="auth-about-arrow" aria-hidden="true">↗</span>
-      </button>}
       <section className="brand-panel" aria-label="GEER 单板教学">
         <picture>
           <source media="(max-width: 900px)" srcSet={view === 'register' ? '/images/geer-blue-mobile-register.png' : '/images/geer-blue-mobile-login.png'} />
@@ -240,7 +236,13 @@ export default function App() {
           ) : (
             <>
               <h1>{view === 'register' ? '加入 GEER' : view === 'login' ? '欢迎回来' : view === 'verify' ? '验证你的邮箱' : view === 'recover-request' ? '找回密码' : view === 'recover-code' ? '验证邮箱' : view === 'recover-password' ? '设置新密码' : '请检查邮箱'}</h1>
-              <p className="section-intro">{view === 'register' ? '与更多滑雪爱好者一起，刻下属于你的轨迹' : view === 'login' ? '继续你的滑雪旅程' : view === 'verify' ? '点击下方按钮完成邮箱验证。' : view === 'recover-request' ? '输入账号邮箱，获取找回验证码。' : view === 'recover-code' ? '输入邮件中的 8 位验证码。' : view === 'recover-password' ? '确认新密码后，重新登录。' : '如果该邮箱可以注册，验证链接会发送到你的邮箱。'}</p>
+              <p className="section-intro">{view === 'login' ? (
+                <><span>第一次访问？</span>{' '}<a className="auth-about-link" href="/about-geer" onClick={(event) => {
+                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  event.preventDefault();
+                  navigate('about');
+                }}>关于 GEER<span aria-hidden="true"> ↗</span></a></>
+              ) : view === 'register' ? '与更多滑雪爱好者一起，刻下属于你的轨迹' : view === 'verify' ? '点击下方按钮完成邮箱验证。' : view === 'recover-request' ? '输入账号邮箱，获取找回验证码。' : view === 'recover-code' ? '输入邮件中的 8 位验证码。' : view === 'recover-password' ? '确认新密码后，重新登录。' : '如果该邮箱可以注册，验证链接会发送到你的邮箱。'}</p>
               <form onSubmit={submit}>
                 {view === 'register' && (
                   <>

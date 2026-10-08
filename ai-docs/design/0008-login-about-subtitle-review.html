@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GEER 登录入口设计预览</title>
+  <link rel="stylesheet" href="../../frontend/src/style.css">
+  <style>
+    /* Static 390 CSS px mobile review; independent of application code. */
+    body, .auth-layout { width: 390px; }
+    .brand-panel { height: 323.7px; }
+    .form-panel { padding: 21px 25.35px 32px; }
+    .form-wrap h1 { font-size: 37px; }
+    .section-intro { font-size: 13px; letter-spacing: .1em; }
+    .view-login { padding-top: 0; }
+    .section-intro a {
+      color: #0072d7;
+      font: inherit;
+      letter-spacing: inherit;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    .section-intro a:focus-visible { outline: 3px solid #2a92e5; outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main class="auth-layout view-login">
+    <section class="brand-panel" aria-label="GEER 单板教学">
+      <picture>
+        <source media="(max-width: 900px)" srcset="../../frontend/public/images/geer-blue-mobile-login.png">
+        <img class="brand-artwork" src="../../frontend/public/images/geer-blue-desktop.png" alt="GEER 品牌视觉：雪道上的高速刻滑与锐角字标">
+      </picture>
+    </section>
+    <section class="form-panel">
+      <div class="form-wrap">
+        <h1>欢迎回来</h1>
+        <p class="section-intro"><span>第一次访问？</span> <a href="#about-geer">关于 GEER <span aria-hidden="true">↗</span></a></p>
+        <form>
+          <label for="design-email">邮箱</label>
+          <input id="design-email" type="email" placeholder="请输入邮箱地址" autocomplete="off">
+          <label for="design-password">密码</label>
+          <div class="password-control">
+            <input id="design-password" type="password" placeholder="请输入密码" autocomplete="off">
+            <button type="button" class="visibility-button" aria-label="显示密码">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.5"></circle><path d="M3 3 21 21"></path></svg>
+            </button>
+          </div>
+          <button class="primary-button" type="button">登录</button>
+        </form>
+        <p class="form-switch"><button type="button" class="text-button">创建账号</button></p>
+        <p class="form-switch recovery-link"><button type="button" class="text-button">忘记密码</button></p>
+      </div>
+      <div class="panel-bottom"><span>MORE THAN A RIDE</span></div>
+    </section>
+  </main>
+</body>
+</html>
