@@ -15,12 +15,13 @@ class ApiError extends Error {
 }
 
 function bookingDeepLink(hash: string): BookingDeepLink | null {
-  const match = /^#\/(my-bookings|coach-applications)\/([^/?#]+)$/.exec(hash);
+  const match = /^#\/(my-bookings|coach-applications|completed-lessons|coach-lesson-summaries)\/([^/?#]+)$/.exec(hash);
   if (!match) return null;
   try {
     const id = decodeURIComponent(match[2]);
     if (!id || id.length > 100) return null;
-    return { role: match[1] === 'my-bookings' ? 'STUDENT' : 'COACH', id };
+    return { role: ['my-bookings', 'completed-lessons'].includes(match[1]) ? 'STUDENT' : 'COACH', id,
+      ...(['completed-lessons', 'coach-lesson-summaries'].includes(match[1]) ? { kind: 'summary' as const } : {}) };
   } catch {
     return null;
   }
@@ -33,6 +34,9 @@ async function readJson(response: Response) {
 export default function App() {
   const initialToken = window.location.hash.startsWith('#verify?token=')
     ? new URLSearchParams(window.location.hash.slice('#verify?'.length)).get('token') : null;
+  const unsavedSummary = useRef(false);
+  const previousHash = useRef(window.location.hash);
+  const previousPath = useRef(window.location.pathname);
   const [verificationToken] = useState(initialToken);
   const [deepLink, setDeepLink] = useState<BookingDeepLink | null>(() => bookingDeepLink(window.location.hash));
   const [page, setPage] = useState<'home' | 'about' | 'editor'>(() => window.location.pathname === '/about-geer' ? 'about' : 'home');
@@ -67,8 +71,22 @@ export default function App() {
   }
 
   useEffect(() => {
-    const updateDeepLink = () => setDeepLink(bookingDeepLink(window.location.hash));
-    const updatePage = () => setPage(window.location.pathname === '/about-geer' ? 'about' : 'home');
+    const updateDeepLink = () => {
+      if (unsavedSummary.current && !window.confirm('课程总结尚未保存，确定离开吗？')) {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search + previousHash.current); return;
+      }
+      unsavedSummary.current = false;
+      previousHash.current = window.location.hash;
+      setDeepLink(bookingDeepLink(window.location.hash));
+    };
+    const updatePage = () => {
+      if (window.location.pathname !== previousPath.current && unsavedSummary.current
+        && !window.confirm('课程总结尚未保存，确定离开吗？')) {
+        window.history.replaceState(null, '', previousPath.current + previousHash.current); return;
+      }
+      previousPath.current = window.location.pathname;
+      setPage(window.location.pathname === '/about-geer' ? 'about' : 'home');
+    };
     window.addEventListener('hashchange', updateDeepLink);
     window.addEventListener('popstate', updatePage);
     return () => { window.removeEventListener('hashchange', updateDeepLink); window.removeEventListener('popstate', updatePage); };
@@ -200,6 +218,7 @@ export default function App() {
 
   function navigate(next: 'home' | 'about' | 'editor') {
     if (next !== 'editor') window.history.pushState(null, '', next === 'about' ? '/about-geer' : '/' + window.location.hash);
+    previousPath.current = window.location.pathname;
     setPage(next);
   }
   const unauthorized = () => { setAccount(null); setCsrf(null); setView('login'); setPage('home'); setMessage('登录已失效，请重新登录。'); };
@@ -208,7 +227,7 @@ export default function App() {
 
   if (view === 'account' && account) return <BookingHome key={account.id} account={account} csrf={csrf}
     refreshCsrf={refreshCsrf} onLogout={logout} authMessage={message} deepLink={deepLink}
-    onAbout={() => navigate('about')} onProfile={() => navigate('editor')} onUnauthorized={unauthorized} />;
+    onUnsavedChange={(dirty) => { unsavedSummary.current = dirty; }} onAbout={() => navigate('about')} onProfile={() => navigate('editor')} onUnauthorized={unauthorized} />;
 
   return (
     <main className={'auth-layout view-' + view}>

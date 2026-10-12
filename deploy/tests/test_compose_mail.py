@@ -25,7 +25,7 @@ def backend_environment(extra):
         for key in (set(BASE) | set(extra) | {
             "MAIL_HOST", "MAIL_PORT", "MAIL_USER", "MAIL_PASSWORD", "MAIL_FROM",
             "MAIL_SMTP_AUTH", "MAIL_STARTTLS", "V2_PUBLIC_URL", "APP_PUBLIC_URL",
-            "BOOKING_REMINDERS_ENABLED", "BOOKING_MAIL_WORKER_ENABLED",
+            "BOOKING_REMINDERS_ENABLED", "BOOKING_MAIL_WORKER_ENABLED", "LESSON_SUMMARY_REMINDERS_ENABLED",
         }):
             process_env.pop(key, None)
         result = subprocess.run(
@@ -64,12 +64,15 @@ class ComposeMailTest(unittest.TestCase):
     def test_reminders_and_worker_can_be_paused_without_new_credentials(self):
         for value in ("true", "false"):
             rendered = backend_environment({"BOOKING_REMINDERS_ENABLED": value,
-                                            "BOOKING_MAIL_WORKER_ENABLED": value})
+                                            "BOOKING_MAIL_WORKER_ENABLED": value,
+                                            "LESSON_SUMMARY_REMINDERS_ENABLED": value})
             self.assertEqual(rendered.get("BOOKING_REMINDERS_ENABLED"), value)
             self.assertEqual(rendered.get("BOOKING_MAIL_WORKER_ENABLED"), value)
+            self.assertEqual(rendered.get("LESSON_SUMMARY_REMINDERS_ENABLED"), value)
         defaults = backend_environment({})
         self.assertEqual(defaults.get("BOOKING_REMINDERS_ENABLED"), "true")
         self.assertEqual(defaults.get("BOOKING_MAIL_WORKER_ENABLED"), "true")
+        self.assertEqual(defaults.get("LESSON_SUMMARY_REMINDERS_ENABLED"), "true")
 
 
 if __name__ == "__main__":

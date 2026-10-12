@@ -60,6 +60,7 @@ class LessonReminderWorkerTest {
     @Autowired JdbcTemplate jdbc;
     @Autowired BookingMailQueue queue;
     @Autowired BookingStore bookings;
+    @Autowired com.geer.snowboard.v2.bookings.application.port.out.LessonSummaryStore summaries;
     @Autowired BookingReminderOperations reminders;
     @Autowired BookingMailOperations worker;
     @Autowired BookingMailContacts contacts;
@@ -141,13 +142,13 @@ class LessonReminderWorkerTest {
     @Test void cancellationDuringContactLookupIsCheckedAgainBeforeSmtp() {
         var f=booking("CONFIRMED"); plan(f); clock.time.set(due(f));
         BookingMailContacts changed=id->{jdbc.update("UPDATE bookings_request SET status='CANCELLED_BY_STUDENT' WHERE id=?",f.bookingId());return contacts.emailForAccount(id);};
-        new BookingMailWorker(queue,bookings,changed,sender,clock,links,new BookingReminderSettings(true)).runOnce();
+        new BookingMailWorker(queue,bookings,changed,sender,clock,links,new BookingReminderSettings(true),summaries,new com.geer.snowboard.v2.bookings.application.port.out.LessonSummarySettings(true)).runOnce();
         assertThat(sender.messages).isEmpty(); assertThat(state(f,BookingMailQueue.STUDENT_LESSON_REMINDER)).isEqualTo("SKIPPED");
     }
     @Test void pausesRemindersOnlyAndResumesPersistedWorkWithoutAffectingConfirmationMail() {
         var f=booking("CONFIRMED"); plan(f); clock.time.set(due(f));
         queue.enqueue(f.bookingId(),BookingMailQueue.BOOKING_CONFIRMED,f.studentId(),clock.instant());
-        var paused=new BookingMailWorker(queue,bookings,contacts,sender,clock,links,new BookingReminderSettings(false));
+        var paused=new BookingMailWorker(queue,bookings,contacts,sender,clock,links,new BookingReminderSettings(false),summaries,new com.geer.snowboard.v2.bookings.application.port.out.LessonSummarySettings(true));
         paused.runOnce(); assertThat(sender.messages).hasSize(1); assertThat(state(f,BookingMailQueue.STUDENT_LESSON_REMINDER)).isEqualTo("PENDING");
         var fresh=booking("CONFIRMED");
         new BookingReminderService(bookings,queue,new BookingReminderSettings(false),clock).scheduleConfirmed(fresh.bookingId(),clock.instant());
@@ -192,7 +193,7 @@ class LessonReminderWorkerTest {
                             && failed.compareAndSet(false,true)) throw new IllegalStateException("fake writeback failure after SMTP");
                     try { return method.invoke(queue,args); } catch(java.lang.reflect.InvocationTargetException exception) { throw exception.getCause(); }
                 });
-        new BookingMailWorker(interrupted,bookings,contacts,sender,clock,links,new BookingReminderSettings(true)).runOnce();
+        new BookingMailWorker(interrupted,bookings,contacts,sender,clock,links,new BookingReminderSettings(true),summaries,new com.geer.snowboard.v2.bookings.application.port.out.LessonSummarySettings(true)).runOnce();
         assertThat(sender.messages).hasSize(2);assertThat(state(f,BookingMailQueue.STUDENT_LESSON_REMINDER)).isEqualTo("PENDING");
         clock.time.set(clock.instant().plusSeconds(60));worker.runOnce();
         assertThat(sender.messages.stream().filter(m->m.email().startsWith(f.studentId())).count()).isEqualTo(2);

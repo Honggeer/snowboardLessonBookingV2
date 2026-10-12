@@ -1,0 +1,25 @@
+.lesson-history-tabs { display: flex; gap: 8px; margin: 0 0 18px; }
+.lesson-history-tabs button { padding: 10px 18px; border: 1px solid #cbd5e1; border-radius: 999px; background: #fff; color: #475569; cursor: pointer; font: inherit; }
+.lesson-history-tabs button.active { background: #172f4d; border-color: #172f4d; color: #fff; }
+.lesson-summaries { width: 100%; min-width: 0; }
+.completed-lesson { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 24px 0; border-bottom: 1px solid #e2e8f0; }
+.completed-lesson:last-child { border-bottom: 0; }
+.completed-lesson h3, .lesson-summary-heading h3 { margin: 10px 0; }
+.completed-lesson p, .lesson-summary-heading p { color: #64748b; font-size: 14px; line-height: 1.7; margin: 4px 0; overflow-wrap: anywhere; }
+.completed-lesson button, .lesson-summary-actions button { flex-shrink: 0; padding: 11px 18px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #172f4d; cursor: pointer; font: inherit; }
+.lesson-summary-state { display: inline-block; color: #355977; background: #eef4f8; border-radius: 6px; padding: 4px 10px; font-size: 12px; }
+.lesson-summary-heading { padding-bottom: 24px; border-bottom: 1px solid #e2e8f0; margin-bottom: 24px; }
+.lesson-summary-field { margin: 0 0 24px; }
+.lesson-summary-field label { display: block; font-weight: 600; margin-bottom: 10px; }
+.lesson-summary-field textarea { width: 100%; min-height: 130px; padding: 14px; font: inherit; line-height: 1.7; border: 1px solid #cbd5e1; border-radius: 8px; resize: vertical; }
+.summary-character-count { display: block; text-align: right; color: #64748b; font-size: 12px; margin-top: 6px; }
+.lesson-summary-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
+.lesson-summary-actions .booking-primary { width: auto; background: #172f4d; color: #fff; }
+.lesson-summary-reading section { margin: 28px 0; }
+.lesson-summary-reading p { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.9; color: #475569; }
+.lesson-summaries button:disabled { opacity: .55; cursor: default; }
+@media (max-width: 600px) {
+  .completed-lesson { align-items: flex-start; flex-direction: column; gap: 12px; }
+  .lesson-summary-actions { flex-direction: column; align-items: stretch; }
+  .lesson-summary-actions .booking-primary { width: 100%; }
+}

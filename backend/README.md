@@ -58,7 +58,7 @@ export TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock
 
 课程、雪场和可用时间批次创建、学员申请的写请求都要求 `Idempotency-Key` UUID；网络重试复用原键。同键同内容返回原记录或批次，同键不同内容返回 409。所有写请求还需当前 Session 的 CSRF token。教练可改名或停用雪场；有该山待确认申请时停用返回 409，历史预约名称不随改名变化。教练可编辑课程名称、介绍和 CAD 价格，也可将课程从学员选课列表移除；已有预约及价格快照不变。学员可直接取消待确认申请；已确认预约须距开课至少 24 小时，取消理由可选。取消已确认预约会释放时段；若当天没有其他已确认预约，解除当天雪场锁定。取消后可用新请求键重新申请仍开放的时段。业务 API、规则与限制见 [0006 功能文档](../ai-docs/features/0006-post-login-booking-home.md)。本版不提供时段逐条编辑、改期或在线支付。V5 对未来旧时段日期保留原数据并标记地点待映射；这些日期在人工审查映射前不能接受新申请或确认旧申请。
 
-`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V12。生产迁移与发布另需授权。
+`GET /api/coach/availability/month?year=YYYY&month=M` 只读单月排班与当天雪场限制/锁定状态；`POST /api/coach/availability/replacements` 接受 `days[]` 与 `Idempotency-Key`，首次成功 201、相同请求重放 200，待确认申请、已确认时间或雪场锁定冲突返回 409。原有 `/api/coach/availability/batches` 保留新增排班语义。撤回的时段保留为 `CLOSED`，不会出现在学员可约列表。课程编辑使用 `PATCH /api/coach/courses/{id}`，下架使用 `POST /api/coach/courses/{id}/archive`，学员取消使用 `POST /api/bookings/{id}/cancel`。若 IDEA 中已有旧版后端进程，重启它后新接口才会生效；本地启动时 Flyway 自动应用迁移，当前最新为 V14。生产迁移与发布另需授权。
 
 批量新增和整天替换均不限制排班日期必须在未来 31 天内，支持有效的跨月、跨年未来日期；仍校验多伦多过去日期和时段开始时间，每批 1–31 个不同日期、最多 100 个生成时段。学员 `/api/slots` 每次查询跨度仍最多 31 天，教练月历每次读取一个自然月；可以将查询窗口移到更远的未来。无需数据库迁移；已有预约、雪场锁定和批次事务保护保留，验证见 [0006 revision 5](../ai-docs/implement-plan/0006-post-login-booking-home.md)。
 
@@ -118,3 +118,15 @@ V11 只追加可空 `identity_account.contact_phone`，旧账号初值为空；�
 `BOOKING_REMINDERS_ENABLED=false` 只暂停规划和领取课前提醒，保留已计划任务，申请/确认/拒绝通知继续工作；恢复为 `true` 后继续处理有效任务。`BOOKING_MAIL_WORKER_ENABLED=false` 暂停全部预约邮件后台任务，用于完整暂停或回退准备。两者默认 `true`，非秘密设置；无需新 SMTP 密钥或第三方服务。实际验证和限制见 [0012](../ai-docs/implement-plan/0012-lesson-reminder-emails.md)。
 
 V12 扩展现有邮件事件、保存提醒开课时间与预约规划标记。回退旧应用前先暂停整个预约邮件 worker，保留 V12 与任务：旧 worker 不认识新提醒事件，会将其跳过。生产发布、迁移和回退另需具体授权；不要删除追加列/任务或重置数据库。
+
+## 课后总结与邮件（0013）
+
+教练的“课程总结”入口列出已确认且已到预约结束时间的课程。三个独立内容区为“本节练习内容”“待加强”“课后强化练习”，各最多 3000 个 Unicode 字符。草稿仅教练可读；首次发布后学生可在“我的预约 → 已完成课程”查看，并收到邮件。发布后可修改，保留首次发布时间，不重复发邮件。保存使用 `expectedVersion`，不同内容的过期版本返回 409。
+
+完成课查询为 `GET /api/bookings/completed` 与 `GET /api/coach/bookings/completed`，默认 20、最多 50 条，按课程结束时间倒序分页。教练用 `/api/coach/bookings/{id}/summary` GET/PATCH 和 `/publish` POST；学生只读 `/api/bookings/{id}/summary`。所有总结读取 no-store，写入保持 Session/CSRF 与角色、归属检查。预约状态仍为 CONFIRMED；完成课不表示出勤核验。
+
+V14 追加总结表、结束课索引、课后规划标记及两个邮件事件。首次迁移前已结束的课程永久标记为不补教练提醒，可补写总结并通知学生；既有未来课程和暂停期间结束的课程由有界补建恢复。课后才确认的课程也不补提醒，包括提醒关闭期间的迟到确认。教练提醒到预约结束时间后才发送，发布前仅保存草稿仍会提醒，发送前已经发布则跳过。
+
+`LESSON_SUMMARY_REMINDERS_ENABLED=false` 独立暂停课后规划和领取，保留任务；学生首次发布通知继续发送。`BOOKING_REMINDERS_ENABLED` 只控制课前邮件，`BOOKING_MAIL_WORKER_ENABLED=false` 暂停全部预约邮件。沿用一个轮询线程、每轮最多 10 项、每分钟补建最多 50 条，最多 8 次失败后 DEAD。SMTP 接受后写回失败可能重复投递，不保证 exactly-once。只用隔离 MySQL/Mailpit 验证；实际证据见 [0013](../ai-docs/implement-plan/0013-lesson-summaries.md)。
+
+本地重启后 Flyway 自动应用 V14；生产迁移/发布需单独授权。回退旧应用前先关闭全部预约邮件 worker，保留 V14、总结及任务，再恢复兼容版本处理积压。

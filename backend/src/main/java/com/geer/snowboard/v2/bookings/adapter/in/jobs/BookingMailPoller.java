@@ -2,6 +2,7 @@ package com.geer.snowboard.v2.bookings.adapter.in.jobs;
 
 import com.geer.snowboard.v2.bookings.application.port.in.BookingMailOperations;
 import com.geer.snowboard.v2.bookings.application.port.in.BookingReminderOperations;
+import com.geer.snowboard.v2.bookings.application.port.in.LessonSummaryReminderOperations;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.concurrent.Executors;
@@ -18,16 +19,18 @@ public final class BookingMailPoller {
     private final BookingMailOperations worker;
     private final BookingReminderOperations reminders;
     private final long delayMillis;
+    private final LessonSummaryReminderOperations summaryReminders;
     private final ScheduledExecutorService scheduler=Executors.newSingleThreadScheduledExecutor(action -> {
         Thread thread=new Thread(action,"booking-mail-poller"); thread.setDaemon(true); return thread;
     });
-    public BookingMailPoller(BookingMailOperations worker,BookingReminderOperations reminders,
+    public BookingMailPoller(BookingMailOperations worker,BookingReminderOperations reminders, LessonSummaryReminderOperations summaryReminders,
                              @Value("${booking.mail.worker.delay-ms:10000}") long delayMillis) {
         if (delayMillis<1) throw new IllegalArgumentException("Booking mail delay must be positive");
-        this.worker=worker; this.reminders=reminders; this.delayMillis=delayMillis;
+        this.worker=worker; this.reminders=reminders; this.delayMillis=delayMillis; this.summaryReminders=summaryReminders;
     }
     @PostConstruct public void start() {
         scheduler.scheduleWithFixedDelay(()->safe(reminders::backfill),1,60000,TimeUnit.MILLISECONDS);
+        scheduler.scheduleWithFixedDelay(()->safe(summaryReminders::backfill),1,60000,TimeUnit.MILLISECONDS);
         scheduler.scheduleWithFixedDelay(()->safe(worker::runOnce),1,delayMillis,TimeUnit.MILLISECONDS);
         scheduler.scheduleWithFixedDelay(()->safe(worker::cleanup),3600000,3600000,TimeUnit.MILLISECONDS);
     }

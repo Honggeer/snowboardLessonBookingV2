@@ -8,6 +8,9 @@ import com.geer.snowboard.v2.bookings.application.port.out.BookingMailSender;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingLinkBase;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingStore;
 import com.geer.snowboard.v2.bookings.application.port.out.BookingReminderSettings;
+import com.geer.snowboard.v2.bookings.application.port.out.LessonSummaryStore;
+import com.geer.snowboard.v2.bookings.application.port.out.LessonSummarySettings;
+import com.geer.snowboard.v2.bookings.domain.LessonSummary;
 import java.time.Clock;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -27,23 +30,25 @@ public class BookingMailWorker implements BookingMailOperations {
     private final Clock clock;
     private final String publicUrl;
     private final BookingReminderSettings settings;
+    private final LessonSummaryStore summaries;
+    private final LessonSummarySettings summarySettings;
 
     public BookingMailWorker(BookingMailQueue queue, BookingStore bookings,
                              BookingMailContacts contacts, BookingMailSender sender,
-                             Clock clock, BookingLinkBase links, BookingReminderSettings settings) {
+                             Clock clock, BookingLinkBase links, BookingReminderSettings settings, LessonSummaryStore summaries, LessonSummarySettings summarySettings) {
         this.queue = queue;
         this.bookings = bookings;
         this.contacts = contacts;
         this.sender = sender;
         this.clock = clock;
         this.publicUrl = links.value();
-        this.settings = settings;
+        this.settings = settings; this.summaries=summaries; this.summarySettings=summarySettings;
     }
 
     @Override
     public void runOnce() {
         for (int index = 0; index < 10; index++) {
-            BookingMailQueue.Task task = queue.claim(clock.instant(), settings.enabled());
+            BookingMailQueue.Task task = queue.claim(clock.instant(), settings.enabled(), summarySettings.remindersEnabled());
             if (task == null) break;
             Booking booking = bookings.findById(task.bookingId());
             if (booking == null || !current(task, booking, clock.instant())) {
@@ -53,7 +58,7 @@ public class BookingMailWorker implements BookingMailOperations {
             try {
                 String email = contacts.emailForAccount(task.recipientAccountId());
                 if (email == null || email.isBlank()) throw new IllegalStateException("Recipient account has no email");
-                if (task.reminder()) {
+                if (task.reminder() || summaryMail(task)) {
                     booking = bookings.findById(task.bookingId());
                     if (booking == null || !current(task, booking, clock.instant())) { queue.skipped(task); continue; }
                     if (!queue.ownsLease(task, clock.instant().plusSeconds(15))) continue;
@@ -76,7 +81,7 @@ public class BookingMailWorker implements BookingMailOperations {
         queue.cleanup(clock.instant().minusSeconds(7 * 86400));
     }
 
-    private static boolean current(BookingMailQueue.Task task, Booking booking, java.time.Instant now) {
+    private boolean current(BookingMailQueue.Task task, Booking booking, java.time.Instant now) {
         return switch (task.eventType()) {
             case BookingMailQueue.APPLICATION_RECEIVED ->
                     booking.status().equals("PENDING") && task.recipientAccountId().equals(booking.coachId());
@@ -89,11 +94,27 @@ public class BookingMailWorker implements BookingMailOperations {
                     && now.isBefore(booking.startAt().minusSeconds(86400))
                     && task.recipientAccountId().equals(task.eventType().equals(BookingMailQueue.STUDENT_LESSON_REMINDER)
                             ? booking.studentId() : booking.coachId());
+            case BookingMailQueue.COACH_SUMMARY_REMINDER ->
+                    booking.status().equals("CONFIRMED") && booking.endAt().equals(task.summaryEndAt())
+                    && !now.isBefore(booking.endAt()) && task.recipientAccountId().equals(booking.coachId())
+                    && !published(booking.id());
+            case BookingMailQueue.STUDENT_SUMMARY_PUBLISHED ->
+                    LessonSummary.completed(booking.status(),booking.endAt(),now)
+                    && task.recipientAccountId().equals(booking.studentId()) && published(booking.id());
             default -> false;
         };
     }
 
+    private boolean published(String bookingId) {
+        LessonSummary summary=summaries.find(bookingId);
+        return summary!=null && summary.state()==LessonSummary.State.PUBLISHED;
+    }
+    private static boolean summaryMail(BookingMailQueue.Task task) {
+        return BookingMailQueue.COACH_SUMMARY_REMINDER.equals(task.eventType()) || BookingMailQueue.STUDENT_SUMMARY_PUBLISHED.equals(task.eventType());
+    }
     private static String subject(BookingMailQueue.Task task) {
+        if (task.eventType().equals(BookingMailQueue.COACH_SUMMARY_REMINDER)) return "GEER 课后提醒：请填写课程总结";
+        if (task.eventType().equals(BookingMailQueue.STUDENT_SUMMARY_PUBLISHED)) return "GEER 课程总结已发布";
         if (task.reminder()) return "GEER 课前提醒：即将上课";
         if (task.eventType().equals(BookingMailQueue.BOOKING_REJECTED)) return "GEER 预约申请未通过";
         return task.eventType().equals(BookingMailQueue.APPLICATION_RECEIVED)
@@ -102,13 +123,21 @@ public class BookingMailWorker implements BookingMailOperations {
 
     private String body(BookingMailQueue.Task task, Booking booking) {
         ZoneId zone = ZoneId.of(booking.zoneId());
-        var formatter = task.reminder() ? DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm xxx", Locale.ROOT) : DATE_TIME;
+        var formatter = task.reminder() || summaryMail(task) ? DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm xxx", Locale.ROOT) : DATE_TIME;
         String schedule = formatter.withZone(zone).format(booking.startAt())
                 + " – " + formatter.withZone(zone).format(booking.endAt())
                 + " (" + booking.zoneId() + ")";
         String details = "课程：" + booking.courseTitle() + "\n"
                 + "雪场：" + booking.location() + "\n"
                 + "时间：" + schedule + "\n";
+        if (summaryMail(task)) {
+            boolean coach=task.eventType().equals(BookingMailQueue.COACH_SUMMARY_REMINDER);
+            return (coach ? "课程已结束，请填写本节练习内容、待加强和课后强化练习。\n学员："+booking.studentName()+"\n"
+                    : "教练已发布你的课程总结和课后强化练习。\n") + details
+                    + (coach ? "填写课程总结：" : "查看课程总结：") + publicUrl
+                    + (coach ? "/#/coach-lesson-summaries/" : "/#/completed-lessons/") + booking.id()
+                    + "\n\n请登录后查看，以页面最新内容为准。";
+        }
         if (task.eventType().equals(BookingMailQueue.BOOKING_REJECTED)) {
             return "你的预约申请未通过。\n拒绝原因：" + booking.decisionReason() + "\n" + details
                     + "查看预约：" + publicUrl + "/#/my-bookings/" + booking.id()

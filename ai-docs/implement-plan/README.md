@@ -48,6 +48,7 @@
 | 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../features/0010-production-delivery.md) | IMPLEMENTED | 4 | 2026-10-05 |
 | 0011 | [首次预约前填写联系电话](0011-student-contact-phone.md) | [0011](../features/0011-student-contact-phone.md) | VERIFIED | 2 | 2026-10-06 |
 | 0012 | [已确认预约课前邮件提醒](0012-lesson-reminder-emails.md) | [0012](../features/0012-lesson-reminder-emails.md) | VERIFIED | 1 | 2026-10-06 |
+| 0013 | [课后总结、练习作业与邮件通知](0013-lesson-summaries.md) | [0013](../features/0013-lesson-summaries.md) | VERIFIED | 2 | 2026-10-12 |
 
 ## 可运行文档检查
 

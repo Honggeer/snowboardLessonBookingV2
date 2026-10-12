@@ -31,36 +31,46 @@ public class JdbcBookingMailQueue implements BookingMailQueue {
                 VALUES (?,?,?,?,?,?)
                 """, bookingId,eventType,recipientAccountId,utc(dueAt),utc(startAt),utc(now));
     }
+    @Override public void enqueueSummaryReminder(String bookingId, String recipientAccountId, Instant endAt, Instant now) {
+        jdbc.update("""
+                INSERT INTO bookings_mail_task(booking_id,event_type,recipient_account_id,next_attempt_at,summary_end_at_utc,created_at)
+                VALUES (?,'COACH_SUMMARY_REMINDER',?,?,?,?)
+                """,bookingId,recipientAccountId,utc(endAt),utc(endAt),utc(now));
+    }
     // Keep this entry transactional too: a default-method self-call bypasses the Spring proxy.
     @Override @Transactional(isolation=Isolation.READ_COMMITTED)
     public Task claim(Instant now) { return claim(now, true); }
     @Override @Transactional(isolation=Isolation.READ_COMMITTED)
-    public Task claim(Instant now, boolean includeReminders) {
+    public Task claim(Instant now, boolean includeReminders) { return claim(now, includeReminders, true); }
+    @Override @Transactional(isolation=Isolation.READ_COMMITTED)
+    public Task claim(Instant now, boolean includeReminders, boolean includeSummaryReminders) {
         jdbc.update("""
                 UPDATE bookings_mail_task
                 SET status='DEAD',claim_until=NULL,claim_token=NULL,last_error='Claim expired after final attempt'
                 WHERE status='CLAIMED' AND claim_until<=? AND attempts>=8
-                  AND (? OR event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED','BOOKING_REJECTED'))
-                """, utc(now),includeReminders);
+                  AND (? OR event_type NOT IN ('STUDENT_LESSON_REMINDER','COACH_LESSON_REMINDER'))
+                  AND (? OR event_type<>'COACH_SUMMARY_REMINDER')
+                """, utc(now),includeReminders,includeSummaryReminders);
         Long id=jdbc.query("""
                 SELECT id FROM bookings_mail_task
                 WHERE ((status='PENDING' AND next_attempt_at<=?)
                    OR (status='CLAIMED' AND claim_until<=? AND attempts<8))
-                  AND (? OR event_type IN ('APPLICATION_RECEIVED','BOOKING_CONFIRMED','BOOKING_REJECTED'))
+                  AND (? OR event_type NOT IN ('STUDENT_LESSON_REMINDER','COACH_LESSON_REMINDER'))
+                  AND (? OR event_type<>'COACH_SUMMARY_REMINDER')
                 ORDER BY next_attempt_at,id LIMIT 1 FOR UPDATE SKIP LOCKED
-                """, rs->rs.next()?rs.getLong(1):null,utc(now),utc(now),includeReminders);
+                """, rs->rs.next()?rs.getLong(1):null,utc(now),utc(now),includeReminders,includeSummaryReminders);
         if (id==null) return null;
         String token=UUID.randomUUID().toString();
         jdbc.update("""
                 UPDATE bookings_mail_task SET status='CLAIMED',attempts=attempts+1,
-                claim_until=CASE WHEN event_type IN ('STUDENT_LESSON_REMINDER','COACH_LESSON_REMINDER') THEN ? ELSE ? END,
+                claim_until=CASE WHEN event_type IN ('STUDENT_LESSON_REMINDER','COACH_LESSON_REMINDER','COACH_SUMMARY_REMINDER') THEN ? ELSE ? END,
                 claim_token=? WHERE id=?
                 """,utc(now.plusSeconds(120)),utc(now.plusSeconds(30)),token,id);
         return jdbc.query("""
-                SELECT id,booking_id,event_type,recipient_account_id,attempts,claim_token,reminder_start_at_utc,claim_until
+                SELECT id,booking_id,event_type,recipient_account_id,attempts,claim_token,reminder_start_at_utc,claim_until,summary_end_at_utc
                 FROM bookings_mail_task WHERE id=?
                 """,rs->rs.next()?new Task(rs.getLong(1),rs.getString(2),rs.getString(3),rs.getString(4),
-                rs.getInt(5),rs.getString(6),instant(rs,7),instant(rs,8)):null,id);
+                rs.getInt(5),rs.getString(6),instant(rs,7),instant(rs,8),instant(rs,9)):null,id);
     }
     @Override public boolean ownsLease(Task task, Instant now) {
         return Boolean.TRUE.equals(jdbc.queryForObject("""

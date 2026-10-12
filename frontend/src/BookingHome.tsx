@@ -1,13 +1,14 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import './booking.css';
 import CourseCard, { type Course } from './CourseCard';
 import CourseCoverEditor, { emptyCover, type CoverDraft } from './CourseCoverEditor';
 import type { MediaLink } from './coachProfileApi';
 import GeerLogo from './GeerLogo';
 import ContactPhoneInput from './ContactPhoneInput';
+import LessonSummaries from './LessonSummaries';
 
 type Account = { id: string; role: 'STUDENT' | 'COACH'; name: string; level: string | null };
-export type BookingDeepLink = { role: Account['role']; id: string };
+export type BookingDeepLink = { role: Account['role']; id: string; kind?: 'summary' };
 type Csrf = { token: string; headerName: string };
 type Page<T> = { items: T[]; nextCursor: string | null };
 type Mountain = { id: string; name: string; active: boolean };
@@ -23,7 +24,7 @@ function normalizedPhone(input: string): string | null {
   return /^\+[1-9][0-9]{6,14}$/.test(phone) ? phone : null;
 }
 const phoneValidationMessage = '请填写有效的联系电话。';
-type Tab = 'book' | 'mine' | 'courses' | 'availability' | 'applications';
+type Tab = 'book' | 'mine' | 'courses' | 'availability' | 'applications' | 'completed' | 'summaries';
 type DayInput = { localDate: string; startTime: string; endTime: string; mountainId: string };
 type MonthDay = { localDate: string; limitedMountain: Mountain | null; lockedMountain: Mountain | null;
   legacyReviewRequired: boolean; slots: Slot[] };
@@ -108,12 +109,18 @@ function statusLabel(status: Booking['status']) {
     : status === 'CANCELLED_BY_STUDENT' ? '学员已取消' : '已拒绝';
 }
 
-export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUnauthorized, authMessage, deepLink, onAbout, onProfile }:
+export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUnauthorized, authMessage, deepLink, onAbout, onProfile, onUnsavedChange }:
   { account: Account; csrf: Csrf | null; refreshCsrf: () => Promise<Csrf>; onLogout: () => Promise<void>;
-    onUnauthorized: () => void; authMessage: string; deepLink: BookingDeepLink | null; onAbout: () => void; onProfile: () => void }) {
+    onUnauthorized: () => void; authMessage: string; deepLink: BookingDeepLink | null; onAbout: () => void; onProfile: () => void; onUnsavedChange: (dirty: boolean) => void }) {
   const [tab, setTab] = useState<Tab>(deepLink?.role === account.role
-    ? account.role === 'COACH' ? 'applications' : 'mine'
+    ? deepLink?.kind === 'summary' ? account.role === 'COACH' ? 'summaries' : 'completed' : account.role === 'COACH' ? 'applications' : 'mine'
     : account.role === 'COACH' ? 'applications' : 'book');
+  const summaryDirty = useRef(false);
+  const markSummaryDirty = useCallback((dirty: boolean) => { summaryDirty.current = dirty; onUnsavedChange(dirty); }, [onUnsavedChange]);
+  function leaveSummary(action: () => void) {
+    if (!summaryDirty.current || window.confirm('课程总结尚未保存，确定离开吗？')) action();
+  }
+  function navigateTab(next: Tab) { leaveSummary(() => setTab(next)); }
   const [courses, setCourses] = useState<Course[]>([]);
   const [mountains, setMountains] = useState<Mountain[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -230,6 +237,11 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
       setTargetError('此预约链接需要使用对应角色的账号登录。');
       return;
     }
+    if (deepLink.kind === 'summary') {
+      setTargetBooking(null); setTargetError('');
+      setTab(account.role === 'COACH' ? 'summaries' : 'completed');
+      return;
+    }
     let active = true;
     setTab(account.role === 'COACH' ? 'applications' : 'mine');
     setTargetBooking(null);
@@ -245,7 +257,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
       else setTargetError(reason instanceof Error ? reason.message : '预约加载失败，请重试。');
     });
     return () => { active = false; };
-  }, [account.id, account.role, deepLink?.id, deepLink?.role, reload]);
+  }, [account.id, account.role, deepLink?.id, deepLink?.role, deepLink?.kind, reload]);
 
   useEffect(() => {
     if (!targetBooking) return;
@@ -604,17 +616,18 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
         <GeerLogo className="booking-logo" />
         <nav aria-label="主导航">
           {account.role === 'STUDENT' ? <>
-            <button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => setTab('book')}>约课</button>
-            <button type="button" onClick={onAbout}>关于 GEER</button>
-            <button type="button" className={tab === 'mine' ? 'active' : ''} onClick={() => setTab('mine')}>我的预约</button>
+            <button type="button" className={tab === 'book' ? 'active' : ''} onClick={() => navigateTab('book')}>约课</button>
+            <button type="button" onClick={() => leaveSummary(onAbout)}>关于 GEER</button>
+            <button type="button" className={tab === 'mine' || tab === 'completed' ? 'active' : ''} onClick={() => navigateTab('mine')}>我的预约</button>
           </> : <>
-            <button type="button" className={tab === 'courses' ? 'active' : ''} onClick={() => setTab('courses')}>创建课程</button>
-            <button type="button" className={tab === 'availability' ? 'active' : ''} onClick={() => setTab('availability')}>管理可用时间</button>
-            <button type="button" className={tab === 'applications' ? 'active' : ''} onClick={() => setTab('applications')}>预约申请</button>
-            <button type="button" onClick={onProfile}>个人主页</button>
+            <button type="button" className={tab === 'courses' ? 'active' : ''} onClick={() => navigateTab('courses')}>创建课程</button>
+            <button type="button" className={tab === 'availability' ? 'active' : ''} onClick={() => navigateTab('availability')}>管理可用时间</button>
+            <button type="button" className={tab === 'applications' ? 'active' : ''} onClick={() => navigateTab('applications')}>预约申请</button>
+            <button type="button" className={tab === 'summaries' ? 'active' : ''} onClick={() => navigateTab('summaries')}>课程总结</button>
+            <button type="button" onClick={() => leaveSummary(onProfile)}>个人主页</button>
           </>}
         </nav>
-        <div className="booking-account"><span>{account.name}</span><button type="button" onClick={onLogout}>退出</button></div>
+        <div className="booking-account"><span>{account.name}</span><button type="button" onClick={() => leaveSummary(() => { void onLogout(); })}>退出</button></div>
       </div>
     </header>
 
@@ -710,13 +723,21 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
           </aside>
         </div>
         <section className="booking-panel booking-recent"><div className="panel-heading"><h2>我的预约</h2>
-          <button type="button" onClick={() => setTab('mine')}>查看全部</button></div>
+          <button type="button" onClick={() => navigateTab('mine')}>查看全部</button></div>
           {cancelFeedback && <p className="booking-inline-status success" role="status">{cancelFeedback}</p>}
           {bookings.length === 0 ? <p className="booking-empty">还没有预约申请。</p> :
             <BookingList items={bookings.slice(0, 2)} busy={busy} cancelBookingId={cancelBookingId} cancelReason={cancelReason} cancelError={cancelError}
               onReasonChange={setCancelReason} onCancelStart={(booking) => { setCancelBookingId(booking.id); setCancelReason(''); setCancelError(''); }}
               onCancelClose={() => setCancelBookingId(null)} onCancel={cancelMine} />}</section>
       </>}
+
+      {account.role === 'STUDENT' && (tab === 'mine' || tab === 'completed') && <nav className="lesson-history-tabs" aria-label="预约历史分类">
+        <button type="button" className={tab === 'mine' ? 'active' : ''} aria-pressed={tab === 'mine'} onClick={() => navigateTab('mine')}>全部预约</button>
+        <button type="button" className={tab === 'completed' ? 'active' : ''} aria-pressed={tab === 'completed'} onClick={() => navigateTab('completed')}>已完成课程</button>
+      </nav>}
+      {(tab === 'completed' || tab === 'summaries') && <LessonSummaries coach={account.role === 'COACH'}
+        targetId={deepLink?.kind === 'summary' && deepLink.role === account.role ? deepLink.id : undefined}
+        refreshCsrf={refreshCsrf} onUnauthorized={onUnauthorized} onDirtyChange={markSummaryDirty} />}
 
       {account.role === 'STUDENT' && tab === 'mine' && <section className="booking-panel">
         <div className="panel-heading"><h2>我的预约</h2><button type="button" onClick={() => setReload((value) => value + 1)}>刷新状态</button></div>

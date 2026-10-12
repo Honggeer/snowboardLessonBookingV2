@@ -58,3 +58,9 @@ python3 deploy/aws/render_aws_templates.py --parameters deploy/aws/parameters.ex
 GitHub workflow 调用 `ci/` 中的脚本；发布包从 `runtime/` 读取程序，再打包为既有的 `deploy/release.py`、`deploy/backup.py` 等包内路径。EC2 的 `/opt/snowboard-v2/bin/` 安装入口与 `/opt/snowboard-v2/releases/<SHA>/` 版本目录沿用现有约定。整理仓库目录后，下次发布仍与已安装的 dispatcher 和备份定时任务兼容。
 
 服务器操作和备份恢复步骤见 [生产运维手册](docs/PRODUCTION_RUNBOOK.md)；服务器配置背景见 [EC2 准备指南](docs/EC2_SETUP.md)。
+
+## 课后总结邮件开关（0013）
+
+本地与生产 Compose 均传递 `LESSON_SUMMARY_REMINDERS_ENABLED`，默认 `true`，非秘密参数。关闭只暂停教练课后提醒的规划与领取，保留任务；学生首次发布总结通知、原预约通知和课前提醒保持各自规则。课前开关为 `BOOKING_REMINDERS_ENABLED`，预约邮件总开关为 `BOOKING_MAIL_WORKER_ENABLED`。
+
+V14 首次迁移永久标记当时已结束的课程，避免补发历史教练提醒；旧课仍可补写并通知学生。生产执行前评估历史更新行数和索引构建耗时，并按既有流程备份。回退不识别新事件的旧应用前必须先暂停**全部预约邮件 worker**，保留新数据/任务；只关闭课后提醒不足以保护学生发布任务。此次本地实现未执行生产迁移或交付，验证与限制见 [0013 计划](../ai-docs/implement-plan/0013-lesson-summaries.md)。

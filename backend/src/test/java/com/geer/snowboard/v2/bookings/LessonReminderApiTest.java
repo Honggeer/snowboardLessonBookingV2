@@ -49,7 +49,8 @@ class LessonReminderApiTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("CONFIRMED"));
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=? AND event_type LIKE '%LESSON_REMINDER'",Integer.class,id)).isEqualTo(2);
         assertThat(jdbc.queryForList("SELECT event_type FROM bookings_mail_task WHERE booking_id=?",String.class,id))
-                .containsExactlyInAnyOrder("APPLICATION_RECEIVED","BOOKING_CONFIRMED","STUDENT_LESSON_REMINDER","COACH_LESSON_REMINDER");
+                .containsExactlyInAnyOrder("APPLICATION_RECEIVED","BOOKING_CONFIRMED","STUDENT_LESSON_REMINDER","COACH_LESSON_REMINDER","COACH_SUMMARY_REMINDER");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task t JOIN bookings_request b ON b.id=t.booking_id WHERE t.booking_id=? AND t.event_type='COACH_SUMMARY_REMINDER' AND t.next_attempt_at=b.end_at_utc_snapshot AND t.summary_end_at_utc=b.end_at_utc_snapshot AND t.recipient_account_id=b.coach_id",Integer.class,id)).isEqualTo(1);
         Instant start=jdbc.queryForObject("SELECT start_at_utc_snapshot FROM bookings_request WHERE id=?",(rs,row)->rs.getObject(1,LocalDateTime.class).toInstant(ZoneOffset.UTC),id);
         assertThat(jdbc.query("SELECT next_attempt_at FROM bookings_mail_task WHERE booking_id=? AND event_type LIKE '%LESSON_REMINDER'",(rs,row)->rs.getObject(1,LocalDateTime.class).toInstant(ZoneOffset.UTC),id))
                 .containsOnly(start.minus(Duration.ofHours(40)));
@@ -67,6 +68,18 @@ class LessonReminderApiTest {
             assertThat(jdbc.queryForObject("SELECT status FROM scheduling_slot WHERE id=?",String.class,f.slot())).isEqualTo("OPEN");
             assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",Integer.class,id)).isEqualTo(1);
         } finally { jdbc.execute("ALTER TABLE bookings_mail_task DROP CHECK ck_confirm_reminder_test"); }
+    }
+    @Test void summaryReminderWriteFailureRollsBackConfirmationAllMailAndSlotClaim() throws Exception {
+        var f=fixture();jdbc.update("UPDATE identity_account SET contact_phone='+14165550123' WHERE id=?",f.student());
+        String id=booking(f,UUID.randomUUID().toString());
+        jdbc.execute("ALTER TABLE bookings_mail_task ADD CONSTRAINT ck_summary_confirmation_failure CHECK(event_type<>'COACH_SUMMARY_REMINDER' OR booking_id<>'"+id+"')");
+        try {
+            mvc.perform(post("/api/coach/bookings/{id}/confirm",id).with(user(f.coach()).roles("COACH")).with(csrf())).andExpect(status().isServiceUnavailable());
+            assertThat(jdbc.queryForObject("SELECT status FROM bookings_request WHERE id=?",String.class,id)).isEqualTo("PENDING");
+            assertThat(jdbc.queryForObject("SELECT status FROM scheduling_slot WHERE id=?",String.class,f.slot())).isEqualTo("OPEN");
+            assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM bookings_mail_task WHERE booking_id=?",Integer.class,id)).isEqualTo(1);
+            assertThat(jdbc.queryForObject("SELECT lesson_summary_reminder_planned_at FROM bookings_request WHERE id=?",Object.class,id)).isNull();
+        } finally {jdbc.execute("ALTER TABLE bookings_mail_task DROP CHECK ck_summary_confirmation_failure");}
     }
     @Test void concurrentConfirmationAndBackfillCreateExactlyOneReminderPerRecipient() throws Exception {
         var f=fixture(); jdbc.update("UPDATE identity_account SET contact_phone='+14165550123' WHERE id=?",f.student());

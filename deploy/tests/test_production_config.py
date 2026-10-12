@@ -46,9 +46,11 @@ class ProductionConfigTest(unittest.TestCase):
     def test_reminders_and_booking_mail_worker_are_independently_switchable(self):
         for value in ("true", "false"):
             env = self.config({**PRODUCTION, "BOOKING_REMINDERS_ENABLED": value,
-                               "BOOKING_MAIL_WORKER_ENABLED": value})["services"]["backend"]["environment"]
+                               "BOOKING_MAIL_WORKER_ENABLED": value,
+                               "LESSON_SUMMARY_REMINDERS_ENABLED": value})["services"]["backend"]["environment"]
             self.assertEqual(env.get("BOOKING_REMINDERS_ENABLED"), value)
             self.assertEqual(env.get("BOOKING_MAIL_WORKER_ENABLED"), value)
+            self.assertEqual(env.get("LESSON_SUMMARY_REMINDERS_ENABLED"), value)
 
     def test_missing_parameters_fail_closed(self):
         self.config()

@@ -71,6 +71,7 @@ class BookingMailWorkerTest {
     @Autowired FakeSender sender;
     @Autowired Clock clock;
     @Autowired BookingStore bookings;
+    @Autowired com.geer.snowboard.v2.bookings.application.port.out.LessonSummaryStore summaries;
     @Autowired BookingMailContacts contacts;
     @Autowired BookingLinkBase links;
 
@@ -83,7 +84,7 @@ class BookingMailWorkerTest {
         Fixture fixture = booking("REJECTED");
         jdbc.update("UPDATE bookings_request SET decision_reason='当天已确认在其他雪场授课' WHERE id=?", fixture.bookingId());
         queue.enqueue(fixture.bookingId(), "BOOKING_REJECTED", fixture.studentId(), clock.instant());
-        new BookingMailWorker(queue, bookings, contacts, sender, clock, links, new BookingReminderSettings(false)).runOnce();
+        new BookingMailWorker(queue, bookings, contacts, sender, clock, links, new BookingReminderSettings(false),summaries,new com.geer.snowboard.v2.bookings.application.port.out.LessonSummarySettings(true)).runOnce();
         assertThat(sender.messages).hasSize(1);
         assertThat(sender.messages.getFirst().email()).isEqualTo(fixture.studentId() + "@example.test");
         assertThat(sender.messages.getFirst().subject()).isEqualTo("GEER 预约申请未通过");

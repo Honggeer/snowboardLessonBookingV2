@@ -28,4 +28,6 @@ public interface BookingStore {
     boolean hasPendingDay(String coachId, LocalDate date);
     List<Booking> lockUnplannedReminders(Instant now, int limit);
     boolean markReminderPlanned(String bookingId, Instant now);
+    List<Booking> lockUnplannedSummaryReminders(int limit);
+    boolean markSummaryReminderPlanned(String bookingId, Instant now);
 }
