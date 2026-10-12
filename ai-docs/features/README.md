@@ -22,6 +22,6 @@
 | 0010 | [首次生产上线与 CI/CD](0010-production-delivery.md) | [0010](../implement-plan/0010-production-delivery.md) | IMPLEMENTED | 2026-10-05 |
 | 0011 | [首次预约前填写联系电话](0011-student-contact-phone.md) | [0011](../implement-plan/0011-student-contact-phone.md) | VERIFIED | 2026-10-06 |
 | 0012 | [已确认预约课前邮件提醒](0012-lesson-reminder-emails.md) | [0012](../implement-plan/0012-lesson-reminder-emails.md) | VERIFIED | 2026-10-06 |
-| 0013 | [课后总结、练习作业与邮件通知](0013-lesson-summaries.md) | [0013](../implement-plan/0013-lesson-summaries.md) | VERIFIED | 2026-10-12 |
+| 0013 | [课后总结、练习作业与邮件通知](0013-lesson-summaries.md) | [0013](../implement-plan/0013-lesson-summaries.md) | RELEASED | 2026-10-12 |
 
 0010 的 deploy 目录整理已完成本地验证；当前目录与命令见 [部署入口](../../deploy/README.md)，实际证据保存在配对记录中。目录整理已由用户提交推送；生产密钥文件权限维护已实际执行并验证，代码发布状态另按远端 CI/CD 结果核对。

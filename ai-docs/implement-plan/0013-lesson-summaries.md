@@ -1,7 +1,7 @@
 ---
 id: "0013"
 title: "课后总结、练习作业与邮件通知"
-status: VERIFIED
+status: RELEASED
 revision: 2
 approved_revision: 2
 created: 2026-10-12
@@ -136,11 +136,16 @@ feature: "../features/0013-lesson-summaries.md"
 | 2026-10-12 | backend；Java 25/真实 MySQL 8.4/Mailpit | `env DOCKER_HOST=unix:///Users/geerhong/.colima/default/docker.sock TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=/var/run/docker.sock ./mvnw -q clean test` | **51 类 / 226 tests / 0 failures / 0 errors / 0 skipped；Maven exit 0**；ArchUnit 通过 | `.local/lesson-summaries/backend-regression-final.log`、`backend-test-summary.json`；clean 后生成的全部报告均为本轮，复现 TODO-0034 Surefire 30 秒收尾超时/Hikari 临时库警告，未改该根因 |
 | 2026-10-12 | backend；真实 MySQL 8.4 | `./mvnw -q -Dtest=LessonSummaryApiTest,ArchitectureTest test`（同 Colima 环境） | 最后补充发布后学生读取最新三块内容断言，8 API + 4 架构 tests 通过；exit 0 | `.local/lesson-summaries/backend-final-target.log`；完整回归后仅补测试断言，无生产代码变化 |
 | 2026-10-12 | 仓库根目录 | `python3 ai-docs/check_docs.py`；`git diff --check` | 最终文档门槛、14 对记录/40 tickets、索引/状态/链接及空白检查通过 | 用户独立 frontend/README.md SHA256 与任务前一致；没有 commit/push/部署/真实邮件 |
+| 2026-10-12 | Git / GitHub CI | `git commit`（`feat: add lesson summaries and post-lesson emails`）；`git push origin main`；`gh run view 38303634237 --json ...` 及日志 | 功能提交 `18dc467397e80bf25349c8d88ea7690302ae2815` 推送 main；[CI 38303634237](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/38303634237) 三个 job success；后端 226 tests、0 failures/errors/skips、BUILD SUCCESS；前端 99 / 部署 29 tests 及其余检查通过 | `.local/lesson-summaries/production-ci.json/.log`；Ubuntu 同样复现 TODO-0034 30 秒 JVM 收尾超时，已补充原 ticket，未修复其根因 |
+| 2026-10-12 | 既有生产 EC2，发布前 | 通过现有运维入口发送只读 Runtime 预检；当前成功版本 `deploy/backup.py run/status --config /etc/snowboard-v2/host.json` | 预检 SSM `d1d2cf8e-031d-4d81-8156-598811a6da11` Success/0：提交 `0455e1f`、schema 13、预约总数 4 / 已结束 0 / 未来已确认 1，约 16.2 GB 可用，三个容器 healthy；备份 SSM `4858fadb-f2db-4402-b1d5-231e86f7f8e4` Success/0，快照 `2026-10-12T20:20:41.228096+00:00` / schema 13 / 159619 bytes，`db-backups/20261012T202041Z-33b29d28d21e/` 已有成功标记，status 通过 | 在推送触发发布前完成；只输出聚合统计、不输出数据或凭证。证据 `.local/lesson-summaries/release-evidence.json` 及运维入口受限结果文件；没有恢复生产库 |
+| 2026-10-12 | GitHub Production delivery / 固定 SSM 发布文档 | `gh run view 38304324171 --json .../--log`；独立 `aws ... ssm get-command-invocation` | [Production delivery 38304324171](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/38304324171) gate/publish success，ARM64 镜像及媒体探针通过；SSM `b46fb64c-b592-401e-bee6-56d8d42838a9` Success/0 / `deployed`，执行 20:29:30–20:30:07 UTC；发布提交为 `18dc467397e80bf25349c8d88ea7690302ae2815` | `.local/lesson-summaries/production-delivery.json/.log`、`release-ssm-invocation.json`；未新增云资源 |
+| 2026-10-12 | 生产发布后 / HTTPS | SSM `34d09e5f-3cad-4f13-918a-9d731a2bf85f` 只读 Runtime/聚合查询/docker inspect；`python3 .local/lesson-summaries/public-smoke.py` | SSM Success/0；current/last-release 均为功能提交，schema 14、指纹一致、三个新索引存在；前后端实际镜像与 manifest 一致；三个容器 healthy、无 OOM、重启 0。预约仍 4 条 / 已结束 0 / 未来已确认 1；总结 0，课后 PENDING 1 / 尝试 0；总 worker/课后开关 true。首页 Ride With GEER 与健康 UP 均 200，`index-D99ACs5e.js` 含三块与两入口；四个未登录读取 401，CSRF Cookie Secure/HttpOnly/SameSite=Lax | `.local/lesson-summaries/public-smoke-result.json` 及运维结果。生产技术发布已验证；未使用真实用户数据写总结或发送测试邮件，不把健康检查当作实际收件验收 |
+| 2026-10-12 | 仓库根目录，发布记录同步 | `python3 ai-docs/check_docs.py`；`git diff --check`；独立 README SHA256 核对 | RELEASED 配对记录/索引通过：14 对记录、40 tickets，空白检查通过；用户 frontend/README.md 与任务前完全一致 | 只提交本功能发布文档，保留用户独立修改 |
 
 ## 9. 完成状态与后续
 
-- 当前 **VERIFIED / revision 2 / approved_revision 2**；本地实现及验收完成，尚未 RELEASED。
+- 当前 **RELEASED / revision 2 / approved_revision 2**；本地实现/验收与用户随后授权的生产交付均完成。生产代码提交 `18dc467397e80bf25349c8d88ea7690302ae2815`，地址 [Ride With GEER](https://ridewithgeer.com)。
 - 已确认提醒时点、历史范围和三个独立内容区；草稿、首次发布、发布后修改不重复通知均属已批准 revision 2。
-- 已取得 HTTP/DOM 行为 RED 并实现 GREEN，最终全量验收及实际证据已齐全；Git/生产交付按后续实际授权处理。
+- 已取得 HTTP/DOM 行为 RED 并实现 GREEN，最终全量验收、迁移前备份、远端 CI/SSM 及独立发布后检查均有实际证据。
 - 功能/计划/两个索引同步；本工作已完整记录在配对计划内，不重复建待办 ticket。用户原有 frontend/README.md 修改保持原样。
-- 2026-10-12 用户最新“提交推送部署”已授权生产交付；当前启动发布流程，RELEASED 仅在实际 CI/SSM/生产验证成功后记录。
+- 2026-10-12 用户最新“提交推送部署”授权已执行，RELEASED 依据上述实际结果。发布记录作为单独文档提交同步，使用 `[skip ci]` 避免仅记录证据就再次部署；生产镜像继续固定于功能提交。真实邮件收件留待业务使用验收，既有 TODO-0034 仍 OPEN。

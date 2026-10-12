@@ -1,7 +1,7 @@
 ---
 id: "0013"
 title: "课后总结、练习作业与邮件通知"
-status: VERIFIED
+status: RELEASED
 plan: "../implement-plan/0013-lesson-summaries.md"
 created: 2026-10-12
 updated: 2026-10-12
@@ -19,7 +19,7 @@ modules: [bookings, identity]
 - 配对[实施计划 0013 revision 2](../implement-plan/0013-lesson-summaries.md)于 2026-10-12 获用户明确“批准”；以下交互、数据与可靠性规则均在批准范围内。
 - 包含：教练课后提醒、三块文字总结、草稿及发布、教练补写/修改入口、学生“已完成课程”分栏、发布通知、授权深链接和可靠投递。
 - 课程结束按现有预约的结束时间快照判断；保留预约的 CONFIRMED 状态，新增课程历史查询，不引入预约 COMPLETED 状态或改变占位、雪场锁定、取消资格。这里的“已完成”是排课时间已结束，不是出勤核验。
-- 不包含：考勤/缺席认定、反复催写、图片/视频附件、学生回复或提交作业、评分、总结版本历史、新邮件供应商、v1 数据导入。Git 操作和生产交付不在本次本地实现授权中。
+- 不包含：考勤/缺席认定、反复催写、图片/视频附件、学生回复或提交作业、评分、总结版本历史、新邮件供应商、v1 数据导入。Git 操作和生产交付最初不在本地实现授权中，2026-10-12 用户随后明确“提交推送部署”，交付证据见第 9–11 节。
 
 ## 2. 验收条件
 
@@ -125,6 +125,7 @@ modules: [bookings, identity]
 | 2026-10-12 | 本文、配对计划、两份索引（revision 1） | 新功能需求分析与具体设计；尚无本功能测试、实现、迁移或发送邮件 |
 | 2026-10-12 | 本文、配对计划、计划索引（revision 2） | 用户要求由两块拆为三个独立内容区，已同步字段、发布必填、学生展示、schema、验收及成本；仍等待完整计划批准 |
 | 2026-10-12 | 后端领域/端口/服务、JDBC/V14/Web、预约确认/worker/poller、新配置与两类邮件；前端 LessonSummaries/样式及 App/BookingHome 导航 | revision 2 按批准实现；独立开关关闭时迟确认仍持久标记，防止恢复后补提醒；请求 helper 与提醒集成测试按实际文件组织，业务/数据/架构范围不变 |
+| 2026-10-12 | 配对文档/两个索引 RELEASED、TODO-0034 跨环境复现记录 | 按用户“提交推送部署”完成提交、备份及生产发布，补充实际 CI/SSM/HTTPS 结果；不改变批准的业务与实现范围 |
 
 ## 9. 验证证据
 
@@ -135,6 +136,9 @@ modules: [bookings, identity]
 | 2026-10-12 | Java 25 / MySQL 8.4 Testcontainers / Mailpit v1.31.3 | HTTP 3 及 DOM 2 行为 RED→同目标 GREEN；目标/API/领域/worker/升级测试；`./mvnw -q clean test`（Colima 环境） | 全量 51 类 / 226 tests，0 failures/errors/skips，Maven exit 0；架构检查通过，邮件实际进入隔离邮箱 | 复现已知 TODO-0034 Surefire 30 秒收尾超时，未修复根因；全部报告为本轮 clean 后生成 |
 | 2026-10-12 | frontend/deploy | `npm test`、`npm run lint`、`npm run build`；`python3 -m unittest discover -s deploy/tests -p 'test_*.py'` | 前端 99 tests、部署配置 29 tests、lint/typecheck/Vite build 通过 | 完整过程/原始失败与修正记录见配对计划第 8 节 |
 | 2026-10-12 | 本地真实 Chrome / 实际 API / 独立 MySQL/Mailpit | 390px 与 1440px：草稿保存刷新恢复、发布、退出/学生邮件链接登录、三块只读及完成课列表 | 两尺寸通过，0 溢出/0 脚本错误；Mailpit 共实收 2 教练提醒 + 2 学生通知 | 运行产物在忽略目录 `.local/lesson-summaries`；沙箱服务/容器已清理，没有访问真实用户数据或发送真实邮件 |
+| 2026-10-12 | GitHub CI，提交 `18dc467397e80bf25349c8d88ea7690302ae2815` | [CI 38303634237](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/38303634237) | 后端 226 tests / 前端 99 tests / 部署配置 29 tests；三个 job 均 success，构建/lint/typecheck/文档/Compose 通过 | CI 同样复现既有 TODO-0034 JVM 收尾超时，Maven BUILD SUCCESS；未修改该根因 |
+| 2026-10-12 | 既有生产 EC2 / V13 | SSM 只读预检及当前版本 `backup.py run/status` | 原版本 `0455e1f` / schema 13 / 预约 4 条（已结束 0、未来已确认 1）；磁盘可用约 16.2 GB，三个容器 healthy；20:20:41 UTC 一致备份 `20261012T202041Z-33b29d28d21e` 已上传成功标记 | 只输出聚合数量，无真实用户内容；完整记录见配对计划 |
+| 2026-10-12 | 既有生产流水线 / ridewithgeer.com | [Production delivery 38304324171](https://github.com/Honggeer/snowboardLessonBookingV2/actions/runs/38304324171)；SSM `b46fb64c-b592-401e-bee6-56d8d42838a9`；独立只读检查及 HTTPS 冒烟 | 20:30:07 UTC 发布成功；实际运行提交 `18dc467`，V14 迁移/指纹匹配，三个新索引存在；前后端镜像匹配 manifest，三个容器 healthy / 无 OOM / 重启 0；预约仍 4 条，worker 与课后开关 true；首页/健康 200，新前端资源及 401/安全 Cookie 检查通过 | 总结尚无业务写入；未来课程已规划 1 个 PENDING 提醒，尝试 0；未向真实用户发测试邮件，不将 UP 视为生产邮件实际送达 |
 
 - 测试先行、MySQL 并发、架构/权限、Mailpit、浏览器及最终全量均实际执行，完整命令、日志与限制见配对计划第 8 节。
 
@@ -143,10 +147,10 @@ modules: [bookings, identity]
 - 沿用 EC2/MySQL/现有邮箱，不引入库、云服务、秘密或额外线程；新存储为三块有限文本、标记/索引及每课最多两条新邮件任务，每条最多 8 次投递尝试。邮件增量计入现有配额，不承诺月预算不变或无限容量。
 - 新非秘密开关补充 application.properties、两份 Compose 和示例 env；不修改真实 env。生产升级需要既有备份、评估历史标记更新量、迁移验证和独立授权。
 - 旧版不认识新邮件事件；回退先暂停全部预约邮件 worker，保留 V14/新数据，恢复支持本功能的版本后再处理积压。不开 DOWN 迁移、不删除总结，数据库恢复按已授权备份方案执行。
-- 2026-10-12 用户在本地验收完成后明确要求“提交推送部署”，现已授权本功能 Git 和生产交付及 V14 迁移，正在执行既有发布流程。技术自动发布和真实收件业务验收分别记录。
+- 2026-10-12 用户在本地验收完成后明确要求“提交推送部署”，本功能已按既有流水线交付并完成 V14 迁移及生产技术检查。迁移前备份、CI、SSM 和发布后证据见第 9 节及配对计划；没有新增云资源。真实收件业务验收与技术发布分别记录。
 
 ## 11. 交付状态与后续
 
-- 当前 **VERIFIED**：2026-10-12 用户“批准”具体 revision 2，已本地实现并完成验收；尚未 RELEASED。批准与证据见配对计划。
+- 当前 **RELEASED**：2026-10-12 用户批准 revision 2 后完成本地验收，并按随后“提交推送部署”授权发布至 [Ride With GEER](https://ridewithgeer.com)；线上代码提交 `18dc467397e80bf25349c8d88ea7690302ae2815`。批准与实际证据见配对计划。
 - 草稿/发布、发布后修改不重复通知、三块字数上限及实现方案已随 revision 2 批准；业务及三块结构的原话见第 1/3 节。
-- 已执行目标测试 RED→实现 GREEN 及全量回归；保留用户独立的 frontend/README.md 修改，不将旧“提交推送”请求视为本功能 Git 授权。
+- 已执行目标测试 RED→实现 GREEN、全量回归和生产技术检查；保留用户独立的 frontend/README.md 修改。生产邮件实际收件尚未以真实用户测试，既有 TODO-0034 仍 OPEN。
