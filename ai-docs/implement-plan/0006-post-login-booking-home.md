@@ -2,24 +2,26 @@
 id: "0006"
 title: "登录后约课主界面"
 status: VERIFIED
-revision: 5
-approved_revision: 5
+revision: 6
+approved_revision: 6
 created: 2026-09-30
-updated: 2026-10-05
+updated: 2026-10-12
 feature: "../features/0006-post-login-booking-home.md"
 ---
 
-# 0006 — 登录后约课主界面实施计划（revision 5 已验证）
+# 0006 — 登录后约课主界面实施计划（revision 6 已本地验证）
+
+> **当前获批范围仅为文末 revision 6：教练月历绿色/黄色状态边框的本地实现与验证。** 2026-10-12 用户原话“批准，google calender列入todo”；按 WORK-09 先取得行为 RED，再实现 GREEN。revision 1–5 的批准和验证均保留为历史。此前“提交推送部署”已执行于 0013，不授权本修订的 Git 或生产交付。Google Calendar 仅列入 [TODO-0041](../todo/0041-confirmed-lessons-google-calendar.md)，不实现或连接账号。
 
 2026-10-06 首次预约前填写电话和教练联系显示的扩展见[计划 0011 revision 1](0011-student-contact-phone.md)，已按批准的 revision 1 完成本地验证（VERIFIED）；此项未纳入 revision 1–5 的已有批准与验证范围。
 
-> 2026-10-05 用户“批准”revision 5，当前实施范围仅为文末 revision 5：取消排班日期的未来 31 天上限。revision 1–4 的批准、实现和验证均作为历史保留；其中“未来 31 天”是旧修订的排班规则。按批准范围先写目标测试并取得 RED，再实现至 GREEN。前文关于“时段绑定课程”的描述只适用于 revision 1。
+> 历史记录：2026-10-05 用户“批准”revision 5，当时实施范围为取消排班日期的未来 31 天上限，已完成 RED/GREEN 与验证。revision 1–5 的批准、实现和验证均作为历史保留；其中“未来 31 天”是旧修订的排班规则。前文关于“时段绑定课程”的描述只适用于 revision 1。
 
 ## 1. Review 摘要
 
 用户希望登录后直接看到约课系统。已确认：学员浏览真实课程/时段并提交申请；固定两小时、一对一；提交后待教练确认且不占位，同一时段可多人申请；教练在工作区创建并发布课程/时段、确认或拒绝申请；教练设置 CAD 价格，线下付款。当前 v2 只有身份卡片和本地演示时段，无可预约真实数据。关联[功能契约 0006](../features/0006-post-login-booking-home.md)、[项目契约](../PROJECT_CONTRACT.md)与 [ADR 0001](../decisions/0001-v2-baseline.md)。
 
-上述“只有身份卡片”是 revision 1 开始前的历史背景。revision 2 的课程与可用时间分离、revision 3 的月历和导航、revision 4 的课程及预约操作均已验证；本次获批的 revision 5 在文末单独说明。
+上述“只有身份卡片”是 revision 1 开始前的历史背景。revision 2 的课程与可用时间分离、revision 3 的月历和导航、revision 4 的课程及预约操作均已验证；revision 5 已按当时批准范围完成验证。当前 revision 6 已批准、实现并本地验证，具体验收与证据另见文末。
 
 **revision 1 已获批准的边界**：①教练填写地点和 IANA 时区，不存在/重复的当地时间拒绝；②确认一人后自动拒绝同槽其他待确认申请；③同一学员同一时段只可申请一次；④课程/时段创建即发布，本版不编辑或撤销已发布项，也不处理取消/改期；⑤仅在应用内看状态，无邮件/在线支付。批准依据见下表。
 
@@ -34,6 +36,7 @@ feature: "../features/0006-post-login-booking-home.md"
 | 2026-09-30 | 用户在收到 revision 3 计划后回复：“开始实现” | 3 | 按 revision 3 教练三入口、月历多选及选中日整天替换方案实施；不含生产部署或 Git commit/push |
 | 2026-10-01 | 用户在收到 revision 4 计划后回复：“开始实现” | 4 | 按 revision 4 可见反馈、紧凑雪场管理、课程编辑/下架、必填拒绝理由、学员取消及再申请规则实施；不含生产部署或 Git commit/push |
 | 2026-10-05 | 用户在收到具体 revision 5 方案后回复：“批准” | 5 | 按 revision 5 前后端取消未来 31 天的排班日期上限并本地验证；保留批次/查询容量、过去时间和预约保护；不含 Git commit/push、生产部署或生产数据操作 |
+| 2026-10-12 | 用户在收到具体 revision 6 方案后回复：“批准，google calender列入todo” | 6 | 按 revision 6 实现教练月历状态边框、图例及可访问描述，保留选择/悬停/发布反馈，完成本地 RED/GREEN 与回归；Google Calendar 仅记录 TODO，不连接账号或实现；不含 Git commit/push 或生产部署 |
 
 revision 1、revision 2 的批准记录保留。revision 3 已获批准，按目标测试 RED → 实现 GREEN → 回归执行。
 
@@ -480,3 +483,84 @@ Maven 实际环境：`JAVA_HOME=/Users/geerhong/Library/Java/JavaVirtualMachines
 | 文档与空白 | 根目录 `python3 ai-docs/check_docs.py`、`git diff --check` | 通过；11 对功能/计划、34 张 ticket 的链接、索引、状态和批准门槛一致。 |
 
 本地运行产物在忽略的 `.local/availability-revision5/`：`frontend-red.log`、`frontend-green.log`、`backend-red.log`、`backend-green.log`、`backend-final-target.log`、各项回归日志、`browser-result.json` 及 390/1440px 月历截图。没有运行生产写请求、SMTP 发送、迁移、提交推送或部署；前一任务已验证的 Logo 改动保留。本地 IDEA 后端需重启以加载新的校验，测试 Maven 编译不等于正在运行的 IDEA 进程已更新。
+
+### Revision 6：教练月历日期状态边框（已实现，本地验证通过）
+
+#### Review 摘要与已核对事实
+
+2026-10-12 用户要求“管理可用时间”中有课日期用绿色边框、有可用时段日期用黄色边框，勾选效果不变。用户随后回复“是，按这个规则”，确认“有课”指已确认课程；两种状态并存时绿色优先，选中照旧。当时为业务规则确认；具体 revision 6 计划后于同日由用户“批准，google calender列入todo”明确批准。
+
+已读取根/前端 AGENTS、项目契约、索引、ADR 0001、0006 revision 3/5 的日历规则、当前待办与源码。`BookingHome.tsx` 的 MonthDay 已有 `slots[].status`；`SlotService.month` / `JdbcSlotStore.slotsInMonth` 返回当前月份 OPEN/BOOKED 时段，无需新增查询或加载全部预约申请。现有选中/可选日期悬停为蓝底白字，`just-published:not(.selected)` 却会额外显示绿色；后者需要服从新的“绿色表示有已确认课程”规则。
+
+#### 具体方案
+
+1. 仅使用每一天的月度时段状态：存在 BOOKED → 有已确认课程；否则存在 OPEN → 有可用时段；否则默认状态。无论预约申请列表当前分页加载到哪里，颜色都不受它影响。OPEN 表达已发布未占用时段，不额外引入客户端的可预约业务判断；过去日期继续仅查看并显示其历史状态边框。
+2. 在 `frontend/src/BookingHome.tsx` 给日期格附加派生状态和文字描述；图例显示“绿色：有已确认课程”“黄色：有可用时段”。保持日期 `aria-label`、`aria-pressed`、点击/多选/跨月/详情/发布请求与容量校验。必要的状态描述通过 `aria-describedby` 关联，避免只靠颜色区分。
+3. 在 `frontend/src/booking.css` 保持原边框宽度及尺寸，只修改状态边框色：绿色 `#20a164`、黄色 `#b88700`。原有蓝色选中及可选日期悬停优先；取消选择或结束悬停恢复状态色。过去日期没有蓝色悬停的原有规则保留。键盘焦点反馈及手机七列布局继续执行。
+4. 去掉“刚发布”自动套绿色边框的冲突语义，保留其成功文字和既有反馈。月份刷新成功时使用服务器最新状态；刷新失败时保留已知日程和可见错误/重试，不把未知状态推断为已确认或空日程。确认/取消后的现有 reload 正常驱动月份颜色更新，不引入轮询或跨页面推送。
+
+#### 步骤与验证门槛
+
+| 步骤 | 预计文件/动作 | 完成条件 | 当前状态 |
+|---|---|---|---|
+| R6-P0 | 配对功能/计划、两个索引 | 给出规则、边界与具体验收，取得用户明确批准 revision 6，记录日期/原话/范围 | 已完成，批准原话见第 2 节 |
+| R6-P1 | 批准后新增 `frontend/src/CoachCalendarStatus.test.tsx`，复用现有 App 测试工具 | 按月份响应验证 BOOKED、OPEN、混合、空日程、预约第一页遗漏、选择恢复与发布刷新；实际运行目标用例因缺失状态反馈而 RED；环境/fixture 故障不算 RED | 已完成，4/4 有效 RED，原因见实际证据 |
+| R6-P2 | `BookingHome.tsx` / `booking.css` | 实现上述派生状态、图例/描述、边框与反馈优先级；同一目标测试 GREEN | 已完成，同一目标 4/4 GREEN |
+| R6-P3 | 前端回归与本地 Chrome | 前端全量测试、lint/类型/构建通过；390/1440px 检查实际边框、选中/取消/悬停、刚发布和七列宽度，无溢出/页面错误 | 已完成，103/103、lint/构建、两个尺寸 Chrome 检查均通过 |
+| R6-P4 | 配对记录/索引 | 记录实际 RED/GREEN、命令与浏览器证据；完成实现后标 IMPLEMENTED，必要验证通过后标 VERIFIED | 已完成，先 IMPLEMENTED；验收通过后配对记录/索引同步 VERIFIED |
+
+目标测试验证可观察的月份状态文字/可访问描述与交互，不只重复断言实现中的 CSS 类名。实际颜色和样式优先级由真实 Chrome 读取样式及截图检查；保留已有日期按钮名称，减少对现有交互用例的无关影响。fixture 中的 PENDING 预约不得令仍为 OPEN 的日期变绿；月份 BOOKED 不得因预约第一页无该课而遗漏。撤回记录不计活动状态，纯 CLOSED/未知状态不误报黄色。
+
+批准后执行：
+
+- `frontend/`：`npm test -- src/CoachCalendarStatus.test.tsx`，先有效 RED 后同一目标 GREEN；随后 `npm test`、`npm run lint`、`npm run build`（含 `tsc --noEmit`）。
+- 本地 Chrome：390px / 1440px，状态日期混排、选中/取消、悬停、跨月返回、发布成功/月度刷新失败；核对真实边框色、蓝色选择效果、状态描述及 `scrollWidth`。浏览器可使用明确标注的本地月份 fixture，不在生产写排班或预约。
+- 根目录：`python3 ai-docs/check_docs.py`、`git diff --check`。后端接口及数据不变，不重复后端全量或生产验证。
+
+#### 架构、数据、成本与恢复
+
+沿用既有授权的月度读取和纯当地日期，不新增 API/Java 代码、Flyway、依赖、后台任务、秘密或云资源；无新增架构例外/ADR。只改前端展示，回退相应 JSX/CSS 即可，不修改历史数据。用户原有 `frontend/README.md` 工作区修改保留。Git commit/push、生产部署和外部日历连接不在本具体计划的实现批准范围内。
+
+#### Google Calendar 咨询边界
+
+技术上可通过获得写权限的 Google Calendar API 为已确认课程创建事件，并在取消后删除对应事件；推荐作为独立的教练日历单向同步功能设计。具体采用自动同步还是手动添加、连接哪个日历、同步哪些课程/字段、是否回填历史及取消/授权失效处理，需单独确认并制定配对计划。尚未实现、连接账号或创建 Google Cloud 项目。
+
+官方资料已于 2026-10-12 核对：[创建事件与授权](https://developers.google.com/workspace/calendar/api/guides/create-events)、[事件删除](https://developers.google.com/workspace/calendar/api/v3/reference/events/delete)、[配额与费用](https://developers.google.com/workspace/calendar/api/guides/quota)。常规 API 使用目前无额外费用，但存在配额与后续计费调整，不能据此承诺永久免费或授权创建付费资源。
+
+#### 当前状态与实际证据
+
+- **VERIFIED（本地）/ revision 6 / approved_revision 6**。2026-10-12 用户“批准，google calender列入todo”批准本地实现；Google Calendar 已记录 TODO-0041。目标 4/4 RED → 同一目标 4/4 GREEN，实现完成后先记 IMPLEMENTED；全量前端 103/103、lint/类型/构建、两个尺寸 Chrome 和文档检查通过后记 VERIFIED。
+- 规划阶段只读源码/官方资料并更新文档，无本修订测试或实现。实现阶段仅变更 `BookingHome.tsx`、`booking.css` 与新增目标测试；无后端/API/数据/依赖/架构例外变化，无 Git commit/push、生产部署、外部账号连接或日历写入。
+- 规划阶段执行根目录 `python3 ai-docs/check_docs.py`、`git diff --check` 均通过：14 对功能/计划、40 张 ticket。批准并登记 TODO-0041 后及实现验收时，文档检查均通过：14 对记录、41 张 ticket、链接/索引/状态和 review 门槛一致；最终检查见下表。
+
+| 验证 | 实际命令/操作 | 实际结果与边界 |
+|---|---|---|
+| 目标 RED → GREEN | `frontend/`：`npm test -- src/CoachCalendarStatus.test.tsx` | 实现前 4/4 因日期缺失状态可访问描述而失败，退出 1；月份 fixture 已由旧有“已预约”文字确认加载，因此不是 fixture/环境错误。实现后同一命令 4/4 GREEN，退出 0。覆盖 BOOKED、OPEN、混合、CLOSED/空日程、PENDING/预约分页遗漏、跨月选择、发布刷新和失败重试。 |
+| 前端完整回归 | `frontend/`：`npm test` | 8 文件、103/103 通过，退出 0。 |
+| 静态、类型与构建 | `frontend/`：`npm run lint`、`npm run build` | 均退出 0；构建含 `tsc --noEmit`，Vite 处理 141 个模块成功。 |
+| Chrome 实际样式与交互 | 根目录：`node .local/coach-calendar-revision6/browser-check.mjs` | 390/1440px 共 2 组通过、退出 0。实际边框为绿色 `rgb(32,161,100)`、黄色 `rgb(184,135,0)`；混合绿色优先，选择/悬停蓝色优先，取消恢复；1px 宽度与各日期格选中前后尺寸一致。跨月、键盘 Space/焦点、历史灰底仅查看、图例/描述、发布/503 重试均通过，重复发布请求为 0。七列、无横向溢出、页面错误为 0；未选中/选中截图已查看。 |
+| 最新月份响应 | 同一 Chrome 脚本切换本地 fixture，再正常重载页面 | BOOKED→OPEN 恢复黄色，OPEN→BOOKED 变绿色；证明展示采用最新月份结果。仅本地 API fixture，不是后端确认/取消或生产端到端验证。 |
+| 文档、空白及工作区 | 根目录：`python3 ai-docs/check_docs.py`、`git diff --check`；检查 `frontend/README.md` SHA256 与暂存区 | 文档/空白检查通过：14 对记录、41 张 ticket。用户 README SHA256 保持 `71a20ad1701259d2baa58d4249dfbf853fdfc1df33b4034ae76f99b0e23c03d6`；未暂存/提交/推送或部署。 |
+
+本地证据位于忽略的 `.local/coach-calendar-revision6/`：`frontend-red.log`、`frontend-green.log`、`frontend-regression.log`、`frontend-lint.log`、`frontend-build.log`、`browser-check.log`、`browser-result.json`、`calendar-390.png` / `calendar-1440.png` 及对应选中截图。初次日志输出路径错误发生在测试执行前，不算 RED；浏览器旧临时 Playwright 缺少 core 文件，随后在忽略目录恢复相同 1.57.0 工具并使用已安装 Chrome，没有修改项目依赖。检查脚本的错误文字定位、不同网格列像素取整比较已修正；这些脚本/环境失败不记为功能 RED。后端与数据无变化，按批准计划未重跑后端全量、真实生产验证或发送邮件。
+
+#### 2026-10-12 展示维护：日期格显示锁定地点名称
+
+用户原话：“一个小改动，日历里面的已锁山能不能替换成地点名字？”这是现有月历内的文字展示维护，不改变日历/锁定业务规则或 revision 6 范围，按用户直接要求执行，不新增功能修订。`MonthDay.lockedMountain.name` 已由接口提供；仅在 `BookingHome.tsx` 的日期格将固定“已锁山”替换为该名称，保留原有“待映射”优先级、其他日期提示、状态边框和选择/详情。长名称沿用单行省略样式，点击日期仍可在详情阅读全名；无需 API/数据/CSS/依赖变化。
+
+验证沿用现有前端测试，不为纯文案新增永久测试。复用已有 Chrome 脚本的月份 fixture，检查锁定日的长地点名称、详情及手机七列。单行 JSX 替换完成后先进入 IMPLEMENTED，下列检查通过后进入 VERIFIED（本地）。未提交、推送或部署，用户独立 `frontend/README.md` 修改保留。
+
+| 验证 | 实际命令/操作 | 结果与边界 |
+|---|---|---|
+| 浏览器 RED → GREEN | 根目录 `node .local/coach-calendar-place-name/browser-check.mjs` | 旧展示的锁定日期只有“已锁山”，地点名称匹配数 0 而非 1，退出 1。替换后同一脚本 390/1440px 两组通过、退出 0；日期格使用接口名称，长名称单行省略且详情显示完整名称。绿色/黄色状态与蓝色选择、跨月、过去仅查看、发布/失败重试均通过；七列无横向溢出、页面错误为 0，截图已查看。仅本地接口 fixture，未操作生产。 |
+| 前端回归 | `frontend/`：`npm test` | 首次 102/103，一项学员电话用例找不到时段而超时；未改源码复跑同一命令 103/103、8 文件通过、退出 0。根因未定位，独立登记 TODO-0042，不声称修复或掩盖首次失败。 |
+| 静态、类型及构建 | `frontend/`：`npm run lint`、`npm run build` | 均退出 0，含 TypeScript 类型检查及 Vite 构建。 |
+| 文档与工作区 | 根目录 `python3 ai-docs/check_docs.py`、`git diff --check`；核对 README SHA256/暂存区 | 14 对功能/计划、42 张 ticket，链接/索引/状态与 review 门槛一致；空白检查通过。用户 README SHA256 与维护前一致，未暂存。 |
+
+本次产物独立保存在忽略的 `.local/coach-calendar-place-name/`：`browser-red.log`、`browser-green.log`、`browser-result.json`、390/1440px 月历截图、`frontend-regression.log`、`frontend-regression-recheck.log`、`frontend-lint.log`、`frontend-build.log`。此前 revision 6 原始 RED/GREEN/回归证据保留。
+
+#### 2026-10-12 提交推送授权
+
+用户随后明确要求“提交推送”，授权把当前 revision 6 边框、地点名称及相关测试、配对文档/索引和 TODO-0041/0042 提交并推送到现有 main。用户独立 `frontend/README.md` 修改不纳入提交，不 amend/force push，不新增资源或手工部署动作。此前“未提交/推送/部署”记录为各验证阶段的历史事实。
+
+提交标题采用 `feat: improve coach calendar status and location labels`。本地行为/构建证据沿用上述已完成检查；提交前重新核对文档、diff、暂存文件和远端 main。main 推送后的 CI/CD 沿用 0010 已批准并启用的自动发布规则（可信 main push 的 CI 全成功后自动更新 EC2，无逐次人工发布门槛）；本功能暂保留 VERIFIED，不能把 commit/push 成功视为已部署。

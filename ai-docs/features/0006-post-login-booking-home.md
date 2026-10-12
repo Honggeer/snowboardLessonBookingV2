@@ -4,12 +4,14 @@ title: "登录后约课主界面"
 status: VERIFIED
 plan: "../implement-plan/0006-post-login-booking-home.md"
 created: 2026-09-30
-updated: 2026-10-05
+updated: 2026-10-12
 contract_version: "1.6"
 modules: [frontend, identity, catalog, scheduling, bookings]
 ---
 
 # 0006 — 登录后约课主界面
+
+> 当前状态：**revision 6，教练月历日期状态边框，VERIFIED（本地）**。2026-10-12 用户回复“批准，google calender列入todo”，批准具体日历计划的本地实现与验证；已完成目标 RED → GREEN、103 项前端回归、lint/构建与 390/1440px Chrome 检查。revision 1–5 的批准与 VERIFIED 证据作为历史保留。Google Calendar 仅记录为 [TODO-0041](../todo/0041-confirmed-lessons-google-calendar.md)，不包含在 revision 6 的实现范围内。
 
 2026-10-06 新预约联系电话前置条件与教练联系显示单独见 [0011](0011-student-contact-phone.md) 与[计划 revision 1](../implement-plan/0011-student-contact-phone.md)，已按批准的 revision 1 完成本地验证（VERIFIED）；原有 revision 1–5 的批准/验证记录不授权这项新行为，已有预约处理规则保留。
 
@@ -296,3 +298,49 @@ VERIFIED（本地）：已完成前后端实现与目标 RED/GREEN，前端 63/6
 - R5-AC-04：过去日期和已开始时间拒绝且整批无写入；32 个日期、102 个时段、重复日期和 DST 异常拒绝；31 个日期及 100 个时段边界成功，学员查询跨度 31 天成功/32 天拒绝。既有替换/并发/锁定/权限/领域回归通过。
 - 前端 63/63、后端 37 类 152/152、lint/类型/构建通过；目标补充断言最终 8/8 正常退出。后端完整测试结束后的 JVM 关停超时独立记录于 [TODO-0034](../todo/0034-full-backend-test-shutdown-timeout.md)，不声称资源关停已验证。实际命令、日志位置及边界见配对计划。
 - 无数据库迁移、架构例外或新增成本；未提交推送或生产发布。当前 VERIFIED 不表示 RELEASED；原 Logo 维护保留。
+
+### Revision 6：教练月历日期状态边框（已实现，本地验证通过）
+
+#### 来源与已确认规则
+
+- 2026-10-12 用户：“管理可用时间那个日历表，如果有课的日期能不能用绿色边框……有可用时段的日期用黄色边框？勾选效果可以不变。”
+- 用户随后回答“是，按这个规则”，确认了以下澄清：“有已确认课程显示绿色；只有可用时段显示黄色；两者同时存在时绿色优先；选中效果照旧”。当时为业务规则确认；具体 revision 6 计划后于同日由用户“批准，google calender列入todo”明确批准。
+- 源码依据：月度接口已返回当天 OPEN/BOOKED 时段。PENDING 不占位，只有课程确认后对应时段进入 BOOKED；绿色依据月历完整月份数据，不依据可能只加载第一页的预约申请列表。
+
+#### 日期表现与范围
+
+| 日期状态 | 未选中时的边框 | 选中或既有蓝色悬停反馈 |
+|---|---|---|
+| 至少一个 BOOKED 时段，包括同时还有 OPEN | 绿色 `#20a164` | 原有蓝色边框/蓝底/白字 |
+| 没有 BOOKED，至少一个 OPEN | 黄色 `#b88700` | 原有蓝色边框/蓝底/白字 |
+| 没有 OPEN/BOOKED | 原有默认边框 | 原有蓝色边框/蓝底/白字 |
+
+- 颜色表达已发布时段的占用状态；OPEN 不代表绕过服务端的开始时间、雪场有效性及预约资格校验。过去日期的历史状态边框同样可见，原有灰底/仅查看规则继续执行。
+- 保持边框宽度、日期格尺寸、七列布局、点击详情、跨月多选、取消选择、`aria-pressed` 和日期按钮的原有名称。增加简短图例及日期状态的可访问描述，让颜色有对应的文字含义。
+- 新建可用时段不代表课程确认；既有 `just-published` 的绿色装饰调整为遵循当前日程状态。原有发布成功/失败、刚发布文字、刷新失败和重试反馈保留。月度刷新失败时不根据“刚发布”凭空认定已有 BOOKED，也不把错误当作空日程。
+- 本修订只调整教练“管理可用时间”月历展示；不增加后端接口、数据库迁移、依赖或外部服务，不改变预约确认/取消、排班替换、容量及权限。
+
+#### Revision 6 验收条件
+
+| ID | 场景 | 预期结果 | 验证方式 |
+|---|---|---|---|
+| R6-AC-01 | 月历中当天只有 BOOKED，或 BOOKED 与 OPEN 并存 | 未选中时绿色边框，文字说明有已确认课程，绿色优先 | DOM 行为目标 + Chrome 实际样式 |
+| R6-AC-02 | 当天只有 OPEN，或没有任何活动时段 | 分别为黄色/默认边框；PENDING 本身不会变绿，撤回时段不算可用 | DOM 月份响应/预约分页场景 + Chrome |
+| R6-AC-03 | 选中、取消选择、悬停、跨月往返 | 原有蓝色选中/悬停与多选规则保留；取消选择恢复正确状态边框；已过去日期仍只能查看 | 交互回归 + 390/1440px Chrome |
+| R6-AC-04 | 新发布、月份刷新成功/失败、确认/取消后的正常重载 | 颜色使用月份最新有效状态；发布空闲时段不会误显示有课；已有成功/失败/重试及会话反馈保留 | DOM 响应切换/回归 + Chrome |
+| R6-AC-05 | 桌面、手机、键盘/辅助阅读 | 图例可读、状态有文字描述、七列无横向溢出，日期尺寸和焦点/选择语义不变 | 构建/lint/类型 + Chrome 与 DOM |
+
+#### 状态、证据与外部日历咨询
+
+- **VERIFIED（本地）**：2026-10-12 按用户“批准，google calender列入todo”批准的[配对计划 revision 6](../implement-plan/0006-post-login-booking-home.md)，先完成 4 个目标测试因缺失日期状态描述 RED，实现后同一目标 4/4 GREEN，进入 IMPLEMENTED；全部前端 103/103、lint/类型/构建、Chrome 和文档检查通过后进入 VERIFIED。尚未提交、推送或生产部署。
+- R6-AC-01/02：目标用例和 Chrome 核对 BOOKED/混合为绿色、OPEN/PENDING 对应空闲日期为黄色、CLOSED/空日程为默认；完整月份的已确认课不受预约第一页缺失影响。
+- R6-AC-03/05：390/1440px Chrome 实际样式及截图确认 1px 边框、原日期尺寸、蓝色选中/悬停、取消恢复、跨月保留、键盘 Space 与焦点均正常；过去日期保持灰底/仅查看，图例和可访问描述可读，七列无横向溢出、无页面异常。
+- R6-AC-04：发布刷新后新日期为黄色；月度读取失败保留已知状态、“刚发布”和错误/重试，重试成功后更新颜色且不重复提交。Chrome 另切换本地月份 fixture 后正常重载，确认最新状态反映在边框上；不代表真实后端确认/取消或生产端到端验证。
+- 实际命令、日志及浏览器证据见配对计划。后端/API/数据和项目依赖无变化；用户独立 `frontend/README.md` 修改保留。
+- Google Calendar 在授权后支持创建及删除事件，课程确认后写入教练日历在技术上可行，建议同时设计取消后的移除、重试去重及连接状态。当前只提供可行性答复；实施方式、目标日历、历史课程范围及外部数据字段需后续单独制定计划。本修订不连接 Google 账号、不创建云项目、不写入日历。官方依据：[创建事件](https://developers.google.com/workspace/calendar/api/guides/create-events)、[删除事件](https://developers.google.com/workspace/calendar/api/v3/reference/events/delete)、[配额与费用](https://developers.google.com/workspace/calendar/api/guides/quota)。
+
+#### 2026-10-12 展示维护：锁定地点名称
+
+用户要求“日历里面的已锁山能不能替换成地点名字”。日期格已改为显示月份响应中 `lockedMountain.name`，长名称沿用单行省略，点击日期可在详情阅读完整名称；“待映射”提示优先级和绿色/黄色边框、蓝色选择效果保留。沿用 revision 6 的展示维护，不改变锁定业务、API/数据/CSS/依赖；Google Calendar 仍仅为 TODO。维护已由 IMPLEMENTED 进入 VERIFIED（本地）：Chrome 同一检查先因缺失地点名称 RED，修改后 390/1440px GREEN，截图已查看；前端全量复跑 103/103、lint/构建和文档检查通过。首次完整回归中独立学员电话用例的偶发超时记录为 [TODO-0042](../todo/0042-student-contact-test-initial-slot-flake.md)，没有将复跑通过当作根因修复。实际证据见配对计划；未提交、推送或部署。
+
+2026-10-12 交付授权更新：用户随后明确要求“提交推送”，授权当前 revision 6 日历边框、地点文案及配套测试/文档/TODO 的 commit/push。保留用户独立 `frontend/README.md` 修改。沿用 [0010](../implement-plan/0010-production-delivery.md) 已批准的 main CI 成功后自动发布规则；此处仅记录授权，提交、远端 CI/CD 与实际部署结果须分别核对，本地 VERIFIED 不据此升级为 RELEASED。

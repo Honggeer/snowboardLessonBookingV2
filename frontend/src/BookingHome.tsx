@@ -835,6 +835,10 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                   <strong>{calendarYear}年{calendarNumber}月</strong>
                   <button type="button" onClick={() => { setCalendarMonth((current) => shiftMonth(current, 1)); setCalendarAction(null); }}>下一个月</button>
                 </div>
+                <p className="coach-calendar-legend">
+                  <span id="coach-calendar-booked-status"><i className="booked" aria-hidden="true" />绿色：有已确认课程</span>
+                  <span id="coach-calendar-open-status"><i className="open" aria-hidden="true" />黄色：有可用时段</span>
+                </p>
                 {calendarAction && <p className={`booking-inline-status ${calendarAction.error ? 'error' : 'success'} coach-calendar-action`}
                   role={calendarAction.error ? 'alert' : 'status'}>{calendarAction.message}</p>}
                 <div className="coach-calendar-grid">
@@ -844,8 +848,11 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                     const day = calendarDays.find((item) => item.localDate === date);
                     const selectable = date >= earliestSelectable;
                     const selected = calendarSelection.includes(date);
-                    return <button key={date} type="button" className={`coach-calendar-day${selected ? ' selected' : ''}${selected || selectable ? '' : ' unavailable'}${publishedDates.includes(date) ? ' just-published' : ''}`}
+                    const hasBooked = day?.slots.some((slot) => slot.status === 'BOOKED');
+                    const hasOpen = day?.slots.some((slot) => slot.status === 'OPEN');
+                    return <button key={date} type="button" className={`coach-calendar-day${hasBooked ? ' has-booked' : hasOpen ? ' has-open' : ''}${selected ? ' selected' : ''}${selected || selectable ? '' : ' unavailable'}`}
                       aria-label={`${selected ? '取消选择日期' : selectable ? '选择日期' : '查看日期'} ${date}`}
+                      aria-describedby={hasBooked ? 'coach-calendar-booked-status' : hasOpen ? 'coach-calendar-open-status' : undefined}
                       aria-pressed={selected} onClick={() => {
                         setCalendarDetail(date);
                         if (selected) {
@@ -872,7 +879,7 @@ export default function BookingHome({ account, csrf, refreshCsrf, onLogout, onUn
                         setSlotKey(null); setError(''); setCalendarWriteError('');
                       }}>
                       <strong>{Number(date.slice(-2))}</strong>
-                      <small>{day?.legacyReviewRequired ? '待映射' : day?.lockedMountain ? '已锁山' : day?.slots.some((slot) => slot.status === 'BOOKED') ? '已预约' : day?.slots.length ? `${day.slots.length} 时段` : publishedDates.includes(date) ? '刚发布' : selectable ? '可添加' : '仅查看'}</small>
+                      <small>{day?.legacyReviewRequired ? '待映射' : day?.lockedMountain ? day.lockedMountain.name : day?.slots.some((slot) => slot.status === 'BOOKED') ? '已预约' : day?.slots.length ? `${day.slots.length} 时段` : publishedDates.includes(date) ? '刚发布' : selectable ? '可添加' : '仅查看'}</small>
                     </button>;
                   })}
                 </div>

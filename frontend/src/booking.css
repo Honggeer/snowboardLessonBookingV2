@@ -152,15 +152,21 @@
 .coach-calendar-heading { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 0 12px; }
 .coach-calendar-heading button { padding: 8px 10px; border: 1px solid #c6daed; border-radius: 7px; color: #156bb4; background: #f5faff; font-weight: 700; }
 .coach-calendar-action { margin: 0 0 10px; }
+.coach-calendar-legend { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 0 0 12px; color: #577087; font-size: 12px; }
+.coach-calendar-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.coach-calendar-legend i { width: 10px; height: 10px; border: 1px solid; border-radius: 3px; }
+.coach-calendar-legend .booked { border-color: #20a164; }
+.coach-calendar-legend .open { border-color: #b88700; }
 .coach-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
 .coach-calendar-weekday { padding: 5px 0; color: #647e97; font-size: 12px; text-align: center; }
 .coach-calendar-day { display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 0; min-height: 55px; padding: 4px 1px; border: 1px solid #d8e5f0; border-radius: 7px; color: #183e62; background: #fff; }
 .coach-calendar-day strong { font-size: 16px; }
 .coach-calendar-day small { overflow: hidden; max-width: 100%; color: #607f9b; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.coach-calendar-day.has-booked { border-color: #20a164; }
+.coach-calendar-day.has-open { border-color: #b88700; }
 .coach-calendar-day:not(.unavailable):hover, .coach-calendar-day.selected { border-color: #006dd0; color: #fff; background: #006dd0; }
 .coach-calendar-day.unavailable { color: #75899b; background: #f4f6f8; }
 .coach-calendar-day.unavailable small { color: #778a9b; }
-.coach-calendar-day.just-published:not(.selected) { border: 2px solid #20a164; background: #eaf9f0; }
 .coach-calendar-day.selected small, .coach-calendar-day:not(.unavailable):hover small { color: #e7f4ff; }
 .coach-calendar-detail { margin-top: 12px; padding: 13px; border: 1px solid #d7e6f4; border-radius: 8px; background: #f7fbff; font-size: 13px; }
 .coach-calendar-detail p { margin: 6px 0 0; color: #476783; }
